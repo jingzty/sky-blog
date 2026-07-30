@@ -1,146 +1,242 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>分类管理 — 远远的天空</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Noto+Serif+SC:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../css/tokens.css">
-  <style>
-    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:var(--sans);background:var(--cream);color:var(--day-ink);min-height:100vh;display:flex}
-    a{color:inherit;text-decoration:none}
-    ::selection{background:var(--gold);color:#fff}
-
-    .sidebar{width:240px;background:var(--night-3);color:var(--night-ink);padding:32px 0;display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:40}
-    .sidebar-brand{font-family:var(--serif);font-weight:700;font-size:1.1rem;padding:0 24px 28px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;gap:8px}
-    .sidebar-brand svg{width:20px;height:20px;color:var(--gold-soft)}
-    .sidebar-nav{flex:1;padding:16px 0}
-    .sidebar-nav a{display:flex;align-items:center;gap:10px;padding:12px 24px;font-size:0.9rem;color:var(--text-dim);transition:all 0.2s}
-    .sidebar-nav a:hover,.sidebar-nav a.active{color:#fff;background:rgba(255,255,255,0.08)}
-    .sidebar-nav a.active{border-right:3px solid var(--gold)}
-    .sidebar-nav svg{width:16px;height:16px;flex-shrink:0}
-    .sidebar-foot{padding:16px 24px;border-top:1px solid rgba(255,255,255,0.08)}
-    .sidebar-foot a{font-size:0.82rem;color:var(--text-faint);display:flex;align-items:center;gap:6px;transition:color 0.2s}
-    .sidebar-foot a:hover{color:var(--gold-soft)}
-
-    .main{margin-left:240px;flex:1;padding:40px;min-height:100vh}
-    .main h1{font-family:var(--serif);font-size:1.8rem;font-weight:700;margin-bottom:28px}
-
-    .btn{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:100px;font-size:0.88rem;font-family:var(--sans);cursor:pointer;transition:all 0.3s;border:none}
-    .btn-primary{background:var(--day-ink);color:var(--day-1)}
-    .btn-primary:hover{background:var(--day-deep)}
-    .btn-sm{padding:6px 14px;font-size:0.78rem}
-    .btn-outline{background:transparent;border:1px solid rgba(0,0,0,0.15);color:var(--day-ink)}
-    .btn-outline:hover{background:rgba(0,0,0,0.04)}
-    .btn-danger{background:var(--dusk-2);color:#fff}
-    .btn-danger:hover{background:var(--dusk-3)}
-
-    table{width:100%;border-collapse:collapse;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.04);margin-bottom:24px}
-    th,td{padding:14px 18px;text-align:left;font-size:0.88rem}
-    th{background:var(--night-3);color:var(--night-ink);font-weight:500;font-size:0.78rem;letter-spacing:0.05em}
-    td{border-bottom:1px solid rgba(0,0,0,0.05)}
-
-    .form-row{display:flex;gap:10px;margin-bottom:28px;flex-wrap:wrap}
-    .form-row input,.form-row select{padding:10px 16px;border:1px solid rgba(0,0,0,0.15);border-radius:10px;font-size:0.88rem;font-family:var(--sans);outline:none;background:#fff}
-    .form-row input:focus{border-color:var(--day-deep)}
-
-    .color-dot{display:inline-block;width:14px;height:14px;border-radius:4px;margin-right:6px;vertical-align:middle}
-
-    @media(max-width:768px){
-      .sidebar{width:100%;height:auto;position:relative;padding:16px;flex-direction:row;flex-wrap:wrap;align-items:center;gap:8px}
-      .sidebar-brand{border:none;padding:0}
-      .sidebar-nav{display:flex;flex:0;padding:0;gap:4px;overflow-x:auto}
-      .sidebar-nav a{padding:8px 12px;font-size:0.78rem;border-right:none!important;white-space:nowrap}
-      .sidebar-foot{display:none}
-      .main{margin-left:0;padding:24px 16px}
+  <link rel="stylesheet" href="../css/admin.css">
+  <script src="../js/vendor/tailwind4.js"></script>
+  <script src="../js/vendor/lucide.js"></script>
+  <style type="text/tailwindcss">
+    @theme inline {
+      --color-warm-bg: var(--warm-bg); --color-warm-surface: var(--warm-surface);
+      --color-warm-surface-2: var(--warm-surface-2); --color-warm-surface-3: var(--warm-surface-3);
+      --color-warm-ink: var(--warm-ink); --color-warm-ink-2: var(--warm-ink-2); --color-warm-ink-3: var(--warm-ink-3);
+      --color-warm-brand: var(--warm-brand); --color-warm-brand-50: var(--warm-brand-50);
+      --color-warm-brand-100: var(--warm-brand-100); --color-warm-brand-300: var(--warm-brand-300);
+      --color-warm-brand-500: var(--warm-brand-500); --color-warm-brand-600: var(--warm-brand-600);
+      --color-warm-line: var(--warm-line);
+      --color-warm-state-success: var(--warm-state-success); --color-warm-state-warning: var(--warm-state-warning);
+      --color-warm-state-error: var(--warm-state-error); --color-warm-state-info: var(--warm-state-info);
+      --radius-warm-md: var(--warm-radius-medium); --radius-warm-lg: var(--warm-radius-large);
     }
   </style>
+  <style>
+    .swatch { display:inline-block; width:20px; height:20px; border-radius:6px; border:1px solid rgba(0,0,0,0.1); }
+    .swatch.s1 { background: linear-gradient(90deg,#4a90c2,#5b9bd5); }
+    .swatch.s2 { background: linear-gradient(90deg,#6b8aa5,#7a9ab8); }
+    .swatch.s3 { background: linear-gradient(90deg,#b8425a,#c1554b); }
+    .swatch.s4 { background: linear-gradient(90deg,#e8744f,#ef9f6c); }
+    .swatch.s5 { background: linear-gradient(90deg,#d4a06a,#c9985a); }
+    .swatch.s6 { background: linear-gradient(90deg,#8a6fa5,#7a5fa0); }
+    .swatch.s7 { background: linear-gradient(90deg,#5b8a72,#4a7a62); }
+  </style>
 </head>
-<body>
+<body class="min-h-screen" data-page="categories">
+  <div id="sidebar-slot"></div>
 
-  <aside class="sidebar">
-    <a href="index.html" class="sidebar-brand">
-      <svg viewBox="0 0 32 32" fill="none"><path d="M22 18a5 5 0 0 0-9.8-1.4A4 4 0 0 0 6 20.5 4.5 4.5 0 0 0 10.5 25H22a4 4 0 0 0 0-8z" fill="currentColor"></path><circle cx="24" cy="9" r="3.5" fill="currentColor" opacity="0.7"></circle></svg>
-      后台管理
-    </a>
-    <nav class="sidebar-nav">
-      <a href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect></svg>仪表盘</a>
-      <a href="posts.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>文章管理</a>
-      <a href="categories.html" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>分类管理</a>
-      <a href="slides.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>轮播管理</a>
-      <a href="config.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path></svg>站点配置</a>
-    </nav>
-    <div class="sidebar-foot">
-      <a href="#" id="logoutBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>退出</a>
-      <a href="../index.html" style="margin-top:10px;display:flex;align-items:center;gap:6px">← 前台</a>
+  <main class="admin-main ml-[240px] min-h-screen p-8">
+    <header class="mb-8 flex items-start justify-between">
+      <div>
+        <h1 class="text-h1 mb-1" style="color: var(--warm-ink);">分类管理</h1>
+        <p class="text-body" style="color: var(--warm-ink-2);">为文章归类，分配颜色与排序</p>
+      </div>
+    </header>
+
+    <div class="space-y-6 max-w-5xl">
+      <!-- 新增/编辑表单 -->
+      <section class="card p-6">
+        <div class="flex items-center gap-2 mb-4">
+          <i data-lucide="plus" class="w-4 h-4" style="color: var(--warm-brand);"></i>
+          <h2 class="text-h3" style="color: var(--warm-ink);" id="formTitle">新增分类</h2>
+        </div>
+        <form id="catForm" class="flex flex-wrap items-end gap-4" onsubmit="return false;">
+          <input type="hidden" id="editId" />
+          <div class="flex-1 min-w-[160px]">
+            <label class="block text-caption mb-1.5" style="color: var(--warm-ink-2);">分类名称</label>
+            <input type="text" id="fName" placeholder="例如：旅行" class="input-field w-full px-3 py-2 rounded-warm-md text-sm" />
+          </div>
+          <div class="flex-1 min-w-[160px]">
+            <label class="block text-caption mb-1.5" style="color: var(--warm-ink-2);">描述</label>
+            <input type="text" id="fDesc" placeholder="一句话描述" class="input-field w-full px-3 py-2 rounded-warm-md text-sm" />
+          </div>
+          <div class="min-w-[140px]">
+            <label class="block text-caption mb-1.5" style="color: var(--warm-ink-2);">颜色</label>
+            <select id="fColor" class="input-field w-full px-3 py-2 rounded-warm-md text-sm"></select>
+          </div>
+          <div class="w-24">
+            <label class="block text-caption mb-1.5" style="color: var(--warm-ink-2);">排序</label>
+            <input type="number" id="fSort" value="1" min="0" class="input-field w-full px-3 py-2 rounded-warm-md text-sm tabular-nums" />
+          </div>
+          <button type="submit" id="submitBtn" class="btn-primary flex items-center gap-2 px-5 py-2 rounded-warm-md text-sm font-medium">
+            <i data-lucide="save" class="w-4 h-4"></i><span>保存</span>
+          </button>
+          <button type="button" id="cancelBtn" class="btn-secondary hidden items-center gap-2 px-4 py-2 rounded-warm-md text-sm font-medium">
+            取消
+          </button>
+        </form>
+      </section>
+
+      <!-- 推荐颜色 -->
+      <section class="card p-6">
+        <div class="flex items-center gap-2 mb-4">
+          <i data-lucide="palette" class="w-4 h-4" style="color: var(--warm-brand);"></i>
+          <h2 class="text-h3" style="color: var(--warm-ink);">天空色板</h2>
+        </div>
+        <div class="flex flex-wrap gap-3" id="palette"></div>
+      </section>
+
+      <!-- 分类列表 -->
+      <section class="card p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-h3" style="color: var(--warm-ink);">分类列表</h2>
+          <div class="flex items-center gap-1 text-caption" style="color: var(--warm-ink-3);">
+            <i data-lucide="arrow-up-down" class="w-3.5 h-3.5"></i><span>按排序升序</span>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr style="border-bottom: 1px solid var(--warm-line);">
+                <th class="text-left py-3 pr-4 font-medium" style="color: var(--warm-ink-2);">名称</th>
+                <th class="text-left py-3 pr-4 font-medium" style="color: var(--warm-ink-2);">描述</th>
+                <th class="text-left py-3 pr-4 font-medium" style="color: var(--warm-ink-2);">颜色</th>
+                <th class="text-left py-3 pr-4 font-medium" style="color: var(--warm-ink-2);">排序</th>
+                <th class="text-left py-3 pr-4 font-medium" style="color: var(--warm-ink-2);">文章数</th>
+                <th class="text-left py-3 font-medium" style="color: var(--warm-ink-2);">操作</th>
+              </tr>
+            </thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+        <div id="empty" class="empty-state hidden">暂无分类，在上方添加第一个</div>
+      </section>
     </div>
-  </aside>
-
-  <main class="main">
-    <h1>分类管理</h1>
-
-    <div class="form-row">
-      <input type="text" id="newName" placeholder="分类名称">
-      <input type="text" id="newDesc" placeholder="分类描述">
-      <select id="newColor">
-        <option value="s1">蓝色</option><option value="s2">灰蓝</option><option value="s3">玫红</option>
-        <option value="s4">橙色</option><option value="s5">金色</option><option value="s6">紫色</option><option value="s7">绿色</option>
-      </select>
-      <button class="btn btn-primary" id="addBtn">添加分类</button>
-    </div>
-
-    <div id="catsTable"></div>
   </main>
 
   <script src="../js/api.js"></script>
   <script src="../js/ui.js"></script>
+  <script src="../js/admin.js"></script>
   <script>
-    if(!API.isAuthed()){ window.location.href = '../login.html'; }
+    if (!API.isAuthed()) window.location.href = '../login.html';
 
-    async function loadCats(){
-      const cats = await API.getCategories();
-      const el = document.getElementById('catsTable');
-      el.innerHTML = `<table><thead><tr><th>名称</th><th>描述</th><th>颜色</th><th>排序</th><th>操作</th></tr></thead><tbody>
-        ${cats.filter(c=>c.name!=='全部').map(c => `
-          <tr>
-            <td><strong>${c.name}</strong></td>
-            <td>${c.description||''}</td>
-            <td><span class="color-dot" style="background:${c.color==='s1'?'#4a90c2':c.color==='s2'?'#6b8aa5':c.color==='s3'?'#b8425a':c.color==='s4'?'#e8744f':c.color==='s5'?'#d4a06a':c.color==='s6'?'#8a6fa5':'#5b8a72'}"></span>${c.color}</td>
-            <td>${c.sortOrder}</td>
-            <td><button class="btn btn-outline btn-sm" data-edit="${c.id}">编辑</button> <button class="btn btn-danger btn-sm" data-delete="${c.id}">删除</button></td>
-          </tr>`).join('')}
-      </tbody></table>`;
+    const COLORS = [
+      { k: 's1', label: '白昼蓝' }, { k: 's2', label: '薄雾灰蓝' },
+      { k: 's3', label: '黄昏霞红' }, { k: 's4', label: '日落橙' },
+      { k: 's5', label: '沙金' }, { k: 's6', label: '暮色紫' },
+      { k: 's7', label: '山林绿' },
+    ];
+    let postCounts = {};
 
-      el.querySelectorAll('[data-delete]').forEach(btn => {
-        btn.addEventListener('click', async ()=>{
-          if(!confirm('删除分类？')) return;
-          await API.deleteCategory(+btn.dataset.delete);
-          UI.toast('已删除');
-          loadCats();
-        });
+    function esc(s) { return String(s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+
+    // 填充颜色下拉与色板
+    document.getElementById('fColor').innerHTML = COLORS.map(c => `<option value="${c.k}">${c.label}</option>`).join('');
+    document.getElementById('palette').innerHTML = COLORS.map(c => `
+      <button type="button" class="pick-color flex items-center gap-2 px-3 py-2 rounded-warm-md" data-color="${c.k}" style="background: var(--warm-surface-2);">
+        <span class="swatch ${c.k}"></span>
+        <span class="text-caption" style="color: var(--warm-ink-2);">${c.label}</span>
+      </button>`).join('');
+    document.querySelectorAll('.pick-color').forEach(b => b.onclick = () => {
+      document.getElementById('fColor').value = b.dataset.color;
+    });
+
+    async function loadCounts() {
+      const posts = await API.getPosts({ all: 1 });
+      postCounts = {};
+      posts.forEach(p => { if (p.categoryId) postCounts[p.categoryId] = (postCounts[p.categoryId] || 0) + 1; });
+    }
+
+    async function load() {
+      try {
+        await loadCounts();
+        const cats = await API.getCategories();
+        const list = cats.filter(c => c.name !== '全部');
+        const tb = document.getElementById('rows');
+        const empty = document.getElementById('empty');
+        if (list.length === 0) { tb.innerHTML = ''; empty.classList.remove('hidden'); return; }
+        empty.classList.add('hidden');
+        tb.innerHTML = list.map(c => `
+          <tr style="border-bottom: 1px solid var(--warm-line);" data-id="${c.id}">
+            <td class="py-3 pr-4 font-medium" style="color: var(--warm-ink);">${esc(c.name)}</td>
+            <td class="py-3 pr-4 text-caption" style="color: var(--warm-ink-2);">${esc(c.description || '-')}</td>
+            <td class="py-3 pr-4">
+              <div class="flex items-center gap-2">
+                <span class="swatch ${c.color || 's1'}"></span>
+                <span class="text-caption" style="color: var(--warm-ink-2);">${(COLORS.find(x => x.k === c.color) || {}).label || c.color || '-'}</span>
+              </div>
+            </td>
+            <td class="py-3 pr-4 tabular-nums" style="color: var(--warm-ink);">${c.sortOrder ?? '-'}</td>
+            <td class="py-3 pr-4 tabular-nums" style="color: var(--warm-ink);">${postCounts[c.id] || 0}</td>
+            <td class="py-3">
+              <div class="flex items-center gap-3">
+                <button class="action-link flex items-center gap-1 text-caption act-edit">
+                  <i data-lucide="edit-3" class="w-3.5 h-3.5"></i><span>编辑</span>
+                </button>
+                <button class="action-link danger flex items-center gap-1 text-caption act-del">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i><span>删除</span>
+                </button>
+              </div>
+            </td>
+          </tr>`).join('');
+        lucide.createIcons();
+        bindRowEvents();
+      } catch (e) { Admin.toast('加载失败: ' + e.message); }
+    }
+
+    function bindRowEvents() {
+      document.querySelectorAll('.act-edit').forEach(b => b.onclick = async () => {
+        const id = +b.closest('tr').dataset.id;
+        const cats = await API.getCategories();
+        const c = cats.find(x => x.id === id);
+        if (!c) return;
+        document.getElementById('editId').value = c.id;
+        document.getElementById('fName').value = c.name;
+        document.getElementById('fDesc').value = c.description || '';
+        document.getElementById('fColor').value = c.color || 's1';
+        document.getElementById('fSort').value = c.sortOrder ?? 1;
+        document.getElementById('formTitle').textContent = '编辑分类';
+        document.getElementById('submitBtn').querySelector('span').textContent = '更新';
+        document.getElementById('cancelBtn').classList.remove('hidden');
+        document.getElementById('cancelBtn').classList.add('flex');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+      document.querySelectorAll('.act-del').forEach(b => b.onclick = async () => {
+        if (!confirm('确定删除该分类？分类下的文章将变为未分类。')) return;
+        const id = +b.closest('tr').dataset.id;
+        try { await API.deleteCategory(id); Admin.toast('已删除'); resetForm(); load(); }
+        catch (e) { Admin.toast('删除失败: ' + e.message); }
       });
     }
 
-    loadCats();
+    function resetForm() {
+      document.getElementById('catForm').reset();
+      document.getElementById('editId').value = '';
+      document.getElementById('formTitle').textContent = '新增分类';
+      document.getElementById('submitBtn').querySelector('span').textContent = '保存';
+      document.getElementById('cancelBtn').classList.add('hidden');
+      document.getElementById('cancelBtn').classList.remove('flex');
+    }
+    document.getElementById('cancelBtn').onclick = resetForm;
 
-    document.getElementById('addBtn').addEventListener('click', async ()=>{
-      const name = document.getElementById('newName').value.trim();
-      if(!name){ UI.toast('请输入分类名称'); return; }
-      const desc = document.getElementById('newDesc').value.trim();
-      const color = document.getElementById('newColor').value;
-      await API.createCategory({name, description:desc, color, sortOrder:99});
-      UI.toast('已添加');
-      document.getElementById('newName').value = '';
-      document.getElementById('newDesc').value = '';
-      loadCats();
-    });
+    document.getElementById('catForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('editId').value;
+      const data = {
+        name: document.getElementById('fName').value.trim(),
+        description: document.getElementById('fDesc').value.trim(),
+        color: document.getElementById('fColor').value,
+        sortOrder: +document.getElementById('fSort').value || 1,
+      };
+      if (!data.name) return Admin.toast('分类名称不能为空');
+      try {
+        if (id) { await API.updateCategory(+id, data); Admin.toast('已更新'); }
+        else { await API.createCategory(data); Admin.toast('已添加'); }
+        resetForm(); load();
+      } catch (err) { Admin.toast('保存失败: ' + err.message); }
+    };
 
-    document.getElementById('logoutBtn').addEventListener('click',(e)=>{
-      e.preventDefault(); API.clearToken(); window.location.href = '../login.html';
-    });
+    load();
   </script>
 </body>
 </html>

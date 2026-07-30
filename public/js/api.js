@@ -159,8 +159,8 @@ window.API = (function(){
     },
 
     /* 轮播 */
-    async getSlides(){ return read(LS_SLIDES).filter(s=>s.status==='active').sort((a,b)=>a.sortOrder-b.sortOrder); },
-    async getSlidesAll(all){ if(all) return read(LS_SLIDES).sort((a,b)=>a.sortOrder-b.sortOrder); return local.getSlides(); },
+    async getSlides(params={}){ const all=read(LS_SLIDES).sort((a,b)=>a.sortOrder-b.sortOrder); if(params.all) return all; return all.filter(s=>s.status==='active'); },
+    async getSlidesAll(all){ return local.getSlides({all}); },
     async saveSlides(list){ write(LS_SLIDES,list); return {ok:true}; },
 
     /* 站点配置 */
@@ -203,7 +203,7 @@ window.API = (function(){
     createCategory:(d)=>request('POST','/api/categories',d),
     updateCategory:(id,d)=>request('PUT','/api/categories/'+id,d),
     deleteCategory:(id)=>request('DELETE','/api/categories/'+id),
-    getSlides:()=>request('GET','/api/slides'),
+    getSlides:(params={})=>request('GET','/api/slides'+(params.all?'?all=1':'')),
     saveSlides:(l)=>request('PUT','/api/slides',l),
     getConfig:()=>request('GET','/api/config'),
     updateConfig:(d)=>request('PUT','/api/config',d),

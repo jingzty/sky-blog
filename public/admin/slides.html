@@ -1,141 +1,194 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>轮播管理 — 远远的天空</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Noto+Serif+SC:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../css/tokens.css">
-  <style>
-    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:var(--sans);background:var(--cream);color:var(--day-ink);min-height:100vh;display:flex}
-    a{color:inherit;text-decoration:none}
-    ::selection{background:var(--gold);color:#fff}
-
-    .sidebar{width:240px;background:var(--night-3);color:var(--night-ink);padding:32px 0;display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:40}
-    .sidebar-brand{font-family:var(--serif);font-weight:700;font-size:1.1rem;padding:0 24px 28px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;gap:8px}
-    .sidebar-brand svg{width:20px;height:20px;color:var(--gold-soft)}
-    .sidebar-nav{flex:1;padding:16px 0}
-    .sidebar-nav a{display:flex;align-items:center;gap:10px;padding:12px 24px;font-size:0.9rem;color:var(--text-dim);transition:all 0.2s}
-    .sidebar-nav a:hover,.sidebar-nav a.active{color:#fff;background:rgba(255,255,255,0.08)}
-    .sidebar-nav a.active{border-right:3px solid var(--gold)}
-    .sidebar-nav svg{width:16px;height:16px;flex-shrink:0}
-    .sidebar-foot{padding:16px 24px;border-top:1px solid rgba(255,255,255,0.08)}
-    .sidebar-foot a{font-size:0.82rem;color:var(--text-faint);display:flex;align-items:center;gap:6px;transition:color 0.2s}
-    .sidebar-foot a:hover{color:var(--gold-soft)}
-
-    .main{margin-left:240px;flex:1;padding:40px;min-height:100vh}
-    .main h1{font-family:var(--serif);font-size:1.8rem;font-weight:700;margin-bottom:8px}
-    .main .subtitle{color:var(--taupe);font-size:0.9rem;margin-bottom:28px}
-
-    .btn{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:100px;font-size:0.88rem;font-family:var(--sans);cursor:pointer;transition:all 0.3s;border:none}
-    .btn-primary{background:var(--day-ink);color:var(--day-1)}
-    .btn-primary:hover{background:var(--day-deep)}
-    .btn-sm{padding:6px 14px;font-size:0.78rem}
-
-    .slide-cards{display:flex;flex-direction:column;gap:16px}
-    .slide-card{background:#fff;border-radius:14px;padding:20px 24px;border:1px solid rgba(0,0,0,0.06);display:flex;gap:20px;align-items:center;flex-wrap:wrap;box-shadow:0 2px 8px rgba(0,0,0,0.03)}
-    .slide-card .order{font-family:var(--serif);font-size:1.5rem;font-weight:700;color:var(--taupe);min-width:32px}
-    .slide-card .thumb{width:100px;height:60px;border-radius:8px;object-fit:cover;background:rgba(0,0,0,0.05)}
-    .slide-card .info{flex:1;min-width:200px}
-    .slide-card .info strong{display:block;font-size:0.95rem;margin-bottom:4px}
-    .slide-card .info span{font-size:0.8rem;color:var(--taupe)}
-    .slide-card input,.slide-card select{padding:8px 12px;border:1px solid rgba(0,0,0,0.1);border-radius:8px;font-size:0.85rem;font-family:var(--sans);outline:none;margin:2px 0}
-    .slide-card .fields{display:flex;flex-wrap:wrap;gap:8px;flex:2;min-width:300px}
-    .slide-card .fields input{flex:1;min-width:140px}
-
-    @media(max-width:768px){
-      .sidebar{width:100%;height:auto;position:relative;padding:16px;flex-direction:row;flex-wrap:wrap;align-items:center;gap:8px}
-      .sidebar-brand{border:none;padding:0}
-      .sidebar-nav{display:flex;flex:0;padding:0;gap:4px;overflow-x:auto}
-      .sidebar-nav a{padding:8px 12px;font-size:0.78rem;border-right:none!important;white-space:nowrap}
-      .sidebar-foot{display:none}
-      .main{margin-left:0;padding:24px 16px}
+  <link rel="stylesheet" href="../css/admin.css">
+  <script src="../js/vendor/tailwind4.js"></script>
+  <script src="../js/vendor/lucide.js"></script>
+  <style type="text/tailwindcss">
+    @theme inline {
+      --color-warm-bg: var(--warm-bg); --color-warm-surface: var(--warm-surface);
+      --color-warm-surface-2: var(--warm-surface-2); --color-warm-surface-3: var(--warm-surface-3);
+      --color-warm-ink: var(--warm-ink); --color-warm-ink-2: var(--warm-ink-2); --color-warm-ink-3: var(--warm-ink-3);
+      --color-warm-brand: var(--warm-brand); --color-warm-brand-50: var(--warm-brand-50);
+      --color-warm-brand-100: var(--warm-brand-100); --color-warm-brand-300: var(--warm-brand-300);
+      --color-warm-brand-500: var(--warm-brand-500); --color-warm-brand-600: var(--warm-brand-600);
+      --color-warm-line: var(--warm-line);
+      --color-warm-state-success: var(--warm-state-success); --color-warm-state-warning: var(--warm-state-warning);
+      --color-warm-state-error: var(--warm-state-error); --color-warm-state-info: var(--warm-state-info);
+      --radius-warm-md: var(--warm-radius-medium); --radius-warm-lg: var(--warm-radius-large);
     }
   </style>
+  <style>
+    .toggle { position: relative; display: inline-flex; align-items: center; width: 36px; height: 20px; cursor: pointer; }
+    .toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+    .toggle .track { width: 100%; height: 100%; border-radius: 9999px; background: var(--warm-line); transition: background 0.2s; }
+    .toggle .thumb { position: absolute; left: 2px; top: 2px; width: 16px; height: 16px; border-radius: 9999px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.2); transition: transform 0.2s; }
+    .toggle input:checked ~ .track { background: var(--warm-brand); }
+    .toggle input:checked ~ .thumb { transform: translateX(16px); }
+  </style>
 </head>
-<body>
+<body class="min-h-screen" data-page="carousel">
+  <div id="sidebar-slot"></div>
 
-  <aside class="sidebar">
-    <a href="index.html" class="sidebar-brand">
-      <svg viewBox="0 0 32 32" fill="none"><path d="M22 18a5 5 0 0 0-9.8-1.4A4 4 0 0 0 6 20.5 4.5 4.5 0 0 0 10.5 25H22a4 4 0 0 0 0-8z" fill="currentColor"></path><circle cx="24" cy="9" r="3.5" fill="currentColor" opacity="0.7"></circle></svg>
-      后台管理
-    </a>
-    <nav class="sidebar-nav">
-      <a href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect></svg>仪表盘</a>
-      <a href="posts.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>文章管理</a>
-      <a href="categories.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>分类管理</a>
-      <a href="slides.html" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>轮播管理</a>
-      <a href="config.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path></svg>站点配置</a>
-    </nav>
-    <div class="sidebar-foot">
-      <a href="#" id="logoutBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>退出</a>
-      <a href="../index.html" style="margin-top:10px;display:flex;align-items:center;gap:6px">← 前台</a>
-    </div>
-  </aside>
+  <main class="admin-main ml-[240px] min-h-screen p-8">
+    <header class="mb-8 flex items-start justify-between">
+      <div>
+        <h1 class="text-h1 mb-1" style="color: var(--warm-ink);">轮播管理</h1>
+        <p class="text-body" style="color: var(--warm-ink-2);">首页黎明区天空轮播，按排序展示</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <button id="addBtn" class="btn-secondary flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium">
+          <i data-lucide="plus" class="w-4 h-4"></i><span>添加轮播图</span>
+        </button>
+        <button id="saveBtn" class="btn-primary flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium">
+          <i data-lucide="save" class="w-4 h-4"></i><span>保存设置</span>
+        </button>
+      </div>
+    </header>
 
-  <main class="main">
-    <h1>轮播管理</h1>
-    <p class="subtitle">首页黎明区的天空轮播。最多 3 张，按排序展示。</p>
-    <div class="slide-cards" id="slideCards"></div>
-    <div style="margin-top:20px">
-      <button class="btn btn-primary" id="saveBtn">保存轮播设置</button>
-    </div>
+    <section id="slideList" class="space-y-3 max-w-5xl">
+      <div class="card p-6 text-center" style="color: var(--warm-ink-3);">加载中…</div>
+    </section>
   </main>
 
   <script src="../js/api.js"></script>
   <script src="../js/ui.js"></script>
+  <script src="../js/admin.js"></script>
   <script>
-    if(!API.isAuthed()){ window.location.href = '../login.html'; }
+    if (!API.isAuthed()) window.location.href = '../login.html';
 
-    let slides = [];
+    let slides = [], posts = [];
 
-    async function loadSlides(){
-      slides = await API.getSlides();
-      const posts = await API.getPosts({all:1});
-      const el = document.getElementById('slideCards');
-      el.innerHTML = slides.map((s,i) => `
-        <div class="slide-card">
-          <div class="order">${i+1}</div>
-          <img src="${s.bgImage||''}" class="thumb" onerror="this.style.display='none'">
-          <div class="info">
-            <strong>轮播项 ${i+1}</strong>
-            <span>关联文章 ID: ${s.postId}</span>
-          </div>
-          <div class="fields">
-            <input type="text" value="${s.tag||''}" data-id="${s.id}" data-field="tag" placeholder="标签文字">
-            <input type="text" value="${s.title||''}" data-id="${s.id}" data-field="title" placeholder="标题">
-            <input type="text" value="${s.description||''}" data-id="${s.id}" data-field="description" placeholder="描述">
-            <input type="text" value="${s.bgImage||''}" data-id="${s.id}" data-field="bgImage" placeholder="背景图URL">
-            <input type="number" value="${s.postId||''}" data-id="${s.id}" data-field="postId" placeholder="文章ID" style="width:80px">
-          </div>
-        </div>
-      `).join('');
+    function esc(s) { return String(s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+    function imgUrl(c) {
+      if (!c) return '';
+      if (/^https?:\/\//.test(c) || c.startsWith('data:')) return c;
+      return '../' + c.replace(/^\//, '');
     }
 
-    loadSlides();
-
-    document.getElementById('saveBtn').addEventListener('click', async ()=>{
-      document.querySelectorAll('[data-id]').forEach(inp => {
-        const id = +inp.dataset.id;
-        const field = inp.dataset.field;
-        const slide = slides.find(s=>s.id===id);
-        if(slide){
-          slide[field] = field==='postId' ? +inp.value : inp.value;
-        }
-      });
+    async function load() {
       try {
-        await API.saveSlides(slides);
-        UI.toast('轮播设置已保存');
-        loadSlides();
-      } catch(e){ UI.toast('保存失败: '+e.message); }
-    });
+        [slides, posts] = await Promise.all([API.getSlides({ all: 1 }), API.getPosts({ all: 1 })]);
+        slides.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+        render();
+      } catch (e) { Admin.toast('加载失败: ' + e.message); }
+    }
 
-    document.getElementById('logoutBtn').addEventListener('click',(e)=>{
-      e.preventDefault(); API.clearToken(); window.location.href = '../login.html';
-    });
+    function postOptions(selected) {
+      return '<option value="">不关联</option>' + posts.map(p =>
+        `<option value="${p.id}" ${p.id == selected ? 'selected' : ''}>${esc(p.title)}</option>`).join('');
+    }
+
+    function render() {
+      const el = document.getElementById('slideList');
+      if (slides.length === 0) {
+        el.innerHTML = `<div class="card p-6 text-center" style="color: var(--warm-ink-3);">暂无轮播图，点击右上角「添加轮播图」</div>`;
+        return;
+      }
+      el.innerHTML = slides.map((s, i) => {
+        const img = imgUrl(s.bgImage);
+        return `
+        <article class="card p-4 relative flex flex-col gap-3" data-idx="${i}">
+          <div class="flex items-center gap-4 flex-wrap">
+            <div class="w-28 flex-shrink-0 aspect-video rounded-lg overflow-hidden" style="background: var(--warm-surface-2);">
+              ${img ? `<img src="${img}" alt="${esc(s.title)}" class="w-full h-full object-cover" data-preview>` : `<div class="w-full h-full flex items-center justify-center" style="color: var(--warm-ink-3);"><i data-lucide="image" class="w-5 h-5"></i></div>`}
+            </div>
+            <div class="flex items-center gap-3 flex-1 min-w-0 flex-wrap">
+              <div class="w-28">
+                <label class="text-caption block mb-1" style="color: var(--warm-ink-3);">小标题</label>
+                <input type="text" value="${esc(s.tag)}" data-field="tag" class="input-field w-full rounded-lg px-2.5 py-1.5 text-sm" placeholder="小标题">
+              </div>
+              <div class="w-32">
+                <label class="text-caption block mb-1" style="color: var(--warm-ink-3);">标题</label>
+                <input type="text" value="${esc(s.title)}" data-field="title" class="input-field w-full rounded-lg px-2.5 py-1.5 text-sm" placeholder="标题">
+              </div>
+              <div class="flex-1 min-w-[200px]">
+                <label class="text-caption block mb-1" style="color: var(--warm-ink-3);">摘要</label>
+                <input type="text" value="${esc(s.description)}" data-field="description" class="input-field w-full rounded-lg px-2.5 py-1.5 text-sm" placeholder="一句话概括">
+              </div>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 pt-3 flex-wrap" style="border-top: 1px solid var(--warm-line);">
+            <div class="flex-1 min-w-[200px] flex items-center gap-2">
+              <label class="text-caption flex-shrink-0" style="color: var(--warm-ink-3);">图片</label>
+              <input type="text" value="${esc(s.bgImage)}" data-field="bgImage" class="input-field flex-1 min-w-0 rounded-lg px-2.5 py-1.5 text-sm" placeholder="图片地址，如 images/hero.jpg">
+            </div>
+            <div class="w-44">
+              <label class="text-caption block mb-1" style="color: var(--warm-ink-3);">关联文章</label>
+              <select data-field="postId" class="input-field w-full rounded-lg px-2.5 py-1.5 text-sm">${postOptions(s.postId)}</select>
+            </div>
+            <div class="w-16">
+              <label class="text-caption block mb-1" style="color: var(--warm-ink-3);">排序</label>
+              <input type="number" min="0" value="${s.sortOrder ?? i + 1}" data-field="sortOrder" class="input-field w-full rounded-lg px-2.5 py-1.5 text-sm tabular-nums text-center">
+            </div>
+            <div class="flex flex-col items-center">
+              <label class="text-caption block mb-1" style="color: var(--warm-ink-3);">启用</label>
+              <label class="toggle">
+                <input type="checkbox" data-field="status" ${s.status !== 'inactive' ? 'checked' : ''}>
+                <span class="track"></span><span class="thumb"></span>
+              </label>
+            </div>
+            <div class="flex flex-col">
+              <label class="text-caption block mb-1 invisible">.</label>
+              <button type="button" class="btn-danger inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-sm font-medium act-del">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>删除
+              </button>
+            </div>
+          </div>
+        </article>`;
+      }).join('');
+      lucide.createIcons();
+      bindEvents();
+    }
+
+    function bindEvents() {
+      document.querySelectorAll('#slideList [data-idx]').forEach(art => {
+        const idx = +art.dataset.idx;
+        art.querySelectorAll('[data-field]').forEach(inp => {
+          inp.oninput = () => {
+            const f = inp.dataset.field;
+            if (f === 'sortOrder') slides[idx].sortOrder = +inp.value || 0;
+            else if (f === 'postId') slides[idx].postId = inp.value ? +inp.value : null;
+            else if (f === 'status') slides[idx].status = inp.checked ? 'active' : 'inactive';
+            else slides[idx][f] = inp.value;
+            if (f === 'bgImage') {
+              const img = art.querySelector('[data-preview]');
+              const url = imgUrl(inp.value);
+              if (img && url) img.src = url;
+            }
+          };
+        });
+        art.querySelector('.act-del').onclick = () => {
+          if (!confirm('删除这张轮播图？')) return;
+          slides.splice(idx, 1);
+          render();
+        };
+      });
+    }
+
+    document.getElementById('addBtn').onclick = () => {
+      slides.push({
+        id: Date.now(), postId: null, tag: '', title: '新轮播图',
+        description: '', bgImage: '', sortOrder: slides.length + 1, status: 'active'
+      });
+      render();
+      Admin.toast('已添加，记得保存');
+    };
+
+    document.getElementById('saveBtn').onclick = async () => {
+      // 清理临时 id（后端会重新分配）
+      const payload = slides.map(({ id, ...rest }) => rest);
+      try {
+        await API.saveSlides(payload);
+        Admin.toast('已保存');
+        load();
+      } catch (e) { Admin.toast('保存失败: ' + e.message); }
+    };
+
+    load();
   </script>
 </body>
 </html>

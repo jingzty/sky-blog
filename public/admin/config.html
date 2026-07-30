@@ -1,129 +1,170 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>站点配置 — 远远的天空</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Noto+Serif+SC:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../css/tokens.css">
-  <style>
-    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:var(--sans);background:var(--cream);color:var(--day-ink);min-height:100vh;display:flex}
-    a{color:inherit;text-decoration:none}
-    ::selection{background:var(--gold);color:#fff}
-
-    .sidebar{width:240px;background:var(--night-3);color:var(--night-ink);padding:32px 0;display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:40}
-    .sidebar-brand{font-family:var(--serif);font-weight:700;font-size:1.1rem;padding:0 24px 28px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;gap:8px}
-    .sidebar-brand svg{width:20px;height:20px;color:var(--gold-soft)}
-    .sidebar-nav{flex:1;padding:16px 0}
-    .sidebar-nav a{display:flex;align-items:center;gap:10px;padding:12px 24px;font-size:0.9rem;color:var(--text-dim);transition:all 0.2s}
-    .sidebar-nav a:hover,.sidebar-nav a.active{color:#fff;background:rgba(255,255,255,0.08)}
-    .sidebar-nav a.active{border-right:3px solid var(--gold)}
-    .sidebar-nav svg{width:16px;height:16px;flex-shrink:0}
-    .sidebar-foot{padding:16px 24px;border-top:1px solid rgba(255,255,255,0.08)}
-    .sidebar-foot a{font-size:0.82rem;color:var(--text-faint);display:flex;align-items:center;gap:6px;transition:color 0.2s}
-    .sidebar-foot a:hover{color:var(--gold-soft)}
-
-    .main{margin-left:240px;flex:1;padding:40px;min-height:100vh;max-width:700px}
-    .main h1{font-family:var(--serif);font-size:1.8rem;font-weight:700;margin-bottom:8px}
-    .main .subtitle{color:var(--taupe);font-size:0.9rem;margin-bottom:28px}
-
-    .form-group{margin-bottom:20px}
-    .form-group label{display:block;font-size:0.8rem;font-weight:500;color:var(--taupe);margin-bottom:6px;letter-spacing:0.03em}
-    .form-group input,.form-group textarea{width:100%;padding:12px 16px;border:1px solid rgba(0,0,0,0.1);border-radius:10px;font-size:0.92rem;font-family:var(--sans);outline:none;background:#fff;transition:border-color 0.3s}
-    .form-group input:focus,.form-group textarea:focus{border-color:var(--day-deep)}
-    .form-group textarea{resize:vertical;min-height:80px;line-height:1.7}
-
-    .btn{display:inline-flex;align-items:center;gap:6px;padding:12px 28px;border-radius:100px;font-size:0.92rem;font-family:var(--sans);cursor:pointer;transition:all 0.3s;border:none}
-    .btn-primary{background:var(--day-ink);color:var(--day-1)}
-    .btn-primary:hover{background:var(--day-deep);transform:translateY(-1px)}
-
-    .success-msg{color:var(--day-deep);font-size:0.85rem;margin-top:12px;opacity:0;transition:opacity 0.3s}
-    .success-msg.show{opacity:1}
-
-    @media(max-width:768px){
-      .sidebar{width:100%;height:auto;position:relative;padding:16px;flex-direction:row;flex-wrap:wrap;align-items:center;gap:8px}
-      .sidebar-brand{border:none;padding:0}
-      .sidebar-nav{display:flex;flex:0;padding:0;gap:4px;overflow-x:auto}
-      .sidebar-nav a{padding:8px 12px;font-size:0.78rem;border-right:none!important;white-space:nowrap}
-      .sidebar-foot{display:none}
-      .main{margin-left:0;padding:24px 16px}
+  <link rel="stylesheet" href="../css/admin.css">
+  <script src="../js/vendor/tailwind4.js"></script>
+  <script src="../js/vendor/lucide.js"></script>
+  <style type="text/tailwindcss">
+    @theme inline {
+      --color-warm-bg: var(--warm-bg); --color-warm-surface: var(--warm-surface);
+      --color-warm-surface-2: var(--warm-surface-2); --color-warm-surface-3: var(--warm-surface-3);
+      --color-warm-ink: var(--warm-ink); --color-warm-ink-2: var(--warm-ink-2); --color-warm-ink-3: var(--warm-ink-3);
+      --color-warm-brand: var(--warm-brand); --color-warm-brand-50: var(--warm-brand-50);
+      --color-warm-brand-100: var(--warm-brand-100); --color-warm-brand-300: var(--warm-brand-300);
+      --color-warm-brand-500: var(--warm-brand-500); --color-warm-brand-600: var(--warm-brand-600);
+      --color-warm-line: var(--warm-line);
+      --radius-warm-md: var(--warm-radius-medium); --radius-warm-lg: var(--warm-radius-large);
     }
   </style>
 </head>
-<body>
+<body class="min-h-screen" data-page="settings">
+  <div id="sidebar-slot"></div>
 
-  <aside class="sidebar">
-    <a href="index.html" class="sidebar-brand">
-      <svg viewBox="0 0 32 32" fill="none"><path d="M22 18a5 5 0 0 0-9.8-1.4A4 4 0 0 0 6 20.5 4.5 4.5 0 0 0 10.5 25H22a4 4 0 0 0 0-8z" fill="currentColor"></path><circle cx="24" cy="9" r="3.5" fill="currentColor" opacity="0.7"></circle></svg>
-      后台管理
-    </a>
-    <nav class="sidebar-nav">
-      <a href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect></svg>仪表盘</a>
-      <a href="posts.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>文章管理</a>
-      <a href="categories.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>分类管理</a>
-      <a href="slides.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>轮播管理</a>
-      <a href="config.html" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path></svg>站点配置</a>
-    </nav>
-    <div class="sidebar-foot">
-      <a href="#" id="logoutBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>退出</a>
-      <a href="../index.html" style="margin-top:10px;display:flex;align-items:center;gap:6px">← 前台</a>
-    </div>
-  </aside>
+  <main class="admin-main ml-[240px] min-h-screen p-8">
+    <header class="mb-8 flex items-start justify-between">
+      <div>
+        <h1 class="text-h1 mb-1" style="color: var(--warm-ink);">站点配置</h1>
+        <p class="text-body" style="color: var(--warm-ink-2);">修改博客的基本信息，前台即时生效</p>
+      </div>
+      <button id="saveBtn" class="btn-primary flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium">
+        <i data-lucide="save" class="w-4 h-4"></i><span>保存配置</span>
+      </button>
+    </header>
 
-  <main class="main">
-    <h1>站点配置</h1>
-    <p class="subtitle">修改博客的基本信息，前台即时生效。</p>
+    <form id="configForm" class="space-y-6 max-w-5xl">
+      <!-- 站点与作者 -->
+      <section class="card p-6">
+        <div class="flex items-center gap-2 mb-6">
+          <i data-lucide="globe" class="w-5 h-5" style="color: var(--warm-brand);"></i>
+          <h2 class="text-h3" style="color: var(--warm-ink);">站点与作者信息</h2>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-medium" style="color: var(--warm-ink-2);">
+              <span class="flex items-center gap-1.5"><i data-lucide="type" class="w-3.5 h-3.5"></i> 站点标题</span>
+            </label>
+            <input type="text" id="blogName" class="input-field px-4 py-2.5 rounded-lg text-sm" placeholder="输入站点标题">
+          </div>
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-medium" style="color: var(--warm-ink-2);">
+              <span class="flex items-center gap-1.5"><i data-lucide="align-left" class="w-3.5 h-3.5"></i> 站点副标题</span>
+            </label>
+            <input type="text" id="blogSubtitle" class="input-field px-4 py-2.5 rounded-lg text-sm" placeholder="输入站点副标题">
+          </div>
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-medium" style="color: var(--warm-ink-2);">
+              <span class="flex items-center gap-1.5"><i data-lucide="user" class="w-3.5 h-3.5"></i> 作者名称</span>
+            </label>
+            <input type="text" id="authorName" class="input-field px-4 py-2.5 rounded-lg text-sm" placeholder="输入作者名称">
+          </div>
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-medium" style="color: var(--warm-ink-2);">
+              <span class="flex items-center gap-1.5"><i data-lucide="briefcase" class="w-3.5 h-3.5"></i> 作者角色</span>
+            </label>
+            <input type="text" id="authorRole" class="input-field px-4 py-2.5 rounded-lg text-sm" placeholder="例如：天空观察员 / 写作者">
+          </div>
+          <div class="flex flex-col gap-2 md:col-span-2">
+            <label class="text-sm font-medium" style="color: var(--warm-ink-2);">
+              <span class="flex items-center gap-1.5"><i data-lucide="image" class="w-3.5 h-3.5"></i> 作者头像 URL</span>
+            </label>
+            <div class="flex items-center gap-3 flex-wrap">
+              <img id="avatarPreview" alt="头像" class="w-16 h-16 rounded-full object-cover border-2" style="border-color: var(--warm-line); background: var(--warm-surface-2);">
+              <input type="text" id="authorAvatar" class="input-field flex-1 min-w-[200px] rounded-lg px-3 py-2 text-sm" placeholder="头像图片地址，如 images/avatar.jpg">
+            </div>
+          </div>
+          <div class="flex flex-col gap-2 md:col-span-2">
+            <label class="text-sm font-medium" style="color: var(--warm-ink-2);">
+              <span class="flex items-center gap-1.5"><i data-lucide="align-left" class="w-3.5 h-3.5"></i> 作者简介</span>
+            </label>
+            <textarea id="authorBio" rows="3" class="input-field px-4 py-3 rounded-lg text-sm resize-none" placeholder="写一段简短的作者简介"></textarea>
+          </div>
+        </div>
+      </section>
 
-    <form id="configForm">
-      <div class="form-group"><label>博客名称</label><input type="text" id="blogName"></div>
-      <div class="form-group"><label>副标题</label><input type="text" id="blogSubtitle"></div>
-      <div class="form-group"><label>作者名</label><input type="text" id="authorName"></div>
-      <div class="form-group"><label>作者角色</label><input type="text" id="authorRole"></div>
-      <div class="form-group"><label>作者简介</label><textarea id="authorBio"></textarea></div>
-      <div class="form-group"><label>头像 URL</label><input type="text" id="authorAvatar"></div>
-      <div class="form-group"><label>GitHub 链接</label><input type="text" id="githubUrl"></div>
-      <div class="form-group"><label>微博链接</label><input type="text" id="weiboUrl"></div>
-      <div class="form-group"><label>联系邮箱</label><input type="text" id="contactEmail"></div>
-      <div class="form-group"><label>页脚文案</label><input type="text" id="footerText"></div>
+      <!-- 社交链接 -->
+      <section class="card p-6">
+        <div class="flex items-center gap-2 mb-6">
+          <i data-lucide="message-circle" class="w-5 h-5" style="color: var(--warm-brand);"></i>
+          <h2 class="text-h3" style="color: var(--warm-ink);">社交链接</h2>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-medium" style="color: var(--warm-ink-2);">
+              <span class="flex items-center gap-1.5"><i data-lucide="github" class="w-3.5 h-3.5"></i> GitHub</span>
+            </label>
+            <input type="url" id="githubUrl" class="input-field px-4 py-2.5 rounded-lg text-sm" placeholder="https://github.com/username">
+          </div>
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-medium" style="color: var(--warm-ink-2);">
+              <span class="flex items-center gap-1.5"><i data-lucide="globe" class="w-3.5 h-3.5"></i> 微博</span>
+            </label>
+            <input type="url" id="weiboUrl" class="input-field px-4 py-2.5 rounded-lg text-sm" placeholder="https://weibo.com/username">
+          </div>
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-medium" style="color: var(--warm-ink-2);">
+              <span class="flex items-center gap-1.5"><i data-lucide="mail" class="w-3.5 h-3.5"></i> 联系邮箱</span>
+            </label>
+            <input type="email" id="contactEmail" class="input-field px-4 py-2.5 rounded-lg text-sm" placeholder="your@email.com">
+          </div>
+        </div>
+      </section>
 
-      <button type="submit" class="btn btn-primary">保存配置</button>
-      <div class="success-msg" id="successMsg">✅ 配置已保存</div>
+      <!-- 页脚文案 -->
+      <section class="card p-6">
+        <div class="flex items-center gap-2 mb-6">
+          <i data-lucide="align-left" class="w-5 h-5" style="color: var(--warm-brand);"></i>
+          <h2 class="text-h3" style="color: var(--warm-ink);">页脚文案</h2>
+        </div>
+        <div class="flex flex-col gap-2">
+          <label class="text-sm font-medium" style="color: var(--warm-ink-2);">页脚展示文案</label>
+          <textarea id="footerText" rows="2" class="input-field px-4 py-3 rounded-lg text-sm resize-none" placeholder="输入页脚文案"></textarea>
+        </div>
+      </section>
     </form>
   </main>
 
   <script src="../js/api.js"></script>
   <script src="../js/ui.js"></script>
+  <script src="../js/admin.js"></script>
   <script>
-    if(!API.isAuthed()){ window.location.href = '../login.html'; }
+    if (!API.isAuthed()) window.location.href = '../login.html';
 
-    (async function(){
-      const config = await API.getConfig();
-      const fields = ['blogName','blogSubtitle','authorName','authorRole','authorBio','authorAvatar','githubUrl','weiboUrl','contactEmail','footerText'];
-      fields.forEach(f => {
-        const el = document.getElementById(f);
-        if(el) el.value = config[f] || '';
-      });
-    })();
+    const FIELDS = ['blogName', 'blogSubtitle', 'authorName', 'authorRole', 'authorBio', 'authorAvatar', 'githubUrl', 'weiboUrl', 'contactEmail', 'footerText'];
 
-    document.getElementById('configForm').addEventListener('submit', async (e)=>{
+    function imgUrl(c) {
+      if (!c) return '';
+      if (/^https?:\/\//.test(c) || c.startsWith('data:')) return c;
+      return '../' + c.replace(/^\//, '');
+    }
+
+    async function load() {
+      try {
+        const cfg = await API.getConfig();
+        FIELDS.forEach(f => { if (cfg[f] != null) document.getElementById(f).value = cfg[f]; });
+        const av = document.getElementById('avatarPreview');
+        const url = imgUrl(cfg.authorAvatar);
+        if (url) av.src = url;
+        document.getElementById('authorAvatar').oninput = (e) => {
+          const u = imgUrl(e.target.value.trim());
+          if (u) av.src = u;
+        };
+      } catch (e) { Admin.toast('加载失败: ' + e.message); }
+    }
+
+    document.getElementById('saveBtn').onclick = async (e) => {
       e.preventDefault();
-      const fields = ['blogName','blogSubtitle','authorName','authorRole','authorBio','authorAvatar','githubUrl','weiboUrl','contactEmail','footerText'];
       const data = {};
-      fields.forEach(f => { data[f] = document.getElementById(f).value.trim(); });
+      FIELDS.forEach(f => { data[f] = document.getElementById(f).value.trim(); });
       try {
         await API.updateConfig(data);
-        const msg = document.getElementById('successMsg');
-        msg.classList.add('show');
-        setTimeout(()=>msg.classList.remove('show'), 2000);
-      } catch(e){ UI.toast('保存失败: '+e.message); }
-    });
+        Admin.toast('配置已保存');
+      } catch (err) { Admin.toast('保存失败: ' + err.message); }
+    };
 
-    document.getElementById('logoutBtn').addEventListener('click',(e)=>{
-      e.preventDefault(); API.clearToken(); window.location.href = '../login.html';
-    });
+    load();
   </script>
 </body>
 </html>

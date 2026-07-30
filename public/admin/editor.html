@@ -1,160 +1,136 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>编辑文章 — 远远的天空</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Noto+Serif+SC:wght@300;400;500;600;700;900&family=Fira+Code:wght@400;500;600&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
-  <style>
-    @font-face { font-family: 'Fira Code'; src: local('Fira Code'), local('FiraCode-Regular'); font-weight: 400; font-style: normal; font-display: swap; }
-  </style>
-  <link rel="stylesheet" href="../css/tokens.css">
+  <link rel="stylesheet" href="../css/admin.css">
   <link rel="stylesheet" href="../js/codemirror.min.css">
   <link rel="stylesheet" href="../js/easymde.min.css">
-  <style>
-    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:var(--sans);background:#f5f2ed;color:var(--day-ink);min-height:100vh}
-    a{color:inherit;text-decoration:none}
-    button{cursor:pointer;border:none;background:none;font-family:inherit;color:inherit}
-    input,textarea,select{font-family:inherit;outline:none}
-    ::selection{background:var(--gold);color:#fff}
-
-    .topbar{position:sticky;top:0;z-index:100;background:rgba(245,242,237,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(0,0,0,0.06)}
-    .topbar-inner{max-width:var(--max);margin:0 auto;padding:12px 40px;display:flex;align-items:center;gap:12px}
-    .topbar-back{display:inline-flex;align-items:center;gap:5px;font-size:0.82rem;color:var(--taupe);padding:6px 14px 6px 10px;border-radius:100px;transition:all 0.3s}
-    .topbar-back:hover{color:var(--day-ink);background:rgba(0,0,0,0.04)}
-    .topbar-back svg{width:14px;height:14px}
-    .topbar-title{font-family:var(--serif);font-weight:600;font-size:1rem;color:var(--day-ink)}
-    .topbar-spacer{flex:1}
-    .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:100px;font-size:0.82rem;font-weight:500;transition:all 0.25s var(--ease)}
-    .btn-ghost{color:var(--taupe);background:transparent}
-    .btn-ghost:hover{color:var(--day-ink);background:rgba(0,0,0,0.04)}
-    .btn-gold{background:var(--gold);color:#1a1206}
-    .btn-gold:hover{background:var(--gold-soft)}
-    .btn svg{width:15px;height:15px}
-
-    .editor-layout{max-width:var(--max);margin:0 auto;padding:28px 40px 80px;display:grid;grid-template-columns:1fr 300px;gap:24px;align-items:start}
-    .editor-main{display:flex;flex-direction:column;gap:14px}
-    .title-input{width:100%;font-family:var(--serif);font-weight:700;font-size:1.5rem;padding:14px 18px;border:none;border-radius:12px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.04);transition:box-shadow 0.3s}
-    .title-input:focus{box-shadow:0 2px 12px rgba(0,0,0,0.06)}
-
-    .editor-card{background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.04)}
-
-    /* EasyMDE 自定义主题 */
-    .editor-toolbar{border-top:1px solid rgba(0,0,0,0.04);border-bottom:1px solid rgba(0,0,0,0.06);padding:6px 10px;background:#fff}
-    .editor-toolbar button{color:var(--taupe) !important;border:none;border-radius:6px;padding:4px 6px;min-width:28px;height:28px}
-    .editor-toolbar button:hover{background:rgba(0,0,0,0.05);color:var(--day-ink) !important}
-    .editor-toolbar button.active{background:rgba(0,0,0,0.06)}
-    .editor-toolbar i.separator{border-color:rgba(0,0,0,0.08)}
-    .CodeMirror{border:none;padding:16px 20px;font-family:'Fira Code','JetBrains Mono','SF Mono',Monaco,'Cascadia Code','Roboto Mono',Consolas,'Courier New',monospace;font-size:0.88rem;line-height:1.8;color:var(--day-ink);min-height:400px}
-    .CodeMirror-cursor{border-color:var(--day-ink)}
-    .CodeMirror-selected{background:rgba(201,118,74,0.1) !important}
-    .editor-preview,.editor-preview-side{padding:16px 20px;font-family:var(--serif);font-size:0.95rem;line-height:2;color:var(--day-ink)}
-    .editor-preview h1,.editor-preview-side h1{font-size:1.7rem;font-weight:700;margin:1em 0 0.5em}
-    .editor-preview h2,.editor-preview-side h2{font-size:1.4rem;font-weight:700;margin:1.2em 0 0.5em}
-    .editor-preview h3,.editor-preview-side h3{font-size:1.15rem;font-weight:600;margin:1em 0 0.4em;color:var(--dawn-deep)}
-    .editor-preview p,.editor-preview-side p{margin:0.6em 0}
-    .editor-preview blockquote,.editor-preview-side blockquote{border-left:3px solid var(--gold-soft);padding:0.4em 0 0.4em 1em;margin:1em 0;background:rgba(212,179,129,0.08);border-radius:0 8px 8px 0;color:var(--taupe)}
-    .editor-preview code,.editor-preview-side code{font-family:'Fira Code','JetBrains Mono',Monaco,Consolas,monospace;background:rgba(74,42,24,0.08);padding:2px 6px;border-radius:4px;font-size:0.85em}
-    .editor-preview pre,.editor-preview-side pre{background:#1e1e2e;color:#cdd6f4;padding:14px 18px;border-radius:10px;overflow-x:auto;margin:1em 0;font-family:'Fira Code','JetBrains Mono',Monaco,Consolas,monospace;font-size:0.86rem;line-height:1.7}
-    .editor-preview pre code,.editor-preview-side pre code{background:none;padding:0;color:inherit}
-    .editor-preview img,.editor-preview-side img{max-width:100%;border-radius:10px;margin:1em 0}
-    .editor-preview hr,.editor-preview-side hr{border:none;border-top:1px solid rgba(74,42,24,0.12);margin:2em 0}
-    .editor-preview a,.editor-preview-side a{color:var(--dawn-deep);text-decoration:underline;text-underline-offset:2px}
-    .editor-preview table,.editor-preview-side table{width:100%;border-collapse:collapse;margin:1em 0;font-size:0.9rem}
-    .editor-preview th,.editor-preview td,.editor-preview-side th,.editor-preview-side td{padding:8px 12px;border:1px solid rgba(74,42,24,0.1);text-align:left}
-    .editor-preview th,.editor-preview-side th{background:rgba(201,118,74,0.08);font-weight:600}
-    .editor-statusbar{display:none}
-
-    .editor-footer{display:flex;justify-content:space-between;align-items:center;padding:8px 16px;background:#faf8f5;border-top:1px solid rgba(0,0,0,0.05);font-size:0.72rem;color:var(--taupe)}
-    .editor-footer .stats{display:flex;gap:14px}
-
-    .editor-side{display:flex;flex-direction:column;gap:14px}
-    .side-card{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.04)}
-    .side-card-head{display:flex;align-items:center;gap:8px;padding:12px 16px;cursor:pointer;user-select:none;transition:background 0.2s}
-    .side-card-head:hover{background:rgba(0,0,0,0.02)}
-    .side-card-head .arrow{font-size:0.6rem;color:var(--taupe);transition:transform 0.25s}
-    .side-card-head.collapsed .arrow{transform:rotate(-90deg)}
-    .side-card-head h4{font-size:0.75rem;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;color:var(--taupe)}
-    .side-card-body{padding:0 16px 16px}
-    .side-card-body.hide{display:none}
-    .side-card-body label{display:block;font-size:0.72rem;color:var(--taupe);margin-bottom:4px;margin-top:10px}
-    .side-card-body label:first-child{margin-top:0}
-    .side-card-body input,.side-card-body select,.side-card-body textarea{width:100%;padding:9px 12px;border:1px solid rgba(0,0,0,0.08);border-radius:8px;font-size:0.82rem;transition:border-color 0.25s;background:#faf8f5}
-    .side-card-body input:focus,.side-card-body select:focus,.side-card-body textarea:focus{border-color:var(--dawn-deep);background:#fff}
-    .cover-preview{margin-top:8px;border-radius:8px;overflow:hidden;border:1px solid rgba(0,0,0,0.06);max-height:120px}
-    .cover-preview img{width:100%;height:100%;object-fit:cover;display:block}
-
-    @media(max-width:860px){
-      .topbar-inner{padding:12px 16px}
-      .editor-layout{grid-template-columns:1fr;padding:20px 16px 60px}
-      .title-input{font-size:1.2rem;padding:12px 14px}
+  <script src="../js/vendor/tailwind4.js"></script>
+  <script src="../js/vendor/lucide.js"></script>
+  <style type="text/tailwindcss">
+    @theme inline {
+      --color-warm-bg: var(--warm-bg); --color-warm-surface: var(--warm-surface);
+      --color-warm-surface-2: var(--warm-surface-2); --color-warm-surface-3: var(--warm-surface-3);
+      --color-warm-ink: var(--warm-ink); --color-warm-ink-2: var(--warm-ink-2); --color-warm-ink-3: var(--warm-ink-3);
+      --color-warm-brand: var(--warm-brand); --color-warm-brand-50: var(--warm-brand-50);
+      --color-warm-brand-100: var(--warm-brand-100); --color-warm-brand-300: var(--warm-brand-300);
+      --color-warm-brand-500: var(--warm-brand-500); --color-warm-brand-600: var(--warm-brand-600);
+      --color-warm-line: var(--warm-line);
+      --radius-warm-md: var(--warm-radius-medium); --radius-warm-lg: var(--warm-radius-large);
     }
   </style>
+  <style>
+    /* EasyMDE 主题适配温暖色系 */
+    .EasyMDEContainer { background: var(--warm-surface); border-radius: var(--warm-radius-large); border: 1px solid var(--warm-line); box-shadow: var(--warm-shadow-1); overflow: hidden; }
+    .editor-toolbar { border-top: none !important; border-bottom: 1px solid var(--warm-line) !important; background: var(--warm-surface-2) !important; padding: 8px 12px; }
+    .editor-toolbar button { color: var(--warm-ink-2) !important; border: none; border-radius: 6px; min-width: 30px; height: 30px; }
+    .editor-toolbar button:hover { background: var(--warm-surface-3); color: var(--warm-ink) !important; }
+    .editor-toolbar button.active { background: var(--warm-brand-100); color: var(--warm-brand-600) !important; }
+    .editor-toolbar i.separator { border-left-color: var(--warm-line); }
+    .CodeMirror { border: none !important; padding: 18px 22px; font-family: var(--warm-font-mono); font-size: 14px; line-height: 1.8; color: var(--warm-ink); min-height: 420px; background: var(--warm-surface) !important; }
+    .CodeMirror-cursor { border-color: var(--warm-brand); }
+    .CodeMirror-selected { background: var(--warm-brand-50) !important; }
+    .CodeMirror-line::selection, .CodeMirror-line > span::selection, .CodeMirror-line > span > span::selection { background: var(--warm-brand-50); }
+    .editor-preview, .editor-preview-side { padding: 18px 22px; font-family: var(--warm-font-title); font-size: 15px; line-height: 1.9; color: var(--warm-ink); background: var(--warm-surface) !important; }
+    .editor-preview h1, .editor-preview-side h1 { font-size: 1.7rem; font-weight: 700; margin: 1em 0 0.5em; }
+    .editor-preview h2, .editor-preview-side h2 { font-size: 1.4rem; font-weight: 700; margin: 1.2em 0 0.5em; }
+    .editor-preview h3, .editor-preview-side h3 { font-size: 1.15rem; font-weight: 600; margin: 1em 0 0.4em; color: var(--warm-brand-600); }
+    .editor-preview p, .editor-preview-side p { margin: 0.6em 0; }
+    .editor-preview blockquote, .editor-preview-side blockquote { border-left: 3px solid var(--warm-brand-300); padding: 0.4em 0 0.4em 1em; margin: 1em 0; background: var(--warm-brand-50); border-radius: 0 8px 8px 0; color: var(--warm-ink-2); }
+    .editor-preview code, .editor-preview-side code { font-family: var(--warm-font-mono); background: var(--warm-surface-3); padding: 2px 6px; border-radius: 4px; font-size: 0.85em; }
+    .editor-preview pre, .editor-preview-side pre { background: #2b2622; color: #e8dfd4; padding: 14px 18px; border-radius: 10px; overflow-x: auto; margin: 1em 0; font-family: var(--warm-font-mono); font-size: 13px; line-height: 1.7; }
+    .editor-preview pre code, .editor-preview-side pre code { background: none; padding: 0; color: inherit; }
+    .editor-preview img, .editor-preview-side img { max-width: 100%; border-radius: 10px; margin: 1em 0; }
+    .editor-preview hr, .editor-preview-side hr { border: none; border-top: 1px solid var(--warm-line); margin: 2em 0; }
+    .editor-preview a, .editor-preview-side a { color: var(--warm-brand-600); text-decoration: underline; text-underline-offset: 2px; }
+    .editor-preview table, .editor-preview-side table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 14px; }
+    .editor-preview th, .editor-preview td, .editor-preview-side th, .editor-preview-side td { padding: 8px 12px; border: 1px solid var(--warm-line); text-align: left; }
+    .editor-preview th, .editor-preview-side th { background: var(--warm-surface-3); font-weight: 600; }
+    .editor-statusbar { display: none; }
+  </style>
 </head>
-<body>
+<body class="min-h-screen" data-page="articles">
+  <div id="sidebar-slot"></div>
 
-  <header class="topbar">
-    <div class="topbar-inner">
-      <a href="posts.html" class="topbar-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>返回</a>
-      <span class="topbar-title" id="pageTitle">写新文章</span>
-      <span class="topbar-spacer"></span>
-      <button class="btn btn-ghost" id="saveDraftBtn">存草稿</button>
-      <button class="btn btn-gold" id="publishBtn">发布</button>
-    </div>
-  </header>
+  <main class="admin-main ml-[240px] min-h-screen p-8">
+    <header class="mb-6 flex items-start justify-between flex-wrap gap-4">
+      <div>
+        <a href="posts.html" class="text-caption flex items-center gap-1 mb-2" style="color: var(--warm-ink-3);">
+          <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> 返回文章列表
+        </a>
+        <h1 class="text-h1" style="color: var(--warm-ink);" id="pageTitle">写新文章</h1>
+      </div>
+      <div class="flex items-center gap-3">
+        <button id="saveDraftBtn" class="btn-secondary flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium">
+          <i data-lucide="archive" class="w-4 h-4"></i><span>存草稿</span>
+        </button>
+        <button id="publishBtn" class="btn-primary flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium">
+          <i data-lucide="send" class="w-4 h-4"></i><span>发布</span>
+        </button>
+      </div>
+    </header>
 
-  <div class="editor-layout">
-    <div class="editor-main">
-      <input type="text" class="title-input" id="title" placeholder="写一个吸引人的标题……">
-      <div class="editor-card">
+    <div class="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start">
+      <!-- 编辑器 -->
+      <div class="space-y-4">
+        <input type="text" id="title" placeholder="写一个吸引人的标题……"
+          class="input-field w-full font-title font-semibold text-xl px-4 py-3.5 rounded-warm-lg" style="background: var(--warm-surface);">
         <textarea id="content" placeholder="在这里书写 Markdown..."></textarea>
-        <div class="editor-footer">
-          <div class="stats">
-            <span id="wordCount">0</span> 字 · <span id="lineCount">0</span> 行
-          </div>
-          <span id="charCount">0 字节</span>
-        </div>
       </div>
-    </div>
 
-    <div class="editor-side">
-      <div class="side-card">
-        <div class="side-card-head" data-toggle>
-          <span class="arrow">▼</span>
-          <h4>发布设置</h4>
-        </div>
-        <div class="side-card-body">
-          <label>状态</label>
-          <select id="status">
-            <option value="draft">草稿</option>
-            <option value="pub">已发布</option>
-          </select>
-          <label>日期</label>
-          <input type="date" id="date">
-          <label>封面图 URL</label>
-          <input type="text" id="cover" placeholder="images/xxx.jpg">
-          <div class="cover-preview" id="coverPreview" style="display:none"><img id="coverPreviewImg" alt="封面预览"></div>
-          <label>摘要</label>
-          <textarea id="excerpt" rows="3" placeholder="简短摘要……" style="resize:vertical;min-height:60px"></textarea>
-        </div>
-      </div>
-      <div class="side-card">
-        <div class="side-card-head" data-toggle>
-          <span class="arrow">▼</span>
-          <h4>分类与标签</h4>
-        </div>
-        <div class="side-card-body">
-          <label>分类</label>
-          <select id="categoryId"></select>
-          <label>标签（逗号分隔）</label>
-          <input type="text" id="tag" placeholder="例如：旅行, 云海, 秋天">
-        </div>
-      </div>
+      <!-- 侧栏 -->
+      <aside class="space-y-4">
+        <section class="card p-5">
+          <div class="flex items-center gap-2 mb-4">
+            <i data-lucide="settings-2" class="w-4 h-4" style="color: var(--warm-brand);"></i>
+            <h2 class="text-h3" style="color: var(--warm-ink);">发布设置</h2>
+          </div>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-caption mb-1.5" style="color: var(--warm-ink-2);">状态</label>
+              <select id="status" class="input-field w-full px-3 py-2 rounded-warm-md text-sm">
+                <option value="draft">草稿</option><option value="pub">已发布</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-caption mb-1.5" style="color: var(--warm-ink-2);">日期</label>
+              <input type="date" id="date" class="input-field w-full px-3 py-2 rounded-warm-md text-sm">
+            </div>
+            <div>
+              <label class="block text-caption mb-1.5" style="color: var(--warm-ink-2);">封面图 URL</label>
+              <input type="text" id="cover" class="input-field w-full px-3 py-2 rounded-warm-md text-sm" placeholder="images/xxx.jpg">
+              <div id="coverPreview" class="mt-2 rounded-warm-md overflow-hidden hidden" style="border: 1px solid var(--warm-line); max-height: 120px;">
+                <img id="coverPreviewImg" alt="封面预览" class="w-full h-full object-cover block">
+              </div>
+            </div>
+            <div>
+              <label class="block text-caption mb-1.5" style="color: var(--warm-ink-2);">摘要</label>
+              <textarea id="excerpt" rows="3" class="input-field w-full px-3 py-2 rounded-warm-md text-sm resize-none" placeholder="简短摘要……"></textarea>
+            </div>
+          </div>
+        </section>
+
+        <section class="card p-5">
+          <div class="flex items-center gap-2 mb-4">
+            <i data-lucide="folder-open" class="w-4 h-4" style="color: var(--warm-brand);"></i>
+            <h2 class="text-h3" style="color: var(--warm-ink);">分类与标签</h2>
+          </div>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-caption mb-1.5" style="color: var(--warm-ink-2);">分类</label>
+              <select id="categoryId" class="input-field w-full px-3 py-2 rounded-warm-md text-sm"></select>
+            </div>
+            <div>
+              <label class="block text-caption mb-1.5" style="color: var(--warm-ink-2);">标签（逗号分隔）</label>
+              <input type="text" id="tag" class="input-field w-full px-3 py-2 rounded-warm-md text-sm" placeholder="例如：旅行, 云海, 秋天">
+            </div>
+          </div>
+        </section>
+      </aside>
     </div>
-  </div>
+  </main>
 
   <script src="../js/codemirror.min.js"></script>
   <script src="../js/codemirror-xml.min.js"></script>
@@ -165,112 +141,95 @@
   <script src="../js/easymde.min.js"></script>
   <script src="../js/api.js"></script>
   <script src="../js/ui.js"></script>
+  <script src="../js/admin.js"></script>
   <script>
-    if(!API.isAuthed()){ window.location.href = '../login.html'; }
+    if (!API.isAuthed()) window.location.href = '../login.html';
 
     const params = new URLSearchParams(location.search);
     const editId = params.get('id') ? +params.get('id') : null;
 
-    // ===== EasyMDE 初始化 =====
     const easyMDE = new EasyMDE({
       element: document.getElementById('content'),
       spellChecker: false,
       autosave: { enabled: false },
       renderingConfig: { singleLineBreaks: false },
       placeholder: '在这里书写 Markdown...\n\n支持 # 标题、> 引用、- 列表、```代码块、表格等',
-      toolbar: ['bold','italic','heading','|','link','image','quote','code','|','unordered-list','ordered-list','table','horizontal-rule','|','preview','side-by-side','fullscreen'],
+      toolbar: ['bold', 'italic', 'heading', '|', 'link', 'image', 'quote', 'code', '|', 'unordered-list', 'ordered-list', 'table', 'horizontal-rule', '|', 'preview', 'side-by-side', 'fullscreen'],
       status: false,
-      minHeight: '400px',
+      minHeight: '420px',
     });
 
-    function updateStats(){
-      const text = easyMDE.value();
-      document.getElementById('wordCount').textContent = text.length;
-      document.getElementById('lineCount').textContent = text.split('\n').length;
-      document.getElementById('charCount').textContent = new TextEncoder().encode(text).length + ' 字节';
-    }
-    easyMDE.codemirror.on('change', updateStats);
-
-    // ===== 加载分类 =====
-    (async function loadCats(){
+    // 加载分类
+    (async function loadCats() {
       const cats = await API.getCategories();
       const sel = document.getElementById('categoryId');
-      sel.innerHTML = '<option value="">未分类</option>' + cats.filter(c=>c.name!=='全部').map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+      sel.innerHTML = '<option value="">未分类</option>' + cats.filter(c => c.name !== '全部').map(c => `<option value="${c.id}">${c.name}</option>`).join('');
     })();
 
-    // ===== 加载文章 =====
-    (async function(){
-      if(editId){
+    // 加载文章
+    (async function () {
+      if (editId) {
         try {
           const post = await API.getPost(editId);
           document.getElementById('pageTitle').textContent = '编辑文章';
-          document.getElementById('title').value = post.title||'';
-          easyMDE.value(post.content||'');
-          document.getElementById('date').value = post.date||'';
-          document.getElementById('cover').value = post.cover||'';
-          document.getElementById('tag').value = post.tag||'';
-          document.getElementById('excerpt').value = post.excerpt||'';
-          document.getElementById('status').value = post.status||'draft';
-          if(post.categoryId) document.getElementById('categoryId').value = post.categoryId;
-          updateStats();
-          if(post.cover) showCoverPreview(post.cover);
-        } catch(e){ UI.toast('加载文章失败: '+e.message); }
+          document.getElementById('title').value = post.title || '';
+          easyMDE.value(post.content || '');
+          document.getElementById('date').value = post.date || '';
+          document.getElementById('cover').value = post.cover || '';
+          document.getElementById('tag').value = post.tag || '';
+          document.getElementById('excerpt').value = post.excerpt || '';
+          document.getElementById('status').value = post.status || 'draft';
+          if (post.categoryId) document.getElementById('categoryId').value = post.categoryId;
+          if (post.cover) showCoverPreview(post.cover);
+        } catch (e) { Admin.toast('加载文章失败: ' + e.message); }
       } else {
-        document.getElementById('date').value = new Date().toISOString().substring(0,10);
+        document.getElementById('date').value = new Date().toISOString().substring(0, 10);
       }
     })();
 
-    // ===== 封面预览 =====
-    function showCoverPreview(url){
+    function imgUrl(c) {
+      if (!c) return '';
+      if (/^https?:\/\//.test(c) || c.startsWith('data:')) return c;
+      return '../' + c.replace(/^\//, '');
+    }
+    function showCoverPreview(url) {
       const preview = document.getElementById('coverPreview');
       const img = document.getElementById('coverPreviewImg');
-      img.src = url;
-      preview.style.display = 'block';
+      img.src = imgUrl(url);
+      preview.classList.remove('hidden');
     }
-    document.getElementById('cover').addEventListener('input', function(){
+    document.getElementById('cover').addEventListener('input', function () {
       const url = this.value.trim();
-      if(url) showCoverPreview(url);
-      else document.getElementById('coverPreview').style.display = 'none';
+      if (url) showCoverPreview(url);
+      else document.getElementById('coverPreview').classList.add('hidden');
     });
 
-    // ===== 可折叠卡片 =====
-    document.querySelectorAll('[data-toggle]').forEach(head=>{
-      head.addEventListener('click',()=>{
-        const body = head.nextElementSibling;
-        body.classList.toggle('hide');
-        head.classList.toggle('collapsed');
-      });
-    });
-
-    // ===== 保存 =====
-    async function save(status){
+    async function save(status) {
       const data = {
         title: document.getElementById('title').value.trim(),
         content: easyMDE.value().trim(),
-        date: document.getElementById('date').value || new Date().toISOString().substring(0,10),
+        date: document.getElementById('date').value || new Date().toISOString().substring(0, 10),
         cover: document.getElementById('cover').value.trim(),
         tag: document.getElementById('tag').value.trim(),
         excerpt: document.getElementById('excerpt').value.trim(),
         categoryId: document.getElementById('categoryId').value ? +document.getElementById('categoryId').value : null,
         status: status
       };
-      if(!data.title){ UI.toast('标题不能为空'); return; }
-      if(!data.content){ UI.toast('正文不能为空'); return; }
-      data.slug = data.title.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'').toLowerCase();
+      if (!data.title) return Admin.toast('标题不能为空');
+      if (!data.content) return Admin.toast('正文不能为空');
+      data.slug = data.title.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').toLowerCase();
       try {
-        if(editId) await API.updatePost(editId, data);
+        if (editId) await API.updatePost(editId, data);
         else await API.createPost(data);
-        UI.toast(status==='pub'?'已发布':'已保存草稿');
-        setTimeout(()=>{window.location.href='posts.html'},500);
-      } catch(e){ UI.toast('保存失败: '+e.message); }
+        Admin.toast(status === 'pub' ? '已发布' : '已保存草稿');
+        setTimeout(() => { window.location.href = 'posts.html'; }, 600);
+      } catch (e) { Admin.toast('保存失败: ' + e.message); }
     }
 
-    document.getElementById('publishBtn').addEventListener('click',()=>save('pub'));
-    document.getElementById('saveDraftBtn').addEventListener('click',()=>save('draft'));
-
-    // Ctrl+S 保存
-    document.addEventListener('keydown', e=>{
-      if((e.ctrlKey||e.metaKey)&&e.key==='s'){ e.preventDefault(); save(document.getElementById('status').value); }
+    document.getElementById('publishBtn').addEventListener('click', () => save('pub'));
+    document.getElementById('saveDraftBtn').addEventListener('click', () => save('draft'));
+    document.addEventListener('keydown', e => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); save(document.getElementById('status').value); }
     });
   </script>
 </body>
