@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>远远的天空</title>
+    <link>http://localhost:8323/index.html</link>
+    <description>一次从黎明到星夜的漫游</description>
+    <language>zh-CN</language>
+    <item>
+      <title>在代码与星空之间</title>
+      <link>http://localhost:8323/post.html?id=1</link>
+      <pubDate>Mon, 28 Jul 2026 00:00:00 GMT</pubDate>
+      <description>当深夜的屏幕亮起，代码如星辰般排列。</description>
+    </item>
+  </channel>
+</rss>

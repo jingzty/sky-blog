@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>远远的天空 — 一次从黎明到星夜的漫游</title>
+  <meta name="description" content="远远的天空。写代码，也写文字；走山路，也走心路。在天空之下，记录每一个值得珍藏的瞬间。">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Noto+Serif+SC:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/tokens.css">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+    body { font-family: var(--sans); color: var(--night-ink); background: var(--dawn-1); line-height: 1.75; overflow-x: hidden; }
+    img { display: block; max-width: 100%; height: auto; }
+    a { color: inherit; text-decoration: none; }
+    button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+    ul { list-style: none; }
+    ::selection { background: var(--gold); color: #fff; }
+
+    /* ==================== 浮动导航 ==================== */
+    .nav {
+      position: fixed; top: 22px; left: 50%; transform: translateX(-50%);
+      z-index: 100; display: flex; align-items: center; gap: 6px;
+      padding: 8px 8px 8px 22px;
+      background: rgba(255,255,255,0.12); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+      border: 1px solid rgba(255,255,255,0.22); border-radius: 100px;
+      transition: background 0.5s var(--ease), border-color 0.5s var(--ease), color 0.5s var(--ease);
+      color: #fff;
+    }
+    .nav.solid { background: rgba(20,48,73,0.88); border-color: rgba(255,255,255,0.1); }
+    .nav-mark {
+      font-family: var(--serif); font-weight: 700; font-size: 1.02rem; letter-spacing: 0.04em;
+      display: flex; align-items: center; gap: 7px; padding-right: 10px; margin-right: 4px;
+      border-right: 1px solid rgba(255,255,255,0.2); white-space: nowrap;
+    }
+    .nav-mark svg { width: 18px; height: 18px; flex-shrink: 0; }
+    .nav-links { display: flex; gap: 2px; }
+    .nav-links a {
+      font-size: 0.82rem; padding: 7px 14px; border-radius: 100px; color: var(--text-dim);
+      transition: color 0.3s var(--ease), background 0.3s var(--ease);
+    }
+    .nav-links a:hover, .nav-links a.active { color: #fff; background: rgba(255,255,255,0.14); }
+    .nav-actions { display: flex; align-items: center; gap: 4px; padding-left: 6px; margin-left: 4px; border-left: 1px solid rgba(255,255,255,0.2); }
+    .icon-btn { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--text-dim); transition: all 0.3s var(--ease); }
+    .icon-btn:hover { color: #fff; background: rgba(255,255,255,0.16); }
+    .icon-btn svg { width: 17px; height: 17px; }
+    .nav-login { font-size: 0.8rem; padding: 7px 16px; border-radius: 100px; color: var(--gold-deep); background: var(--gold-soft); white-space: nowrap; transition: all 0.3s var(--ease); }
+    .nav.solid .nav-login { color: #2e1018; }
+    .nav-login:hover { background: var(--gold); color: #fff; transform: translateY(-1px); }
+
+    @media (max-width: 860px) {
+      .nav { top: 14px; padding: 7px 8px 7px 16px; }
+      .nav-links { display: none; }
+      .nav-mark { font-size: 0.9rem; padding-right: 8px; }
+      .nav-mark .mk-sub { display: none; }
+    }
+
+    /* 移动端菜单 */
+    .mnav { position: fixed; inset: 0; z-index: 99; background: var(--night-3); display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 6px; opacity: 0; pointer-events: none; transition: opacity 0.4s var(--ease); }
+    .mnav.open { opacity: 1; pointer-events: auto; }
+    .mnav a { font-family: var(--serif); font-size: 1.7rem; color: var(--text-dim); padding: 9px 0; transition: color 0.3s; }
+    .mnav a:hover { color: var(--gold-soft); }
+    .mnav .ml { margin-top: 22px; padding: 11px 32px; border-radius: 100px; background: var(--gold); color: #1a1206; font-family: var(--sans); font-size: 0.95rem; }
+    .burger { display: none; }
+    @media (max-width: 860px) { .burger { display: flex; } }
+
+    /* ==================== 高度计 ==================== */
+    .altimeter {
+      position: fixed; right: 30px; top: 50%; transform: translateY(-50%); z-index: 90;
+      display: flex; flex-direction: column; align-items: center; gap: 0;
+    }
+    .alt-track { position: relative; width: 2px; height: 220px; background: rgba(255,255,255,0.25); border-radius: 2px; }
+    .alt-fill { position: absolute; top: 0; left: 0; width: 100%; height: 0%; background: linear-gradient(180deg, var(--dawn-3), var(--day-3), var(--dusk-2), var(--night-1)); border-radius: 2px; transition: height 0.15s linear; }
+    .alt-dot { position: absolute; left: 50%; top: 0; transform: translate(-50%,-50%); width: 11px; height: 11px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 4px rgba(255,255,255,0.18), 0 0 14px rgba(255,255,255,0.6); transition: top 0.15s linear; }
+    .alt-labels { position: absolute; left: 18px; top: 0; height: 220px; display: flex; flex-direction: column; justify-content: space-between; }
+    .alt-labels span { font-family: var(--serif); font-size: 0.72rem; color: rgba(255,255,255,0.5); writing-mode: vertical-rl; letter-spacing: 0.15em; transition: color 0.4s; }
+    .alt-labels span.on { color: #fff; }
+    .alt-cap { margin-top: 14px; font-size: 0.6rem; letter-spacing: 0.25em; color: rgba(255,255,255,0.4); writing-mode: vertical-rl; }
+    @media (max-width: 1024px) { .altimeter { display: none; } }
+
+    /* ==================== 通用 ==================== */
+    .wrap { max-width: var(--max); margin: 0 auto; padding: 0 40px; }
+    .eyebrow { font-size: 0.7rem; letter-spacing: 0.32em; text-transform: uppercase; font-weight: 500; }
+    [data-rv] { opacity: 0; transform: translateY(34px); transition: opacity 0.9s var(--ease-out), transform 0.9s var(--ease-out); }
+    [data-rv].rv { opacity: 1; transform: none; }
+    [data-rv-d="1"] { transition-delay: 0.08s; } [data-rv-d="2"] { transition-delay: 0.16s; } [data-rv-d="3"] { transition-delay: 0.24s; } [data-rv-d="4"] { transition-delay: 0.32s; }
+
+    /* ==================== 1. 黎明 ==================== */
+    .dawn {
+      position: relative; min-height: 100vh; overflow: hidden;
+      background: linear-gradient(180deg, var(--dawn-1) 0%, var(--dawn-2) 48%, var(--dawn-3) 82%, var(--dawn-deep) 100%);
+      color: var(--dawn-ink);
+    }
+    .sky-layers { position: absolute; inset: 0; }
+    .sky-layer { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0; transition: opacity 1.6s var(--ease); }
+    .sky-layer.on { opacity: 1; }
+    .sky-veil { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(253,231,210,0.55) 0%, rgba(239,159,108,0.25) 40%, rgba(201,118,74,0.5) 100%); mix-blend-mode: multiply; }
+    .dawn-grain { position: absolute; inset: 0; opacity: 0.06; background-image: radial-gradient(rgba(74,42,24,0.5) 1px, transparent 1px); background-size: 3px 3px; pointer-events: none; }
+
+    .dawn-inner { position: relative; z-index: 2; min-height: 100vh; display: flex; flex-direction: column; justify-content: center; padding: 120px 40px 90px; max-width: var(--max); margin: 0 auto; }
+    .dawn-meta { display: flex; align-items: center; gap: 14px; color: rgba(255,255,255,0.75); margin-bottom: 28px; }
+    .dawn-meta .dot { width: 6px; height: 6px; border-radius: 50%; background: #fff; }
+    .dawn-title { font-family: var(--serif); font-weight: 900; font-size: clamp(3.4rem, 13vw, 9.5rem); line-height: 0.92; letter-spacing: 0.02em; color: #fff; margin-bottom: 10px; text-shadow: 0 4px 40px rgba(0,0,0,0.5); }
+    .dawn-title .ch { display: inline-block; transition: transform 0.6s var(--ease); }
+    .dawn-title:hover .ch:nth-child(1) { transform: translateY(-8px); }
+    .dawn-title:hover .ch:nth-child(2) { transform: translateY(8px); }
+    .dawn-title:hover .ch:nth-child(3) { transform: translateY(-8px); }
+    .dawn-title:hover .ch:nth-child(4) { transform: translateY(8px); }
+    .dawn-sub { font-family: var(--serif); font-size: clamp(0.95rem, 1.8vw, 1.25rem); font-weight: 300; letter-spacing: 0.5em; color: rgba(255,255,255,0.6); margin-bottom: 44px; padding-left: 4px; }
+
+    /* 天空时刻轮播 */
+    .moments { position: relative; max-width: 560px; min-height: 168px; }
+    .moment { position: absolute; inset: 0; opacity: 0; transform: translateY(14px); transition: opacity 0.8s var(--ease), transform 0.8s var(--ease); pointer-events: none; }
+    .moment.on { opacity: 1; transform: none; pointer-events: auto; }
+    .moment-tag { display: inline-flex; align-items: center; gap: 8px; font-size: 0.72rem; letter-spacing: 0.2em; font-weight: 500; color: #fff; margin-bottom: 14px; text-shadow: 0 1px 8px rgba(0,0,0,0.4); }
+    .moment-tag::before { content: ''; width: 24px; height: 1px; background: #fff; }
+    .moment-title { font-family: var(--serif); font-size: clamp(1.5rem, 3.2vw, 2.1rem); font-weight: 600; line-height: 1.35; color: #fff; margin-bottom: 12px; text-shadow: 0 2px 12px rgba(0,0,0,0.5); }
+    .moment-desc { font-size: 0.95rem; line-height: 1.85; color: rgba(255,255,255,0.85); margin-bottom: 20px; max-width: 480px; text-shadow: 0 1px 6px rgba(0,0,0,0.4); }
+    .moment-link { display: inline-flex; align-items: center; gap: 8px; font-size: 0.88rem; font-weight: 500; color: #fff; padding-bottom: 5px; border-bottom: 1.5px solid rgba(255,255,255,0.6); transition: gap 0.3s var(--ease); }
+    .moment-link:hover { gap: 14px; }
+    .moment-link svg { width: 15px; height: 15px; }
+
+    .moment-nav { display: flex; align-items: center; gap: 18px; margin-top: 34px; }
+    .moment-pills { display: flex; gap: 8px; }
+    .moment-pill { font-family: var(--serif); font-size: 0.82rem; padding: 6px 16px; border-radius: 100px; border: 1px solid rgba(255,255,255,0.5); color: rgba(255,255,255,0.7); transition: all 0.3s var(--ease); }
+    .moment-pill.on { background: #fff; color: var(--dawn-ink); border-color: #fff; }
+
+    /* 进度条：黎明区底部居中 */
+    .moment-bar-wrap { position: absolute; bottom: 90px; left: 50%; transform: translateX(-50%); z-index: 3; width: 280px; max-width: 60vw; }
+    .moment-bar { width: 100%; height: 2px; background: rgba(255,255,255,0.2); border-radius: 2px; overflow: hidden; }
+    .moment-bar i { display: block; height: 100%; width: 0%; background: #fff; border-radius: 2px; }
+
+    /* 轮播左右切换按钮 */
+    .carousel-arrows { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
+    .carousel-arrow { position: absolute; top: 50%; transform: translateY(-50%); width: 48px; height: 48px; border-radius: 50%; background: rgba(255,255,255,0.12); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.2); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; pointer-events: auto; opacity: 0; transition: opacity 0.35s var(--ease), background 0.3s; }
+    .dawn:hover .carousel-arrow { opacity: 1; }
+    .carousel-arrow:hover { background: rgba(255,255,255,0.28); }
+    .carousel-arrow.prev { left: 28px; }
+    .carousel-arrow.next { right: 28px; }
+    .carousel-arrow svg { width: 20px; height: 20px; }
+    @media (max-width: 860px) { .carousel-arrow { width: 40px; height: 40px; } .carousel-arrow.prev { left: 12px; } .carousel-arrow.next { right: 12px; } }
+
+    .scroll-cue { position: absolute; bottom: 34px; left: 50%; transform: translateX(-50%); z-index: 3; display: flex; flex-direction: column; align-items: center; gap: 8px; color: rgba(255,255,255,0.55); }
+    .scroll-cue span { font-size: 0.62rem; letter-spacing: 0.3em; }
+    .scroll-cue svg { width: 18px; height: 18px; animation: cue 2.2s var(--ease) infinite; }
+    @keyframes cue { 0%,100% { transform: translateY(0); opacity: 0.6; } 50% { transform: translateY(7px); opacity: 1; } }
+
+    /* ==================== 2. 正午 ==================== */
+    .day {
+      position: relative; padding: 130px 0 150px;
+      background: linear-gradient(180deg, var(--dawn-deep) 0%, var(--day-deep) 14%, var(--day-3) 40%, var(--day-2) 70%, var(--day-1) 100%);
+      color: var(--day-ink); overflow: hidden;
+    }
+    .day-haze { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.4), transparent 60%); pointer-events: none; }
+    .day-head { position: relative; z-index: 2; margin-bottom: 80px; }
+    .day-eyebrow { color: rgba(20,48,73,0.55); margin-bottom: 18px; }
+    .day-title { font-family: var(--serif); font-weight: 700; font-size: clamp(2.6rem, 6vw, 4.4rem); line-height: 1; color: var(--day-ink); }
+    .day-title em { font-style: normal; font-weight: 300; color: rgba(20,48,73,0.4); }
+    .day-lead { max-width: 440px; margin-top: 22px; font-size: 0.95rem; color: rgba(20,48,73,0.7); line-height: 1.9; }
+
+    /* 云朵文章 */
+    .clouds { position: relative; z-index: 2; display: grid; grid-template-columns: repeat(12, 1fr); gap: 28px; }
+    .cloud { position: relative; border-radius: 20px; overflow: hidden; background: var(--cream); box-shadow: 0 12px 44px rgba(20,48,73,0.1), 0 2px 8px rgba(20,48,73,0.05); transition: transform 0.5s var(--ease), box-shadow 0.5s var(--ease); will-change: transform; }
+    .cloud:hover { transform: translateY(-10px) rotate(0deg) !important; box-shadow: 0 28px 64px rgba(20,48,73,0.18), 0 6px 16px rgba(20,48,73,0.08); z-index: 5; }
+    .cloud-img { position: relative; aspect-ratio: 16/10; overflow: hidden; }
+    .cloud-img img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.7s var(--ease); }
+    .cloud:hover .cloud-img img { transform: scale(1.06); }
+    /* 图片叠加层 */
+    .cloud-img-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-end; padding: 24px 26px; background: linear-gradient(180deg, transparent 30%, rgba(0,0,0,0.2) 60%, rgba(0,0,0,0.78) 100%); transition: background 0.4s var(--ease); }
+    .cloud:hover .cloud-img-overlay { background: linear-gradient(180deg, transparent 15%, rgba(0,0,0,0.3) 45%, rgba(0,0,0,0.85) 100%); }
+    .cloud-img-tag { position: absolute; top: 16px; left: 16px; z-index: 2; font-size: 0.72rem; font-weight: 500; letter-spacing: 0.06em; padding: 5px 14px; border-radius: 100px; background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.3); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+    .cloud-img-title { font-family: var(--serif); font-size: 1.35rem; font-weight: 600; line-height: 1.4; color: #fff; margin-bottom: 8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-shadow: 0 2px 8px rgba(0,0,0,0.6); }
+    .cloud-img-ex { font-size: 0.84rem; line-height: 1.65; color: rgba(255,255,255,0.82); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-shadow: 0 1px 4px rgba(0,0,0,0.5); margin-bottom: 4px; }
+    .cloud-body { padding: 18px 24px 22px; background: var(--cream); }
+    .cloud-meta { display: flex; gap: 16px; font-size: 0.76rem; color: rgba(20,48,73,0.5); }
+    .cloud-meta span { display: inline-flex; align-items: center; gap: 5px; }
+    .cloud-meta svg { width: 13px; height: 13px; }
+
+    .c1 { grid-column: 1 / span 7; } .c1 .cloud-img { aspect-ratio: 16/9; }
+    .c2 { grid-column: 8 / span 5; margin-top: 70px; transform: rotate(1.2deg); }
+    .c3 { grid-column: 1 / span 4; margin-top: -20px; transform: rotate(-1deg); }
+    .c4 { grid-column: 5 / span 5; margin-top: 30px; transform: rotate(0.6deg); }
+    .c5 { grid-column: 10 / span 3; margin-top: -10px; }
+
+    @media (max-width: 900px) {
+      .clouds { grid-template-columns: 1fr; gap: 24px; }
+      .c1,.c2,.c3,.c4,.c5 { grid-column: 1 / -1; margin-top: 0; transform: none; }
+      .c1 .cloud-img { aspect-ratio: 16/10; }
+    }
+
+    .day-more { position: relative; z-index: 2; margin-top: 70px; display: flex; justify-content: center; }
+    .day-more a { display: inline-flex; align-items: center; gap: 10px; font-family: var(--serif); font-size: 1rem; color: var(--day-ink); padding: 14px 34px; border: 1.5px solid rgba(20,48,73,0.3); border-radius: 100px; transition: all 0.4s var(--ease); }
+    .day-more a:hover { background: var(--day-ink); color: var(--day-1); border-color: var(--day-ink); gap: 18px; }
+    .day-more svg { width: 16px; height: 16px; }
+
+    /* ==================== 3. 黄昏 ==================== */
+    .dusk {
+      position: relative; padding: 130px 0 140px;
+      background: linear-gradient(180deg, var(--day-1) 0%, var(--dusk-1) 16%, var(--dusk-2) 50%, var(--dusk-3) 82%, var(--dusk-deep) 100%);
+      color: #fff; overflow: hidden;
+    }
+    .dusk-sun { position: absolute; top: 18%; right: 12%; width: 180px; height: 180px; border-radius: 50%; background: radial-gradient(circle, rgba(255,236,180,0.9), rgba(247,180,122,0.4) 60%, transparent 75%); filter: blur(2px); pointer-events: none; }
+    .dusk-head { position: relative; z-index: 2; margin-bottom: 70px; }
+    .dusk-eyebrow { color: rgba(255,255,255,0.7); margin-bottom: 16px; }
+    .dusk-title { font-family: var(--serif); font-weight: 700; font-size: clamp(2.4rem, 5.5vw, 4rem); line-height: 1.05; color: #fff; }
+    .dusk-title em { font-style: normal; font-weight: 300; opacity: 0.55; }
+
+    .horizon { position: relative; z-index: 2; border-radius: 26px; overflow: hidden; box-shadow: 0 30px 80px rgba(46,16,24,0.3); margin-bottom: 90px; }
+    .stratum { display: flex; align-items: center; justify-content: space-between; padding: 22px 32px; color: #fff; transition: padding 0.4s var(--ease); border-bottom: 1px solid rgba(255,255,255,0.12); cursor: pointer; }
+    .stratum:last-child { border-bottom: none; }
+    .stratum:hover { padding-left: 44px; }
+    .stratum-info { display: flex; align-items: baseline; gap: 18px; }
+    .stratum-name { font-family: var(--serif); font-size: 1.5rem; font-weight: 600; }
+    .stratum-desc { font-size: 0.82rem; opacity: 0.7; }
+    .stratum-count { font-family: var(--serif); font-size: 1.1rem; font-weight: 300; opacity: 0.85; }
+    .stratum-count b { font-weight: 700; font-size: 1.6rem; }
+    .s1 { background: linear-gradient(90deg, #4a90c2, #5b9bd5); }
+    .s2 { background: linear-gradient(90deg, #6b8aa5, #7a9ab8); }
+    .s3 { background: linear-gradient(90deg, #b8425a, #c1554b); }
+    .s4 { background: linear-gradient(90deg, #e8744f, #ef9f6c); }
+    .s5 { background: linear-gradient(90deg, #d4a06a, #c9985a); }
+    .s6 { background: linear-gradient(90deg, #8a6fa5, #7a5fa0); }
+    .s7 { background: linear-gradient(90deg, #5b8a72, #4a7a62); }
+
+    /* 时间河 */
+    .river-head { position: relative; z-index: 2; display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 36px; }
+    .river-head h3 { font-family: var(--serif); font-size: 1.7rem; font-weight: 600; color: #fff; }
+    .river-head .eyebrow { color: rgba(255,255,255,0.6); }
+    .river { position: relative; z-index: 2; }
+    .river-track { display: flex; gap: 14px; overflow-x: auto; padding: 8px 4px 24px; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.3) transparent; }
+    .river-track::-webkit-scrollbar { height: 6px; }
+    .river-track::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 3px; }
+    .river-node { flex: 0 0 auto; min-width: 132px; padding: 18px 20px; border-radius: 16px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.18); backdrop-filter: blur(6px); transition: all 0.35s var(--ease); cursor: pointer; }
+    .river-node:hover { background: rgba(255,255,255,0.22); transform: translateY(-4px); }
+    .river-y { font-family: var(--serif); font-size: 0.72rem; letter-spacing: 0.15em; color: rgba(255,255,255,0.55); margin-bottom: 6px; }
+    .river-m { font-family: var(--serif); font-size: 1.6rem; font-weight: 700; color: #fff; line-height: 1; margin-bottom: 8px; }
+    .river-m small { font-size: 0.8rem; font-weight: 400; opacity: 0.7; }
+    .river-c { font-size: 0.78rem; color: rgba(255,255,255,0.7); }
+    .river-c b { color: var(--gold-soft); }
+
+    @media (max-width: 700px) {
+      .stratum { padding: 16px 20px; }
+      .stratum:hover { padding-left: 28px; }
+      .stratum-name { font-size: 1.2rem; }
+      .stratum-desc { display: none; }
+    }
+
+    /* ==================== 4. 星夜 ==================== */
+    .night {
+      position: relative; padding: 150px 0 0;
+      background: linear-gradient(180deg, var(--dusk-deep) 0%, var(--night-1) 12%, var(--night-2) 40%, var(--night-3) 100%);
+      color: var(--night-ink); overflow: hidden;
+    }
+    .stars { position: absolute; inset: 0; pointer-events: none; }
+    .star { position: absolute; width: 2px; height: 2px; background: #fff; border-radius: 50%; opacity: 0.7; }
+    .star.tw { animation: twinkle var(--td, 3s) ease-in-out infinite; }
+    @keyframes twinkle { 0%,100% { opacity: 0.25; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.3); } }
+
+    .night-inner { position: relative; z-index: 2; }
+    .sign { display: grid; grid-template-columns: auto 1fr auto; gap: 44px; align-items: center; padding-bottom: 90px; }
+    .sign-avatar { position: relative; width: 150px; height: 150px; border-radius: 50%; overflow: hidden; border: 3px solid rgba(255,255,255,0.15); box-shadow: 0 0 0 8px rgba(217,168,95,0.12), 0 20px 50px rgba(0,0,0,0.4); }
+    .sign-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .sign-avatar::after { content: ''; position: absolute; inset: 0; border-radius: 50%; box-shadow: inset 0 0 40px rgba(217,168,95,0.2); }
+    .sign-text h3 { font-family: var(--serif); font-size: clamp(2rem, 4vw, 2.8rem); font-weight: 700; color: #fff; margin-bottom: 6px; }
+    .sign-role { font-size: 0.8rem; letter-spacing: 0.18em; color: var(--gold-soft); margin-bottom: 18px; }
+    .sign-bio { font-size: 0.95rem; line-height: 1.95; color: var(--text-dim); max-width: 460px; }
+    .sign-stats { display: flex; flex-direction: column; gap: 22px; text-align: right; }
+    .sign-stat .n { font-family: var(--serif); font-size: 2rem; font-weight: 700; color: #fff; line-height: 1; }
+    .sign-stat .l { font-size: 0.72rem; letter-spacing: 0.15em; color: var(--text-faint); margin-top: 4px; }
+
+    /* 搜索 */
+    .scope { position: relative; padding: 60px 0 90px; border-top: 1px solid rgba(255,255,255,0.1); border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .scope-grid { display: grid; grid-template-columns: 1fr 1.3fr; gap: 60px; align-items: center; }
+    .scope-lead h4 { font-family: var(--serif); font-size: 1.8rem; font-weight: 600; color: #fff; margin-bottom: 12px; }
+    .scope-lead p { font-size: 0.9rem; color: var(--text-dim); line-height: 1.9; }
+    .scope-field { position: relative; }
+    .scope-input { width: 100%; padding: 20px 60px 20px 24px; font-family: var(--serif); font-size: 1.15rem; color: #fff; background: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.18); border-radius: 100px; outline: none; transition: border-color 0.3s, box-shadow 0.3s; }
+    .scope-input::placeholder { color: var(--text-faint); }
+    .scope-input:focus { border-color: var(--gold-soft); box-shadow: 0 0 0 4px rgba(217,168,95,0.12); }
+    .scope-go { position: absolute; right: 7px; top: 50%; transform: translateY(-50%); width: 46px; height: 46px; border-radius: 50%; background: var(--gold); color: #1a1206; display: flex; align-items: center; justify-content: center; transition: all 0.3s var(--ease); }
+    .scope-go:hover { background: var(--gold-soft); transform: translateY(-50%) scale(1.06); }
+    .scope-go svg { width: 19px; height: 19px; }
+    .scope-tags { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 18px; }
+    .scope-tag { font-size: 0.78rem; padding: 6px 15px; border-radius: 100px; border: 1px solid rgba(255,255,255,0.18); color: var(--text-dim); transition: all 0.3s; }
+    .scope-tag:hover { color: #fff; border-color: var(--gold-soft); background: rgba(217,168,95,0.12); }
+
+    .night-login { text-align: center; padding: 50px 0 70px; }
+    .night-login p { font-size: 0.88rem; color: var(--text-faint); margin-bottom: 18px; }
+    .night-login a { display: inline-flex; align-items: center; gap: 9px; font-family: var(--serif); font-size: 1rem; color: #fff; padding: 13px 36px; border: 1.5px solid rgba(255,255,255,0.25); border-radius: 100px; transition: all 0.4s var(--ease); }
+    .night-login a:hover { background: var(--gold); color: #1a1206; border-color: var(--gold); }
+    .night-login svg { width: 16px; height: 16px; }
+
+    /* 页脚 */
+    .foot { position: relative; z-index: 2; padding: 50px 0 40px; border-top: 1px solid rgba(255,255,255,0.08); }
+    .foot-row { display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+    .foot-mark { font-family: var(--serif); font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px; }
+    .foot-mark svg { width: 16px; height: 16px; }
+    .foot-links { display: flex; gap: 26px; }
+    .foot-links a { font-size: 0.8rem; color: var(--text-faint); transition: color 0.3s; }
+    .foot-links a:hover { color: var(--gold-soft); }
+    .foot-copy { font-size: 0.74rem; color: rgba(255,255,255,0.28); margin-top: 26px; text-align: center; }
+
+    @media (max-width: 860px) {
+      .sign { grid-template-columns: 1fr; gap: 28px; text-align: center; justify-items: center; }
+      .sign-avatar { margin: 0 auto; }
+      .sign-stats { flex-direction: row; text-align: center; gap: 32px; }
+      .scope-grid { grid-template-columns: 1fr; gap: 30px; }
+      .foot-row { flex-direction: column; text-align: center; }
+    }
+
+    /* ==================== 回到黎明 ==================== */
+    .lift { position: fixed; bottom: 28px; right: 28px; z-index: 90; width: 50px; height: 50px; border-radius: 50%; background: rgba(255,255,255,0.14); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.22); color: #fff; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transform: translateY(16px); transition: all 0.4s var(--ease); }
+    .lift.show { opacity: 1; pointer-events: auto; transform: none; }
+    .lift:hover { background: var(--gold); color: #1a1206; border-color: var(--gold); }
+    .lift svg { width: 20px; height: 20px; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+      [data-rv] { opacity: 1; transform: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 浮动导航 -->
+  <nav class="nav" id="nav">
+    <a href="#dawn" class="nav-mark">
+      <svg viewBox="0 0 32 32" fill="none"><path d="M22 18a5 5 0 0 0-9.8-1.4A4 4 0 0 0 6 20.5 4.5 4.5 0 0 0 10.5 25H22a4 4 0 0 0 0-8z" fill="currentColor"></path><circle cx="24" cy="9" r="3.5" fill="currentColor" opacity="0.7"></circle></svg>
+      远远的天空 <span class="mk-sub" style="font-size:0.58rem;letter-spacing:0.2em;opacity:0.5;font-weight:400;">SKY</span>
+    </a>
+    <div class="nav-links">
+      <a href="#dawn" class="active">天空</a>
+      <a href="#day">文章</a>
+      <a href="#dusk">地层</a>
+      <a href="#night">签名</a>
+    </div>
+    <div class="nav-actions">
+      <button class="icon-btn" id="searchOpen" aria-label="搜索">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+      </button>
+      <a href="login.html" class="nav-login">登录</a>
+      <button class="icon-btn burger" id="burger" aria-label="菜单">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="8" x2="20" y2="8"></line><line x1="4" y1="16" x2="20" y2="16"></line></svg>
+      </button>
+    </div>
+  </nav>
+
+  <!-- 移动端菜单 -->
+  <div class="mnav" id="mnav">
+    <a href="#dawn">天空</a>
+    <a href="#day">文章</a>
+    <a href="#dusk">地层</a>
+    <a href="#night">签名</a>
+    <a href="login.html" class="ml">登录后台</a>
+  </div>
+
+  <!-- 高度计 -->
+  <div class="altimeter" id="altimeter">
+    <div class="alt-track">
+      <div class="alt-fill" id="altFill" style="height: 0%;"></div>
+      <div class="alt-dot" id="altDot" style="top: 0%;"></div>
+      <div class="alt-labels">
+        <span id="lbl0">星夜</span>
+        <span id="lbl1">黄昏</span>
+        <span id="lbl2">正午</span>
+        <span id="lbl3" class="on">黎明</span>
+      </div>
+    </div>
+    <div class="alt-cap">ALTITUDE</div>
+  </div>
+
+  <!-- 1. 黎明 · 沉浸天空 -->
+  <section class="dawn" id="dawn">
+    <div class="sky-layers" id="skyLayers"></div>
+    <div class="sky-veil"></div>
+    <div class="dawn-grain"></div>
+
+    <!-- 轮播左右切换 -->
+    <button class="carousel-arrow prev" id="carouselPrev" aria-label="上一张"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+    <button class="carousel-arrow next" id="carouselNext" aria-label="下一张"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+
+    <div class="dawn-inner">
+      <div class="dawn-meta">
+        <span class="dot"></span>
+        <span class="eyebrow" id="dawnMeta">第 1 篇 · 2026 夏</span>
+      </div>
+      <h1 class="dawn-title"><span class="ch">远</span><span class="ch">远</span><span class="ch">的</span><span class="ch">天</span><span class="ch">空</span></h1>
+      <div class="dawn-sub">D I S T A N T &nbsp; S K Y</div>
+
+      <!-- 天空时刻轮播 -->
+      <div class="moments" id="moments"></div>
+
+      <div class="moment-nav">
+        <div class="moment-pills" id="momentPills"></div>
+      </div>
+    </div>
+
+    <!-- 轮播进度条：底部居中 -->
+    <div class="moment-bar-wrap"><div class="moment-bar" id="momentBarWrap"><i id="momentBar"></i></div></div>
+
+    <div class="scroll-cue">
+      <span>向上漫游</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+    </div>
+  </section>
+
+  <!-- 2. 正午 · 云海文章 -->
+  <section class="day" id="day">
+    <div class="day-haze"></div>
+    <div class="wrap">
+      <div class="day-head" data-rv>
+        <div class="eyebrow day-eyebrow">02 — 正午 · 云海之上</div>
+        <h2 class="day-title">散落在云间的<em>字句</em></h2>
+        <p class="day-lead">不是整齐排列的卡片，而是漂浮在云海里的思考。有的近，有的远；有的大，有的小。挑一朵，读一会。</p>
+      </div>
+
+      <div class="clouds" id="clouds"></div>
+
+      <div class="day-more" data-rv>
+        <a href="posts.html">漫游全部文章 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. 黄昏 · 天际地层 + 时间河 -->
+  <section class="dusk" id="dusk">
+    <div class="dusk-sun"></div>
+    <div class="wrap">
+      <div class="dusk-head" data-rv>
+        <div class="eyebrow dusk-eyebrow">03 — 黄昏 · 天际分层</div>
+        <h2 class="dusk-title">不同高度的<em>天空</em>，住着不同的字</h2>
+      </div>
+
+      <div class="horizon" id="horizon" data-rv></div>
+
+      <div class="river" data-rv>
+        <div class="river-head">
+          <h3>时间之河</h3>
+          <span class="eyebrow">按月归档 · 横向漫游</span>
+        </div>
+        <div class="river-track" id="riverTrack"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. 星夜 · 签名 + 搜索 + 登录 + 页脚 -->
+  <section class="night" id="night">
+    <div class="stars" id="stars"></div>
+    <div class="wrap night-inner">
+
+      <div class="sign" id="sign" data-rv></div>
+
+      <!-- 望远镜：搜索 -->
+      <div class="scope" data-rv>
+        <div class="scope-grid">
+          <div class="scope-lead">
+            <h4>举起望远镜</h4>
+            <p>在整片天空里找一句话，一个名字，或一段你想不起来的黄昏。输入关键词，让光带你找到它。</p>
+          </div>
+          <div class="scope-field">
+            <input type="text" class="scope-input" id="searchInput" placeholder="搜索文章、关键词……" aria-label="搜索">
+            <button class="scope-go" id="searchGo" aria-label="搜索"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></button>
+            <div class="scope-tags" id="scopeTags"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 登录后台 -->
+      <div class="night-login" id="night-login" data-rv>
+        <p>如果你是这片天空的主人</p>
+        <a href="login.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>登录后台，管理这片天空</a>
+      </div>
+
+      <!-- 页脚 -->
+      <footer class="foot" id="foot"></footer>
+    </div>
+  </section>
+
+  <!-- 回到黎明 -->
+  <button class="lift" id="lift" aria-label="回到黎明">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
+  </button>
+
+  <script src="js/api.js"></script>
+  <script src="js/ui.js"></script>
+  <script>
+    // ===== 初始化：渲染所有数据驱动区域 =====
+    (async function init(){
+      try {
+        const [slides, posts, categories, config] = await Promise.all([
+          API.getSlides(),
+          API.getPosts({}),
+          API.getCategories(),
+          API.getConfig()
+        ]);
+
+        const pubPosts = posts.filter(p => p.status === 'pub');
+        const catCounts = {};
+        pubPosts.forEach(p => { if(p.categoryId){ catCounts[p.categoryId] = (catCounts[p.categoryId]||0)+1; } });
+
+        renderSkyLayers(slides);
+        renderMoments(slides);
+        renderClouds(pubPosts, categories);
+        renderHorizon(categories, catCounts, pubPosts.length);
+        renderRiver(pubPosts);
+        renderSign(config, pubPosts.length, categories.length);
+        renderScopeTags(pubPosts);
+        renderFooter(config);
+        renderStars();
+        renderDawnMeta(pubPosts);
+
+        initCarousel(slides);
+        initInteractions();
+        initScrollReveal();
+      } catch(e){
+        console.error('初始化失败:', e);
+        UI.toast('加载失败，请刷新重试');
+      }
+    })();
+
+    function renderSkyLayers(slides){
+      const el = document.getElementById('skyLayers');
+      el.innerHTML = slides.map((s,i) =>
+        `<div class="sky-layer${i===1?' on':''}" style="background-image:url('${s.bgImage}')"></div>`
+      ).join('');
+    }
+
+    function renderMoments(slides){
+      const el = document.getElementById('moments');
+      el.innerHTML = slides.map((s,i) =>
+        `<div class="moment${i===1?' on':''}">
+          <div class="moment-tag">${s.tag}</div>
+          <h2 class="moment-title">${s.title}</h2>
+          <p class="moment-desc">${s.description}</p>
+          <a href="post.html?id=${s.postId}" class="moment-link" data-action="slide-read">阅读全文 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></a>
+        </div>`
+      ).join('');
+    }
+
+    function renderClouds(posts, categories){
+      const el = document.getElementById('clouds');
+      const display = posts.slice(0, 5);
+      const layouts = ['c1','c2','c3','c4','c5'];
+      const delays = ['1','2','1','2','3'];
+      const catMap = {};
+      categories.forEach(c => catMap[c.id] = c.name);
+
+      el.innerHTML = display.map((p,i) => {
+        const tagName = p.tag ? p.tag.split(',')[0].trim() : (catMap[p.categoryId] || '随笔');
+        const catName = catMap[p.categoryId] || '';
+        const tags = p.tag ? p.tag.split(',').map(s=>s.trim()) : [];
+        return `<article class="cloud ${layouts[i]}" data-rv data-rv-d="${delays[i]}">
+          <a href="post.html?id=${p.id}" class="cloud-img">
+            <img src="${p.cover||'images/article-nature.jpg'}" alt="${p.title}" loading="lazy">
+            <div class="cloud-img-overlay">
+              <h3 class="cloud-img-title">${p.title}</h3>
+              <p class="cloud-img-ex">${p.excerpt||''}</p>
+            </div>
+            <span class="cloud-img-tag">${tagName}</span>
+          </a>
+          <div class="cloud-body">
+            <div class="cloud-meta"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>${p.date}</span>${catName?`<span>${catName}</span>`:''}</div>
+          </div>
+        </article>`;
+      }).join('');
+    }
+
+    function renderHorizon(categories, catCounts, totalCount){
+      const el = document.getElementById('horizon');
+      const html = categories.map(c => {
+        const count = c.name==='全部' ? totalCount : (catCounts[c.id]||0);
+        return `<a href="${c.name==='全部'?'posts.html':'posts.html?categoryId='+c.id}" class="stratum ${c.color||'s1'}"><div class="stratum-info"><span class="stratum-name">${c.name}</span><span class="stratum-desc">${c.description||''}</span></div><span class="stratum-count"><b>${count}</b> 篇</span></a>`;
+      }).join('');
+      el.innerHTML = html;
+    }
+
+    function renderRiver(posts){
+      const el = document.getElementById('riverTrack');
+      const months = {};
+      posts.forEach(p => {
+        const m = p.date.substring(0,7);
+        if(!months[m]) months[m] = 0;
+        months[m]++;
+      });
+      const sorted = Object.keys(months).sort().reverse();
+      const monthNames = ['','1','2','3','4','5','6','7','8','9','10','11','12'];
+      el.innerHTML = sorted.map(m => {
+        const [y,mo] = m.split('-');
+        return `<a href="posts.html?month=${m}" class="river-node"><div class="river-y">${y}</div><div class="river-m">${parseInt(mo)}<small>月</small></div><div class="river-c"><b>${months[m]}</b> 篇</div></a>`;
+      }).join('');
+    }
+
+    function renderSign(config, postCount, catCount){
+      const el = document.getElementById('sign');
+      el.innerHTML = `
+        <div class="sign-avatar"><img src="${config.authorAvatar||'images/avatar.jpg'}" alt="${config.authorName||'远远'}"></div>
+        <div class="sign-text">
+          <h3>${config.authorName||'远远'}</h3>
+          <div class="sign-role">${config.authorRole||''}</div>
+          <p class="sign-bio">${config.authorBio||''}</p>
+        </div>
+        <div class="sign-stats">
+          <div class="sign-stat"><div class="n">${postCount}</div><div class="l">文章</div></div>
+          <div class="sign-stat"><div class="n">${catCount}</div><div class="l">分类</div></div>
+          <div class="sign-stat"><div class="n">∞</div><div class="l">天空</div></div>
+        </div>`;
+    }
+
+    function renderScopeTags(posts){
+      const el = document.getElementById('scopeTags');
+      const tags = new Set();
+      posts.forEach(p => { if(p.tag) p.tag.split(',').forEach(t => tags.add(t.trim())); });
+      const popular = [...tags].slice(0, 8);
+      el.innerHTML = popular.map(t => `<a href="posts.html?tag=${encodeURIComponent(t)}" class="scope-tag">${t}</a>`).join('');
+    }
+
+    function renderFooter(config){
+      const el = document.getElementById('foot');
+      const links = [];
+      if(config.githubUrl) links.push(`<a href="${config.githubUrl}" target="_blank" rel="noopener">GitHub</a>`);
+      if(config.weiboUrl) links.push(`<a href="${config.weiboUrl}" target="_blank" rel="noopener">微博</a>`);
+      links.push('<a href="/rss.xml">RSS</a>');
+      if(config.contactEmail) links.push(`<a href="mailto:${config.contactEmail}">联系</a>`);
+      el.innerHTML = `
+        <div class="foot-row">
+          <div class="foot-mark">
+            <svg viewBox="0 0 32 32" fill="none"><path d="M22 18a5 5 0 0 0-9.8-1.4A4 4 0 0 0 6 20.5 4.5 4.5 0 0 0 10.5 25H22a4 4 0 0 0 0-8z" fill="currentColor"></path><circle cx="24" cy="9" r="3.5" fill="currentColor" opacity="0.7"></circle></svg>
+            ${config.blogName||'远远的天空'}
+          </div>
+          <div class="foot-links">${links.join('')}</div>
+        </div>
+        <div class="foot-copy">${config.footerText||'© 2026 远远的天空'}</div>`;
+    }
+
+    function renderStars(){
+      const box = document.getElementById('stars');
+      const n = 60;
+      let html = '';
+      for(let i=0;i<n;i++){
+        const x = Math.random()*100, y = Math.random()*100;
+        const s = (Math.random()*2 + 0.5).toFixed(1);
+        const td = (Math.random()*3+2).toFixed(1)+'s';
+        const dly = (Math.random()*3).toFixed(1)+'s';
+        const tw = Math.random()>0.4 ? ' tw' : '';
+        html += `<span class="star${tw}" style="left:${x}%;top:${y}%;width:${s}px;height:${s}px;--td:${td};animation-delay:${dly}"></span>`;
+      }
+      box.innerHTML = html;
+    }
+
+    function renderDawnMeta(posts){
+      const el = document.getElementById('dawnMeta');
+      if(posts.length > 0){
+        const latest = posts[0];
+        const season = parseInt(latest.date.substring(5,7))<=2?'冬':parseInt(latest.date.substring(5,7))<=5?'春':parseInt(latest.date.substring(5,7))<=8?'夏':'秋';
+        el.innerHTML = `<span class="dot"></span><span class="eyebrow">第 ${posts.length} 篇 · ${latest.date.substring(0,4)} ${season}</span>`;
+      }
+    }
+
+    // ===== 轮播 =====
+    let carouselTimer, curSlide = 0, slideCount = 0;
+    function initCarousel(slides){
+      slideCount = slides.length;
+      if(slideCount < 2) return;
+      curSlide = 1;
+      startCarousel();
+      const pills = document.querySelectorAll('.moment-pill');
+      pills.forEach(p => p.addEventListener('click', ()=>{
+        goToSlide(+p.dataset.m);
+        startCarousel();
+      }));
+      const dawn = document.getElementById('dawn');
+      dawn.addEventListener('mouseenter', stopCarousel);
+      dawn.addEventListener('mouseleave', startCarousel);
+
+      document.getElementById('carouselPrev').addEventListener('click', (e)=>{ e.stopPropagation(); goToSlide((curSlide-1+slideCount)%slideCount); startCarousel(); });
+      document.getElementById('carouselNext').addEventListener('click', (e)=>{ e.stopPropagation(); nextSlide(); startCarousel(); });
+    }
+
+    function goToSlide(i){
+      const layers = document.querySelectorAll('.sky-layer');
+      const moments = document.querySelectorAll('.moment');
+      const pills = document.querySelectorAll('.moment-pill');
+      const bar = document.getElementById('momentBar');
+      layers.forEach((l,n)=>l.classList.toggle('on', n===i));
+      moments.forEach((m,n)=>m.classList.toggle('on', n===i));
+      pills.forEach((p,n)=>p.classList.toggle('on', n===i));
+      curSlide = i;
+      if(bar){
+        bar.style.transition='none'; bar.style.width='0%'; bar.offsetWidth;
+        bar.style.transition='width 5600ms linear'; bar.style.width='100%';
+      }
+    }
+
+    function nextSlide(){ goToSlide((curSlide+1)%slideCount); }
+    function startCarousel(){ stopCarousel(); carouselTimer = setInterval(nextSlide, 5600); }
+    function stopCarousel(){ if(carouselTimer){ clearInterval(carouselTimer); carouselTimer=null; } }
+
+    // ===== 交互 =====
+    function initInteractions(){
+      const nav = document.getElementById('nav');
+      const lift = document.getElementById('lift');
+      const altFill = document.getElementById('altFill');
+      const altDot = document.getElementById('altDot');
+      const labels = [document.getElementById('lbl3'),document.getElementById('lbl2'),document.getElementById('lbl1'),document.getElementById('lbl0')];
+      const sections = ['dawn','day','dusk','night'].map(id=>document.getElementById(id));
+
+      window.addEventListener('scroll', ()=>{
+        const y = window.scrollY;
+        nav.classList.toggle('solid', y > window.innerHeight*0.7);
+        lift.classList.toggle('show', y > window.innerHeight*0.9);
+
+        const docH = document.documentElement.scrollHeight - window.innerHeight;
+        const pct = docH>0 ? Math.min(1, y/docH) : 0;
+        if(altFill) altFill.style.height = (pct*100)+'%';
+        if(altDot) altDot.style.top = (pct*100)+'%';
+
+        const mid = y + window.innerHeight*0.4;
+        let active = 0;
+        sections.forEach((s,i)=>{ if(s && s.offsetTop <= mid) active = i; });
+        labels.forEach((l,i)=>l && l.classList.toggle('on', i===active));
+        document.querySelectorAll('.nav-links a').forEach((a,i)=>a.classList.toggle('active', i===active));
+      }, {passive:true});
+
+      lift.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
+
+      // 汉堡菜单
+      const burger = document.getElementById('burger');
+      const mnav = document.getElementById('mnav');
+      burger.addEventListener('click',()=>{
+        const o = mnav.classList.toggle('open');
+        document.body.style.overflow = o ? 'hidden' : '';
+      });
+      mnav.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{
+        mnav.classList.remove('open'); document.body.style.overflow='';
+      }));
+
+      // 搜索
+      document.getElementById('searchOpen').addEventListener('click',()=>{
+        document.getElementById('night').scrollIntoView({behavior:'smooth'});
+        setTimeout(()=>{ document.getElementById('searchInput').focus(); }, 700);
+      });
+
+      document.getElementById('searchGo').addEventListener('click',()=>{
+        const q = document.getElementById('searchInput').value.trim();
+        if(q) window.location.href = 'posts.html?q='+encodeURIComponent(q);
+      });
+      document.getElementById('searchInput').addEventListener('keydown',(e)=>{
+        if(e.key==='Enter'){
+          const q = e.target.value.trim();
+          if(q) window.location.href = 'posts.html?q='+encodeURIComponent(q);
+        }
+      });
+    }
+
+    function initScrollReveal(){
+      const els = document.querySelectorAll('[data-rv]');
+      const io = new IntersectionObserver((es)=>{
+        es.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('rv'); io.unobserve(e.target); } });
+      }, {threshold:0.12, rootMargin:'0px 0px -50px 0px'});
+      els.forEach(el=>io.observe(el));
+    }
+  </script>
+</body>
+</html>

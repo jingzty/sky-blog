@@ -1,0 +1,9 @@
+CREATE TABLE IF NOT EXISTS posts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  title TEXT, tag TEXT, date TEXT, cover TEXT,
+  excerpt TEXT, content TEXT, status TEXT DEFAULT 'pub'
+);
+CREATE TABLE IF NOT EXISTS slides (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  title TEXT, img TEXT, postId INTEGER
+);

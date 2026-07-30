@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>文章列表 — 远远的天空</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Noto+Serif+SC:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/tokens.css">
+  <style>
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+    html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased}
+    body{font-family:var(--sans);background:linear-gradient(180deg,var(--day-1) 0%,var(--dawn-1) 100%);min-height:100vh;color:var(--day-ink);line-height:1.75}
+    a{color:inherit;text-decoration:none}
+    img{display:block;max-width:100%}
+    ::selection{background:var(--gold);color:#fff}
+
+    /* 导航 */
+    .topbar{position:sticky;top:0;z-index:50;background:rgba(255,255,255,0.75);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid rgba(0,0,0,0.06);padding:14px 0}
+    .topbar-inner{max-width:var(--max);margin:0 auto;padding:0 40px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+    .topbar-home{font-family:var(--serif);font-weight:700;font-size:1rem;color:var(--day-ink)}
+    .topbar-home:hover{color:var(--dawn-deep)}
+
+    /* 搜索栏 */
+    .search-bar{display:flex;align-items:center;gap:8px;margin-left:auto}
+    .search-bar input{padding:8px 16px;border:1px solid rgba(20,48,73,0.2);border-radius:100px;font-size:0.85rem;background:rgba(255,255,255,0.5);outline:none;font-family:var(--serif);min-width:200px;transition:border-color 0.3s}
+    .search-bar input:focus{border-color:var(--day-deep)}
+    .search-bar button{padding:8px 16px;border-radius:100px;background:var(--day-deep);color:#fff;font-size:0.85rem;border:none;cursor:pointer;font-family:var(--sans);transition:background 0.3s}
+    .search-bar button:hover{background:var(--day-ink)}
+
+    /* 筛选标签 */
+    .filters{max-width:var(--max);margin:0 auto;padding:24px 40px 0;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+    .filters span{font-size:0.75rem;color:rgba(20,48,73,0.5);letter-spacing:0.1em}
+    .filter-tag{font-size:0.78rem;padding:6px 14px;border-radius:100px;border:1px solid rgba(20,48,73,0.2);color:rgba(20,48,73,0.6);transition:all 0.3s;cursor:pointer;background:transparent}
+    .filter-tag.on,.filter-tag:hover{background:var(--day-ink);color:var(--day-1);border-color:var(--day-ink)}
+    .filter-clear{font-size:0.75rem;color:var(--dusk-2);cursor:pointer;margin-left:8px}
+    .filter-clear:hover{text-decoration:underline}
+
+    /* 列表 */
+    .posts-wrap{max-width:var(--max);margin:0 auto;padding:32px 40px 80px}
+    .posts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:28px}
+    .post-card{background:rgba(255,255,255,0.6);border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.5);box-shadow:0 12px 40px rgba(20,48,73,0.08);transition:transform 0.4s var(--ease),box-shadow 0.4s var(--ease)}
+    .post-card:hover{transform:translateY(-6px);box-shadow:0 24px 60px rgba(20,48,73,0.16)}
+    .post-card-img{aspect-ratio:16/10;overflow:hidden;background:rgba(20,48,73,0.05)}
+    .post-card-img img{width:100%;height:100%;object-fit:cover;transition:transform 0.6s var(--ease)}
+    .post-card:hover .post-card-img img{transform:scale(1.05)}
+    .post-card-body{padding:20px 22px 24px}
+    .post-card-tag{font-size:0.7rem;font-weight:500;letter-spacing:0.05em;color:var(--day-deep);margin-bottom:8px}
+    .post-card-title{font-family:var(--serif);font-size:1.15rem;font-weight:600;line-height:1.4;color:var(--day-ink);margin-bottom:8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .post-card-ex{font-size:0.84rem;line-height:1.7;color:rgba(20,48,73,0.6);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:14px}
+    .post-card-meta{font-size:0.74rem;color:rgba(20,48,73,0.45);display:flex;gap:14px}
+
+    .empty{padding:80px 24px;text-align:center;color:var(--taupe)}
+    .empty h3{font-family:var(--serif);font-size:1.4rem;margin-bottom:8px;color:var(--day-ink)}
+    .empty a{color:var(--dawn-deep);border-bottom:1px solid var(--dawn-deep)}
+
+    .info-bar{font-size:0.82rem;color:rgba(20,48,73,0.5);margin-bottom:24px}
+
+    @media(max-width:640px){
+      .topbar-inner{padding:0 16px}
+      .search-bar input{min-width:140px}
+      .posts-wrap{padding:24px 16px 60px}
+      .posts-grid{grid-template-columns:1fr}
+      .filters{padding:20px 16px 0}
+    }
+  </style>
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a href="index.html" class="topbar-home">远远的天空</a>
+      <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="搜索文章……" aria-label="搜索">
+        <button id="searchBtn">搜索</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="filters" id="filters"></div>
+
+  <div class="posts-wrap">
+    <div class="info-bar" id="infoBar"></div>
+    <div class="posts-grid" id="postsGrid"></div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/ui.js"></script>
+  <script>
+    (async function init(){
+      const params = new URLSearchParams(location.search);
+      const q = params.get('q') || '';
+      const categoryId = params.get('categoryId') || '';
+      const tag = params.get('tag') || '';
+      const month = params.get('month') || '';
+
+      try {
+        const [posts, categories] = await Promise.all([
+          API.getPosts({}),
+          API.getCategories()
+        ]);
+
+        // 筛选
+        let filtered = [...posts];
+        if(q){ filtered = filtered.filter(p => p.title.includes(q)||p.excerpt.includes(q)||p.content.includes(q)); }
+        if(categoryId){ filtered = filtered.filter(p => p.categoryId == categoryId); }
+        if(tag){ filtered = filtered.filter(p => p.tag && p.tag.split(',').map(s=>s.trim()).includes(tag)); }
+        if(month){ filtered = filtered.filter(p => p.date && p.date.startsWith(month)); }
+
+        // 搜索框
+        if(q) document.getElementById('searchInput').value = q;
+
+        // 信息栏
+        let info = `共 ${filtered.length} 篇文章`;
+        if(categoryId){ const cat = categories.find(c=>c.id==categoryId); if(cat) info = `分类「${cat.name}」· ${filtered.length} 篇`; }
+        if(tag) info = `标签「${tag}」· ${filtered.length} 篇`;
+        if(month) info = `归档 ${month.replace('-','年')}月 · ${filtered.length} 篇`;
+        if(q) info = `搜索「${q}」· ${filtered.length} 篇`;
+        document.getElementById('infoBar').textContent = info;
+
+        // 筛选标签
+        const filtersEl = document.getElementById('filters');
+        const allTags = new Set();
+        posts.forEach(p => { if(p.tag) p.tag.split(',').forEach(t => allTags.add(t.trim())); });
+        filtersEl.innerHTML = `
+          <span>筛选：</span>
+          <a href="posts.html" class="filter-tag${!categoryId&&!tag&&!month?' on':''}">全部</a>
+          ${categories.filter(c=>c.name!=='全部').map(c => `<a href="posts.html?categoryId=${c.id}" class="filter-tag${categoryId==c.id?' on':''}">${c.name}</a>`).join('')}
+          ${(categoryId||tag||month||q) ? `<a href="posts.html" class="filter-clear">清除筛选</a>` : ''}
+        `;
+
+        // 渲染列表
+        const grid = document.getElementById('postsGrid');
+        if(filtered.length === 0){
+          grid.innerHTML = `<div class="empty"><h3>没有找到文章</h3><p>试试其他关键词，或回到<a href="index.html">首页</a></p></div>`;
+          return;
+        }
+        grid.innerHTML = filtered.map(p => `
+          <a href="post.html?id=${p.id}" class="post-card">
+            <div class="post-card-img">${p.cover ? `<img src="${p.cover}" alt="${p.title}" loading="lazy">` : `<div style="height:100%;background:linear-gradient(135deg,var(--day-2),var(--day-3))"></div>`}</div>
+            <div class="post-card-body">
+              <div class="post-card-tag">${p.tag ? p.tag.split(',')[0].trim() : '随笔'}</div>
+              <h3 class="post-card-title">${p.title}</h3>
+              <p class="post-card-ex">${p.excerpt||''}</p>
+              <div class="post-card-meta"><span>${p.date}</span></div>
+            </div>
+          </a>
+        `).join('');
+
+        // 搜索
+        document.getElementById('searchBtn').addEventListener('click',()=>{
+          const v = document.getElementById('searchInput').value.trim();
+          if(v) window.location.href = 'posts.html?q='+encodeURIComponent(v);
+        });
+        document.getElementById('searchInput').addEventListener('keydown',(e)=>{
+          if(e.key==='Enter'){
+            const v = e.target.value.trim();
+            if(v) window.location.href = 'posts.html?q='+encodeURIComponent(v);
+          }
+        });
+
+      } catch(e){
+        document.getElementById('postsGrid').innerHTML = `<div class="empty"><h3>加载失败</h3><p>${e.message}</p></div>`;
+      }
+    })();
+  </script>
+</body>
+</html>

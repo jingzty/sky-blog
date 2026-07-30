@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>文章详情 — 远远的天空</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Noto+Serif+SC:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/tokens.css">
+  <style>
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+    html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased}
+    body{font-family:var(--sans);background:var(--dawn-1);color:var(--dawn-ink);line-height:1.85;min-height:100vh}
+    img{display:block;max-width:100%;height:auto}
+    a{color:inherit;text-decoration:none}
+    ::selection{background:var(--gold);color:#fff}
+
+    /* 导航 */
+    .topbar{position:sticky;top:0;z-index:50;background:rgba(255,255,255,0.75);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid rgba(0,0,0,0.06);padding:14px 0}
+    .topbar-inner{max-width:var(--max);margin:0 auto;padding:0 40px;display:flex;align-items:center;gap:18px}
+    .topbar-back{font-family:var(--serif);font-size:0.9rem;color:var(--dawn-deep);display:flex;align-items:center;gap:6px;transition:color 0.3s}
+    .topbar-back:hover{color:var(--dawn-ink)}
+    .topbar-back svg{width:16px;height:16px}
+    .topbar-home{font-family:var(--serif);font-weight:700;font-size:1rem;color:var(--dawn-ink);margin-left:auto}
+
+    /* 文章区 */
+    .post-wrap{max-width:740px;margin:0 auto;padding:40px 24px 80px}
+    .post-cover{width:100%;border-radius:20px;margin-bottom:40px;aspect-ratio:16/9;object-fit:cover;box-shadow:0 20px 60px rgba(0,0,0,0.15)}
+    .post-header{margin-bottom:40px}
+    .post-tag{display:inline-flex;align-items:center;gap:8px;font-size:0.72rem;letter-spacing:0.2em;font-weight:500;color:var(--dawn-deep);margin-bottom:16px}
+    .post-tag::before{content:'';width:20px;height:1px;background:var(--dawn-deep)}
+    .post-title{font-family:var(--serif);font-weight:700;font-size:clamp(1.8rem,4vw,2.8rem);line-height:1.25;color:var(--dawn-ink);margin-bottom:16px}
+    .post-meta{display:flex;gap:18px;font-size:0.82rem;color:rgba(74,42,24,0.55);flex-wrap:wrap}
+    .post-meta span{display:inline-flex;align-items:center;gap:5px}
+    .post-meta svg{width:13px;height:13px}
+
+    /* Markdown 正文 */
+    .post-content{font-family:var(--serif);font-size:1.05rem;line-height:2;color:var(--dawn-ink)}
+    .post-content h1,.post-content h2,.post-content h3,.post-content h4{font-family:var(--serif);margin:2em 0 0.6em;line-height:1.3}
+    .post-content h1{font-size:1.8rem;font-weight:700}
+    .post-content h2{font-size:1.5rem;font-weight:700;color:var(--dawn-deep)}
+    .post-content h3{font-size:1.2rem;font-weight:600;color:var(--dawn-deep)}
+    .post-content h4{font-size:1.05rem;font-weight:600}
+    .post-content p{margin:1em 0}
+    .post-content ul{margin:1em 0;padding-left:1.5em}
+    .post-content li{margin:0.4em 0}
+    .post-content strong{font-weight:700}
+    .post-content em{font-style:italic}
+    .post-content a{color:var(--dawn-deep);border-bottom:1px solid var(--dawn-deep);transition:opacity 0.3s}
+    .post-content a:hover{opacity:0.7}
+    .post-content code{font-family:monospace;background:rgba(74,42,24,0.08);padding:2px 6px;border-radius:4px;font-size:0.9em}
+    .post-content pre{background:var(--dawn-ink);color:var(--dawn-1);padding:20px 24px;border-radius:12px;overflow-x:auto;margin:1.5em 0;font-size:0.9rem;line-height:1.7}
+    .post-content pre code{background:none;padding:0;font-size:inherit}
+    .post-content hr{border:none;height:1px;background:rgba(74,42,24,0.15);margin:2em 0}
+    .post-content img{border-radius:12px;margin:1.5em 0}
+
+    /* 空态 */
+    .empty{text-align:center;padding:100px 24px;color:var(--taupe)}
+    .empty h2{font-family:var(--serif);font-size:1.5rem;margin-bottom:12px;color:var(--dawn-ink)}
+    .empty a{color:var(--dawn-deep);border-bottom:1px solid var(--dawn-deep)}
+
+    /* 页脚 */
+    .post-foot{text-align:center;padding:40px 0 60px;border-top:1px solid rgba(0,0,0,0.06)}
+    .post-foot a{font-family:var(--serif);font-size:0.95rem;color:var(--dawn-deep);display:inline-flex;align-items:center;gap:8px;transition:gap 0.3s}
+    .post-foot a:hover{gap:14px}
+    .post-foot svg{width:16px;height:16px}
+
+    @media(max-width:640px){.post-wrap{padding:24px 16px 60px}}
+  </style>
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a href="javascript:history.back()" class="topbar-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>返回</a>
+      <a href="index.html" class="topbar-home">远远的天空</a>
+    </div>
+  </header>
+
+  <main id="postContent">
+    <div class="empty"><h2>加载中……</h2></div>
+  </main>
+
+  <footer class="post-foot">
+    <a href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>回到天空</a>
+  </footer>
+
+  <script src="js/api.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/md.js"></script>
+  <script>
+    (async function(){
+      const params = new URLSearchParams(location.search);
+      const idOrSlug = params.get('id') || params.get('slug');
+      const el = document.getElementById('postContent');
+
+      if(!idOrSlug){
+        el.innerHTML = `<div class="empty"><h2>文章未找到</h2><p>没有指定文章 ID。回到<a href="index.html">首页</a>看看？</p></div>`;
+        document.title = '文章未找到 — 远远的天空';
+        return;
+      }
+
+      try {
+        const post = await API.getPost(idOrSlug);
+        if(post.status !== 'pub' && !API.isAuthed()){
+          el.innerHTML = `<div class="empty"><h2>这篇文章尚未发布</h2><p>它是草稿状态，只有作者可以查看。回到<a href="index.html">首页</a>？</p></div>`;
+          return;
+        }
+        document.title = post.title + ' — 远远的天空';
+        const tagHtml = post.tag ? post.tag.split(',').map(t=>t.trim()).filter(Boolean).slice(0,3).join(' · ') : '';
+        el.innerHTML = `
+          ${post.cover ? `<img src="${post.cover}" alt="${post.title}" class="post-cover">` : ''}
+          <article>
+            <div class="post-header">
+              ${tagHtml ? `<div class="post-tag">${tagHtml}</div>` : ''}
+              <h1 class="post-title">${post.title}</h1>
+              <div class="post-meta">
+                <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>${post.date}</span>
+                ${post.status==='draft'?'<span style="color:var(--dusk-2)">草稿</span>':''}
+              </div>
+            </div>
+            <div class="post-content">${MD.render(post.content)}</div>
+          </article>`;
+      } catch(e){
+        el.innerHTML = `<div class="empty"><h2>文章不存在</h2><p>${e.message||'找不到这篇文章'}。回到<a href="index.html">首页</a>？</p></div>`;
+        document.title = '文章未找到 — 远远的天空';
+      }
+    })();
+  </script>
+</body>
+</html>

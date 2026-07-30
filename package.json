@@ -1,0 +1,19 @@
+{
+  "name": "project-template",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "seed": "SEED=1 node server.js",
+    "check-links": "node scripts/check-links.js",
+    "migrate": "node scripts/migrate-from-localstorage.js",
+    "test:e2e": "node scripts/e2e.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.0.0",
+    "express": "^4.19.0"
+  },
+  "devDependencies": {
+    "playwright": "^1.44.0"
+  }
+}
