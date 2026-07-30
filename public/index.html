@@ -523,14 +523,14 @@
     function renderSkyLayers(slides){
       const el = document.getElementById('skyLayers');
       el.innerHTML = slides.map((s,i) =>
-        `<div class="sky-layer${i===1?' on':''}" style="background-image:url('${s.bgImage}')"></div>`
+        `<div class="sky-layer${i===0?' on':''}" style="background-image:url('${s.bgImage}')"></div>`
       ).join('');
     }
 
     function renderMoments(slides){
       const el = document.getElementById('moments');
       el.innerHTML = slides.map((s,i) =>
-        `<div class="moment${i===1?' on':''}">
+        `<div class="moment${i===0?' on':''}">
           <div class="moment-tag">${s.tag}</div>
           <h2 class="moment-title">${s.title}</h2>
           <p class="moment-desc">${s.description}</p>
@@ -663,7 +663,7 @@
     function initCarousel(slides){
       slideCount = slides.length;
       if(slideCount < 2) return;
-      curSlide = 1;
+      curSlide = 0;
       startCarousel();
       const pills = document.querySelectorAll('.moment-pill');
       pills.forEach(p => p.addEventListener('click', ()=>{

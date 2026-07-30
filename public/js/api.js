@@ -5,7 +5,7 @@
 window.API = (function(){
   const MODE = new URLSearchParams(location.search).get('mode')
             || localStorage.getItem('api_mode')
-            || 'local';
+            || 'remote';
   const TOKEN_KEY = 'app_token';
   const LS_POSTS  = 'app_posts';
   const LS_CATS   = 'app_categories';
@@ -182,7 +182,7 @@ window.API = (function(){
     return data;
   }
   const remote = {
-    login:(u,p)=>request('POST','/api/login',{username:u,password:p}),
+    login:async(u,p)=>{const r=await request('POST','/api/login',{username:u,password:p});if(r&&r.token){setToken(r.token);}return r;},
     check:()=>request('GET','/api/check'),
     getPosts:(params={})=>{
       const qs = new URLSearchParams();
