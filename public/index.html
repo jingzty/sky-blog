@@ -207,15 +207,17 @@
     .dusk-title { font-family: var(--serif); font-weight: 700; font-size: clamp(2.4rem, 5.5vw, 4rem); line-height: 1.05; color: #fff; }
     .dusk-title em { font-style: normal; font-weight: 300; opacity: 0.55; }
 
-    .horizon { position: relative; z-index: 2; border-radius: 26px; overflow: hidden; box-shadow: 0 30px 80px rgba(46,16,24,0.3); margin-bottom: 90px; }
-    .stratum { display: flex; align-items: center; justify-content: space-between; padding: 22px 32px; color: #fff; transition: padding 0.4s var(--ease); border-bottom: 1px solid rgba(255,255,255,0.12); cursor: pointer; }
-    .stratum:last-child { border-bottom: none; }
-    .stratum:hover { padding-left: 44px; }
+    .horizon { position: relative; z-index: 2; border-radius: 26px; overflow: hidden; box-shadow: 0 30px 80px rgba(46,16,24,0.3); margin-bottom: 90px; padding-top: 14px; }
+    .stratum { position: relative; display: flex; align-items: center; justify-content: space-between; padding: 24px 32px; color: #fff; cursor: pointer; margin-top: -20px; border-radius: 14px; box-shadow: 0 6px 20px rgba(0,0,0,0.18); transition: transform 0.45s var(--ease), margin-top 0.45s var(--ease), box-shadow 0.45s var(--ease), padding 0.4s var(--ease); z-index: 1; }
+    .stratum:first-child { margin-top: 0; border-radius: 20px 20px 14px 14px; }
+    .stratum:last-child { border-radius: 14px 14px 20px 20px; }
+    .stratum:hover { transform: translateY(-6px); margin-top: 4px; box-shadow: 0 18px 40px rgba(0,0,0,0.3); z-index: 10; padding-left: 44px; }
     .stratum-info { display: flex; align-items: baseline; gap: 18px; }
     .stratum-name { font-family: var(--serif); font-size: 1.5rem; font-weight: 600; }
     .stratum-desc { font-size: 0.82rem; opacity: 0.7; }
-    .stratum-count { font-family: var(--serif); font-size: 1.1rem; font-weight: 300; opacity: 0.85; }
+    .stratum-count { font-family: var(--serif); font-size: 1.1rem; font-weight: 300; opacity: 0.85; transition: transform 0.4s var(--ease); }
     .stratum-count b { font-weight: 700; font-size: 1.6rem; }
+    .stratum:hover .stratum-count { transform: scale(1.12); }
     .s1 { background: linear-gradient(90deg, #4a90c2, #5b9bd5); }
     .s2 { background: linear-gradient(90deg, #6b8aa5, #7a9ab8); }
     .s3 { background: linear-gradient(90deg, #b8425a, #c1554b); }
@@ -241,8 +243,8 @@
     .river-c b { color: var(--gold-soft); }
 
     @media (max-width: 700px) {
-      .stratum { padding: 16px 20px; }
-      .stratum:hover { padding-left: 28px; }
+      .stratum { padding: 16px 20px; margin-top: -8px; }
+      .stratum:hover { padding-left: 28px; transform: translateY(-4px); margin-top: 2px; }
       .stratum-name { font-size: 1.2rem; }
       .stratum-desc { display: none; }
     }
