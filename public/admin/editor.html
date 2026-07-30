@@ -8,16 +8,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Noto+Serif+SC:wght@300;400;500;600;700;900&family=Fira+Code:wght@400;500;600&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
   <style>
-    /* 字体回退：网络不可用时用系统等宽字体 */
-    @font-face {
-      font-family: 'Fira Code';
-      src: local('Fira Code'), local('FiraCode-Regular');
-      font-weight: 400;
-      font-style: normal;
-      font-display: swap;
-    }
+    @font-face { font-family: 'Fira Code'; src: local('Fira Code'), local('FiraCode-Regular'); font-weight: 400; font-style: normal; font-display: swap; }
   </style>
   <link rel="stylesheet" href="../css/tokens.css">
+  <link rel="stylesheet" href="../js/codemirror.min.css">
+  <link rel="stylesheet" href="../js/easymde.min.css">
   <style>
     *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
     body{font-family:var(--sans);background:#f5f2ed;color:var(--day-ink);min-height:100vh}
@@ -26,7 +21,6 @@
     input,textarea,select{font-family:inherit;outline:none}
     ::selection{background:var(--gold);color:#fff}
 
-    /* ===== 顶部栏 ===== */
     .topbar{position:sticky;top:0;z-index:100;background:rgba(245,242,237,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(0,0,0,0.06)}
     .topbar-inner{max-width:var(--max);margin:0 auto;padding:12px 40px;display:flex;align-items:center;gap:12px}
     .topbar-back{display:inline-flex;align-items:center;gap:5px;font-size:0.82rem;color:var(--taupe);padding:6px 14px 6px 10px;border-radius:100px;transition:all 0.3s}
@@ -41,70 +35,42 @@
     .btn-gold:hover{background:var(--gold-soft)}
     .btn svg{width:15px;height:15px}
 
-    /* ===== 编辑器主体 ===== */
     .editor-layout{max-width:var(--max);margin:0 auto;padding:28px 40px 80px;display:grid;grid-template-columns:1fr 300px;gap:24px;align-items:start}
-
-    /* ===== 左侧：编辑区 ===== */
     .editor-main{display:flex;flex-direction:column;gap:14px}
     .title-input{width:100%;font-family:var(--serif);font-weight:700;font-size:1.5rem;padding:14px 18px;border:none;border-radius:12px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.04);transition:box-shadow 0.3s}
     .title-input:focus{box-shadow:0 2px 12px rgba(0,0,0,0.06)}
 
-    /* ===== 编辑器卡片 ===== */
-    .editor-card{background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.04);display:flex;flex-direction:column}
+    .editor-card{background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.04)}
 
-    /* 编辑器顶部：模式标签 */
-    .editor-topbar{padding:10px 16px;background:#faf8f5;border-bottom:1px solid rgba(0,0,0,0.05);display:flex;align-items:center;justify-content:space-between}
-    .mode-badge{display:inline-flex;align-items:center;padding:2px 12px;border-radius:100px;font-size:0.7rem;font-weight:600;letter-spacing:0.04em}
-    .mode-badge--wysiwyg{background:rgba(201,118,74,0.12);color:var(--dawn-deep)}
-    .mode-badge--source{background:#fff;color:var(--day-ink);border:1px solid rgba(0,0,0,0.08)}
-    .pane-hint{font-size:0.7rem;color:var(--taupe)}
+    /* EasyMDE 自定义主题 */
+    .editor-toolbar{border-top:1px solid rgba(0,0,0,0.04);border-bottom:1px solid rgba(0,0,0,0.06);padding:6px 10px;background:#fff}
+    .editor-toolbar button{color:var(--taupe) !important;border:none;border-radius:6px;padding:4px 6px;min-width:28px;height:28px}
+    .editor-toolbar button:hover{background:rgba(0,0,0,0.05);color:var(--day-ink) !important}
+    .editor-toolbar button.active{background:rgba(0,0,0,0.06)}
+    .editor-toolbar i.separator{border-color:rgba(0,0,0,0.08)}
+    .CodeMirror{border:none;padding:16px 20px;font-family:'Fira Code','JetBrains Mono','SF Mono',Monaco,'Cascadia Code','Roboto Mono',Consolas,'Courier New',monospace;font-size:0.88rem;line-height:1.8;color:var(--day-ink);min-height:400px}
+    .CodeMirror-cursor{border-color:var(--day-ink)}
+    .CodeMirror-selected{background:rgba(201,118,74,0.1) !important}
+    .editor-preview,.editor-preview-side{padding:16px 20px;font-family:var(--serif);font-size:0.95rem;line-height:2;color:var(--day-ink)}
+    .editor-preview h1,.editor-preview-side h1{font-size:1.7rem;font-weight:700;margin:1em 0 0.5em}
+    .editor-preview h2,.editor-preview-side h2{font-size:1.4rem;font-weight:700;margin:1.2em 0 0.5em}
+    .editor-preview h3,.editor-preview-side h3{font-size:1.15rem;font-weight:600;margin:1em 0 0.4em;color:var(--dawn-deep)}
+    .editor-preview p,.editor-preview-side p{margin:0.6em 0}
+    .editor-preview blockquote,.editor-preview-side blockquote{border-left:3px solid var(--gold-soft);padding:0.4em 0 0.4em 1em;margin:1em 0;background:rgba(212,179,129,0.08);border-radius:0 8px 8px 0;color:var(--taupe)}
+    .editor-preview code,.editor-preview-side code{font-family:'Fira Code','JetBrains Mono',Monaco,Consolas,monospace;background:rgba(74,42,24,0.08);padding:2px 6px;border-radius:4px;font-size:0.85em}
+    .editor-preview pre,.editor-preview-side pre{background:#1e1e2e;color:#cdd6f4;padding:14px 18px;border-radius:10px;overflow-x:auto;margin:1em 0;font-family:'Fira Code','JetBrains Mono',Monaco,Consolas,monospace;font-size:0.86rem;line-height:1.7}
+    .editor-preview pre code,.editor-preview-side pre code{background:none;padding:0;color:inherit}
+    .editor-preview img,.editor-preview-side img{max-width:100%;border-radius:10px;margin:1em 0}
+    .editor-preview hr,.editor-preview-side hr{border:none;border-top:1px solid rgba(74,42,24,0.12);margin:2em 0}
+    .editor-preview a,.editor-preview-side a{color:var(--dawn-deep);text-decoration:underline;text-underline-offset:2px}
+    .editor-preview table,.editor-preview-side table{width:100%;border-collapse:collapse;margin:1em 0;font-size:0.9rem}
+    .editor-preview th,.editor-preview td,.editor-preview-side th,.editor-preview-side td{padding:8px 12px;border:1px solid rgba(74,42,24,0.1);text-align:left}
+    .editor-preview th,.editor-preview-side th{background:rgba(201,118,74,0.08);font-weight:600}
+    .editor-statusbar{display:none}
 
-    /* 工具栏 */
-    .toolbar{display:flex;align-items:center;gap:2px;padding:6px 10px;background:#fff;border-bottom:1px solid rgba(0,0,0,0.05);flex-wrap:wrap}
-    .toolbar-btn{min-width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:6px;font-size:0.82rem;color:var(--taupe);transition:all 0.2s;padding:0 6px}
-    .toolbar-btn:hover{background:rgba(0,0,0,0.05);color:var(--day-ink)}
-    .toolbar-btn:active{background:rgba(0,0,0,0.08)}
-    .toolbar-btn.b{font-weight:700;font-size:0.92rem}
-    .toolbar-btn.i{font-style:italic;font-family:var(--serif);font-size:0.92rem}
-    .toolbar-div{width:1px;height:18px;background:rgba(0,0,0,0.08);margin:0 3px}
-    .toolbar-spacer{flex:1}
-    .mode-toggle-btn{font-size:0.75rem;font-weight:500;color:var(--dawn-deep);border:1px solid rgba(201,118,74,0.25);padding:4px 14px;border-radius:100px;transition:all 0.25s}
-    .mode-toggle-btn:hover{background:rgba(201,118,74,0.08);border-color:var(--dawn-deep)}
-
-    /* ===== 源码模式 ===== */
-    .editor-source-pane{display:none}
-    .editor-source-pane.active{display:block}
-    .editor-source-pane textarea{width:100%;padding:16px 20px;border:none;resize:vertical;font-family:'Fira Code','JetBrains Mono','SF Mono',Monaco,'Cascadia Code','Roboto Mono',Consolas,'Courier New',monospace;font-size:0.88rem;line-height:1.8;color:var(--day-ink);background:transparent;tab-size:2;min-height:440px;font-variant-ligatures:contextual;font-feature-settings:'calt' 1}
-    .editor-source-pane textarea:focus{outline:none}
-
-    /* ===== 所见即所得模式 ===== */
-    .editor-wysiwyg-pane{display:none}
-    .editor-wysiwyg-pane.active{display:flex}
-    .editor-wysiwyg{flex:1;padding:20px 24px;min-height:400px;overflow-y:auto;line-height:2;font-size:0.95rem;color:var(--day-ink);outline:none;font-family:var(--serif)}
-    .editor-wysiwyg:focus{outline:none}
-    .editor-wysiwyg h1{font-size:1.7rem;font-weight:700;margin:1em 0 0.5em;color:var(--day-ink)}
-    .editor-wysiwyg h2{font-size:1.4rem;font-weight:700;margin:1.2em 0 0.5em;color:var(--day-ink)}
-    .editor-wysiwyg h3{font-size:1.15rem;font-weight:600;margin:1em 0 0.4em;color:var(--dawn-deep)}
-    .editor-wysiwyg p{margin:0.6em 0}
-    .editor-wysiwyg ul,.editor-wysiwyg ol{margin:0.6em 0;padding-left:1.5em}
-    .editor-wysiwyg li{margin:0.3em 0}
-    .editor-wysiwyg blockquote{border-left:3px solid var(--gold-soft);padding:0.4em 0 0.4em 1em;margin:1em 0;background:rgba(212,179,129,0.08);border-radius:0 8px 8px 0;color:var(--taupe)}
-    .editor-wysiwyg code{font-family:'Fira Code','JetBrains Mono','SF Mono',Monaco,'Cascadia Code','Roboto Mono',Consolas,'Courier New',monospace;background:rgba(74,42,24,0.08);padding:2px 6px;border-radius:4px;font-size:0.85em;font-variant-ligatures:contextual;font-feature-settings:'calt' 1}
-    .editor-wysiwyg pre{background:#1e1e2e;color:#cdd6f4;padding:14px 18px;border-radius:10px;overflow-x:auto;margin:1em 0;font-family:'Fira Code','JetBrains Mono','SF Mono',Monaco,'Cascadia Code','Roboto Mono',Consolas,'Courier New',monospace;font-size:0.86rem;line-height:1.7;font-variant-ligatures:contextual;font-feature-settings:'calt' 1}
-    .editor-wysiwyg pre code{background:none;padding:0;color:inherit}
-    .editor-wysiwyg img{max-width:100%;border-radius:10px;margin:1em 0}
-    .editor-wysiwyg hr{border:none;border-top:1px solid rgba(74,42,24,0.12);margin:2em 0}
-    .editor-wysiwyg a{color:var(--dawn-deep);text-decoration:underline;text-underline-offset:2px}
-    .editor-wysiwyg a:hover{opacity:0.7}
-    .editor-wysiwyg table{width:100%;border-collapse:collapse;margin:1em 0;font-size:0.9rem}
-    .editor-wysiwyg th,.editor-wysiwyg td{padding:8px 12px;border:1px solid rgba(74,42,24,0.1);text-align:left}
-    .editor-wysiwyg th{background:rgba(201,118,74,0.08);font-weight:600}
-
-    /* 底部统计栏 */
     .editor-footer{display:flex;justify-content:space-between;align-items:center;padding:8px 16px;background:#faf8f5;border-top:1px solid rgba(0,0,0,0.05);font-size:0.72rem;color:var(--taupe)}
     .editor-footer .stats{display:flex;gap:14px}
 
-    /* ===== 右侧：信息面板 ===== */
     .editor-side{display:flex;flex-direction:column;gap:14px}
     .side-card{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.04)}
     .side-card-head{display:flex;align-items:center;gap:8px;padding:12px 16px;cursor:pointer;user-select:none;transition:background 0.2s}
@@ -141,52 +107,10 @@
   </header>
 
   <div class="editor-layout">
-    <!-- 左侧：编辑器 -->
     <div class="editor-main">
       <input type="text" class="title-input" id="title" placeholder="写一个吸引人的标题……">
-
-      <!-- 编辑器卡片 -->
       <div class="editor-card">
-        <!-- 模式标签栏 -->
-        <div class="editor-topbar">
-          <span class="mode-badge mode-badge--wysiwyg" id="modeBadge">所见即所得</span>
-          <span class="pane-hint">Ctrl+S 保存</span>
-        </div>
-
-        <!-- 工具栏 -->
-        <div class="toolbar">
-          <button class="toolbar-btn b" data-cmd="bold" title="加粗 Ctrl+B"><strong>B</strong></button>
-          <button class="toolbar-btn i" data-cmd="italic" title="斜体 Ctrl+I"><em>I</em></button>
-          <span class="toolbar-div"></span>
-          <select class="toolbar-btn heading-select" id="headingSelect" title="标题" style="appearance:auto;min-width:40px;font-size:0.76rem;font-weight:600">
-            <option value="">H</option><option value="h1">H1</option><option value="h2">H2</option><option value="h3">H3</option><option value="p">P</option>
-          </select>
-          <button class="toolbar-btn" data-cmd="link" title="链接">🔗</button>
-          <button class="toolbar-btn" data-cmd="image" title="图片">🖼</button>
-          <span class="toolbar-div"></span>
-          <button class="toolbar-btn" data-cmd="quote" title="引用">❝</button>
-          <button class="toolbar-btn" data-cmd="code" title="行内代码">&lt;/&gt;</button>
-          <button class="toolbar-btn" data-cmd="codeblock" title="代码块">{ }</button>
-          <button class="toolbar-btn" data-cmd="table" title="表格">▦</button>
-          <span class="toolbar-div"></span>
-          <button class="toolbar-btn" data-cmd="ul" title="无序列表">•</button>
-          <button class="toolbar-btn" data-cmd="ol" title="有序列表">1.</button>
-          <button class="toolbar-btn" data-cmd="hr" title="分隔线">—</button>
-          <span class="toolbar-spacer"></span>
-          <button class="mode-toggle-btn" id="modeToggle">源码模式</button>
-        </div>
-
-        <!-- 源码模式 -->
-        <div class="editor-source-pane" id="sourcePane">
-          <textarea id="content" placeholder="在这里书写 Markdown...&#10;&#10;支持标题、列表、引用、代码块、表格等"></textarea>
-        </div>
-
-        <!-- 所见即所得模式 -->
-        <div class="editor-wysiwyg-pane active" id="wysiwygPane">
-          <div class="editor-wysiwyg" id="wysiwyg" contenteditable="true" placeholder="开始书写……"></div>
-        </div>
-
-        <!-- 底部统计 -->
+        <textarea id="content" placeholder="在这里书写 Markdown..."></textarea>
         <div class="editor-footer">
           <div class="stats">
             <span id="wordCount">0</span> 字 · <span id="lineCount">0</span> 行
@@ -196,7 +120,6 @@
       </div>
     </div>
 
-    <!-- 右侧：信息面板 -->
     <div class="editor-side">
       <div class="side-card">
         <div class="side-card-head" data-toggle>
@@ -218,7 +141,6 @@
           <textarea id="excerpt" rows="3" placeholder="简短摘要……" style="resize:vertical;min-height:60px"></textarea>
         </div>
       </div>
-
       <div class="side-card">
         <div class="side-card-head" data-toggle>
           <span class="arrow">▼</span>
@@ -234,31 +156,56 @@
     </div>
   </div>
 
+  <script src="../js/codemirror.min.js"></script>
+  <script src="../js/codemirror-xml.min.js"></script>
+  <script src="../js/codemirror-overlay.min.js"></script>
+  <script src="../js/codemirror-gfm.min.js"></script>
+  <script src="../js/codemirror-markdown.min.js"></script>
+  <script src="../js/marked.umd.js"></script>
+  <script src="../js/easymde.min.js"></script>
   <script src="../js/api.js"></script>
   <script src="../js/ui.js"></script>
-  <script src="../js/md.js"></script>
   <script>
     if(!API.isAuthed()){ window.location.href = '../login.html'; }
 
-    /* ===== 初始化 ===== */
     const params = new URLSearchParams(location.search);
     const editId = params.get('id') ? +params.get('id') : null;
 
-    /* 加载分类 */
+    // ===== EasyMDE 初始化 =====
+    const easyMDE = new EasyMDE({
+      element: document.getElementById('content'),
+      spellChecker: false,
+      autosave: { enabled: false },
+      renderingConfig: { singleLineBreaks: false },
+      placeholder: '在这里书写 Markdown...\n\n支持 # 标题、> 引用、- 列表、```代码块、表格等',
+      toolbar: ['bold','italic','heading','|','link','image','quote','code','|','unordered-list','ordered-list','table','horizontal-rule','|','preview','side-by-side','fullscreen'],
+      status: false,
+      minHeight: '400px',
+    });
+
+    function updateStats(){
+      const text = easyMDE.value();
+      document.getElementById('wordCount').textContent = text.length;
+      document.getElementById('lineCount').textContent = text.split('\n').length;
+      document.getElementById('charCount').textContent = new TextEncoder().encode(text).length + ' 字节';
+    }
+    easyMDE.codemirror.on('change', updateStats);
+
+    // ===== 加载分类 =====
     (async function loadCats(){
       const cats = await API.getCategories();
       const sel = document.getElementById('categoryId');
       sel.innerHTML = '<option value="">未分类</option>' + cats.filter(c=>c.name!=='全部').map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
     })();
 
-    /* 编辑模式加载文章 */
+    // ===== 加载文章 =====
     (async function(){
       if(editId){
         try {
           const post = await API.getPost(editId);
           document.getElementById('pageTitle').textContent = '编辑文章';
           document.getElementById('title').value = post.title||'';
-          document.getElementById('content').value = post.content||'';
+          easyMDE.value(post.content||'');
           document.getElementById('date').value = post.date||'';
           document.getElementById('cover').value = post.cover||'';
           document.getElementById('tag').value = post.tag||'';
@@ -267,219 +214,13 @@
           if(post.categoryId) document.getElementById('categoryId').value = post.categoryId;
           updateStats();
           if(post.cover) showCoverPreview(post.cover);
-          // 加载完成后渲染到 WYSIWYG
-          renderToWysiwyg();
         } catch(e){ UI.toast('加载文章失败: '+e.message); }
       } else {
         document.getElementById('date').value = new Date().toISOString().substring(0,10);
       }
     })();
 
-    /* ===== 编辑器模式 ===== */
-    let editorMode = 'wysiwyg'; // 'wysiwyg' | 'source'
-    const wysiwygEl = document.getElementById('wysiwyg');
-    const sourcePane = document.getElementById('sourcePane');
-    const wysiwygPane = document.getElementById('wysiwygPane');
-    const textarea = document.getElementById('content');
-    const modeBadge = document.getElementById('modeBadge');
-    const modeToggle = document.getElementById('modeToggle');
-
-    function setMode(mode){
-      if(mode === editorMode) return;
-      if(editorMode === 'wysiwyg' && mode === 'source'){
-        // WYSIWYG -> Source: HTML -> Markdown
-        syncWysiwygToSource();
-        wysiwygPane.classList.remove('active');
-        sourcePane.classList.add('active');
-        modeBadge.textContent = '源码模式';
-        modeBadge.className = 'mode-badge mode-badge--source';
-        modeToggle.textContent = '所见即所得';
-      } else if(editorMode === 'source' && mode === 'wysiwyg'){
-        // Source -> WYSIWYG: Markdown -> HTML
-        renderToWysiwyg();
-        sourcePane.classList.remove('active');
-        wysiwygPane.classList.add('active');
-        modeBadge.textContent = '所见即所得';
-        modeBadge.className = 'mode-badge mode-badge--wysiwyg';
-        modeToggle.textContent = '源码模式';
-      }
-      editorMode = mode;
-      updateStats();
-    }
-
-    modeToggle.addEventListener('click', ()=>{
-      setMode(editorMode === 'wysiwyg' ? 'source' : 'wysiwyg');
-    });
-
-    /* ===== Markdown -> WYSIWYG ===== */
-    function renderToWysiwyg(){
-      const md = textarea.value || '';
-      wysiwygEl.innerHTML = MD.render(md);
-      // 修复 blockquote：浏览器 contenteditable 会把它拆成 <p>，需要包一层
-      wysiwygEl.querySelectorAll('blockquote').forEach(bq=>{
-        // 确保 blockquote 内是 <p> 而不是裸文本
-        if(bq.children.length===0 && bq.textContent.trim()){
-          bq.innerHTML = '<p>'+escapeHtml(bq.textContent.trim())+'</p>';
-        }
-      });
-    }
-
-    /* ===== WYSIWYG -> Markdown ===== */
-    function escapeHtml(s){
-      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    }
-
-    function serializeInline(node){
-      let out = '';
-      node.childNodes.forEach(child=>{
-        if(child.nodeType === Node.TEXT_NODE){
-          out += child.textContent.replace(/\s+/g,' ');
-        } else if(child.nodeType === Node.ELEMENT_NODE){
-          const tag = child.tagName.toLowerCase();
-          const inner = serializeInline(child);
-          switch(tag){
-            case 'strong': case 'b': out += '**'+inner+'**'; break;
-            case 'em': case 'i': out += '*'+inner+'*'; break;
-            case 'del': case 's': out += '~~'+inner+'~~'; break;
-            case 'code': out += '`'+child.textContent+'`'; break;
-            case 'a': out += '['+inner+']('+(child.getAttribute('href')||'')+')'; break;
-            case 'img': out += '!['+(child.getAttribute('alt')||'')+']('+(child.getAttribute('src')||'')+')'; break;
-            case 'br': out += '\n'; break;
-            default: out += inner;
-          }
-        }
-      });
-      return out;
-    }
-
-    function serializeBlock(root){
-      let out = '';
-      root.childNodes.forEach(node=>{
-        if(node.nodeType === Node.TEXT_NODE){
-          const t = node.textContent.replace(/\s+/g,' ').trim();
-          if(t) out += t+'\n\n';
-          return;
-        }
-        if(node.nodeType !== Node.ELEMENT_NODE) return;
-        const tag = node.tagName.toLowerCase();
-        switch(tag){
-          case 'h1': case 'h2': case 'h3': case 'h4': case 'h5': case 'h6':
-            out += '#'.repeat(parseInt(tag[1]))+' '+serializeInline(node).trim()+'\n\n'; break;
-          case 'p': case 'div': {
-            // 检查是否是 blockquote 内的 <p>（由浏览器自动生成）
-            if(node.parentElement && node.parentElement.tagName.toLowerCase()==='blockquote'){
-              // 不单独输出，由 blockquote 统一处理
-              break;
-            }
-            out += serializeInline(node).trim()+'\n\n'; break;
-          }
-          case 'br': out += '\n'; break;
-          case 'hr': out += '---\n\n'; break;
-          case 'blockquote': {
-            // 如果 blockquote 内只有 <p>，直接取 <p> 的内容
-            const ps = node.querySelectorAll(':scope > p');
-            if(ps.length > 0){
-              const lines = Array.from(ps).map(p=>serializeInline(p).trim()).filter(Boolean);
-              out += lines.map(l=>'> '+l).join('\n')+'\n\n';
-            } else {
-              // 否则按 block 序列化
-              const inner = serializeBlock(node).trim();
-              out += inner.split('\n').map(l=>'> '+l).join('\n')+'\n\n';
-            }
-            break;
-          }
-          case 'pre': {
-            const codeEl = node.querySelector('code');
-            const text = (codeEl||node).textContent.replace(/\n$/,'');
-            out += '```\n'+text+'\n```\n\n'; break;
-          }
-          case 'ul': case 'ol': {
-            const items = Array.from(node.children).filter(c=>c.tagName.toLowerCase()==='li');
-            items.forEach((li,i)=>{
-              const prefix = tag==='ol' ? (i+1)+'. ' : '- ';
-              out += prefix+serializeInline(li).trim()+'\n';
-            });
-            out += '\n'; break;
-          }
-          case 'table': {
-            const rows = Array.from(node.querySelectorAll('tr'));
-            if(!rows.length) break;
-            const header = Array.from(rows[0].children).map(td=>serializeInline(td).trim());
-            out += '| '+header.join(' | ')+' |\n';
-            out += '| '+header.map(()=> '---').join(' | ')+' |\n';
-            rows.slice(1).forEach(tr=>{
-              const cells = Array.from(tr.children).map(td=>serializeInline(td).trim());
-              out += '| '+cells.join(' | ')+' |\n';
-            });
-            out += '\n'; break;
-          }
-          default: out += serializeBlock(node);
-        }
-      });
-      return out;
-    }
-
-    function htmlToMarkdown(root){
-      const md = serializeBlock(root);
-      return md.replace(/\n{3,}/g,'\n\n').trim()+'\n';
-    }
-
-    function syncWysiwygToSource(){
-      // 清除空格式化标签
-      const tags = wysiwygEl.querySelectorAll('strong, b, em, i, code');
-      tags.forEach(el=>{ if(!el.textContent.trim()) el.replaceWith(...el.childNodes); });
-      // 检测手动输入的 markdown 引用符号 > 
-      detectAndConvertMarkdownQuotes();
-      // 修复 blockquote：确保 blockquote 内的 <p> 被正确序列化
-      const bqs = wysiwygEl.querySelectorAll('blockquote');
-      bqs.forEach(bq=>{
-        // 如果 blockquote 直接包含文本节点（没有 <p> 包裹），包一层
-        const hasBlockChild = Array.from(bq.children).some(c=>['P','DIV','H1','H2','H3','H4','H5','H6','UL','OL','PRE','TABLE','BLOCKQUOTE'].includes(c.tagName));
-        if(!hasBlockChild && bq.textContent.trim()){
-          bq.innerHTML = '<p>'+bq.innerHTML+'</p>';
-        }
-      });
-      textarea.value = htmlToMarkdown(wysiwygEl);
-    }
-
-    /* 检测并转换手动输入的 > 引用符号 */
-    function detectAndConvertMarkdownQuotes(){
-      const paragraphs = wysiwygEl.querySelectorAll('p, div');
-      paragraphs.forEach(p=>{
-        // 跳过已在 blockquote 内的
-        if(p.closest('blockquote')) return;
-        const text = p.textContent;
-        // 检测是否以 > 开头（用户手动输入的引用）
-        if(/^>\s+/.test(text)){
-          // 提取引用内容
-          const quoteText = text.replace(/^>\s+/,'');
-          // 创建 blockquote 替换
-          const bq = document.createElement('blockquote');
-          const newP = document.createElement('p');
-          newP.textContent = quoteText;
-          bq.appendChild(newP);
-          p.parentNode.replaceChild(bq, p);
-        }
-      });
-    }
-
-
-
-    /* ===== 实时统计 ===== */
-    function updateStats(){
-      const text = (editorMode==='source' ? textarea.value : htmlToMarkdown(wysiwygEl)) || '';
-      document.getElementById('wordCount').textContent = text.length;
-      document.getElementById('lineCount').textContent = text.split('\n').length;
-      document.getElementById('charCount').textContent = new TextEncoder().encode(text).length + ' 字节';
-    }
-    textarea.addEventListener('input', updateStats);
-    wysiwygEl.addEventListener('input', ()=>{
-      updateStats();
-      // 实时同步到 source（不刷新 DOM，避免打断输入）
-      syncWysiwygToSource();
-    });
-
-    /* ===== 封面预览 ===== */
+    // ===== 封面预览 =====
     function showCoverPreview(url){
       const preview = document.getElementById('coverPreview');
       const img = document.getElementById('coverPreviewImg');
@@ -492,7 +233,7 @@
       else document.getElementById('coverPreview').style.display = 'none';
     });
 
-    /* ===== 可折叠卡片 ===== */
+    // ===== 可折叠卡片 =====
     document.querySelectorAll('[data-toggle]').forEach(head=>{
       head.addEventListener('click',()=>{
         const body = head.nextElementSibling;
@@ -501,329 +242,20 @@
       });
     });
 
-    /* ===== 工具栏（统一入口，按模式分发）===== */
-    function onToolbar(cmd){
-      if(editorMode === 'source'){
-        const ta = textarea;
-        switch(cmd){
-          case 'bold': mdWrap('**','**','加粗文字'); break;
-          case 'italic': mdWrap('*','*','斜体文字'); break;
-          case 'code': mdWrap('`','`','代码'); break;
-          case 'link': mdWrap('[','](url)','链接文字'); break;
-          case 'image': mdWrap('![','](url)','图片描述'); break;
-          case 'quote': mdWrap('> ','','引用文字'); break;
-          case 'codeblock': insertCodeBlock(); break;
-          case 'table': insertTable(); break;
-          case 'ul': insertList('- '); break;
-          case 'ol': insertList('1. '); break;
-          case 'hr': mdWrap('\n---\n','',''); break;
-        }
-      } else {
-        // WYSIWYG 模式
-        wysiwygEl.focus();
-        switch(cmd){
-          case 'bold': document.execCommand('bold'); break;
-          case 'italic': document.execCommand('italic'); break;
-          case 'quote': {
-            // 检查当前是否已在 blockquote 内
-            const sel = window.getSelection();
-            if(sel.rangeCount){
-              let node = sel.anchorNode;
-              while(node && node !== wysiwygEl){
-                if(node.nodeType===Node.ELEMENT_NODE && node.tagName.toLowerCase()==='blockquote'){
-                  // 已在引用内，切换回普通段落
-                  document.execCommand('formatBlock', false, 'P');
-                  syncWysiwygToSource();
-                  return;
-                }
-                node = node.parentElement;
-              }
-            }
-            document.execCommand('formatBlock', false, 'BLOCKQUOTE');
-            // 确保 blockquote 内有 <p>
-            setTimeout(()=>{
-              const bqs = wysiwygEl.querySelectorAll('blockquote');
-              bqs.forEach(bq=>{
-                if(bq.children.length===0 && bq.textContent.trim()){
-                  bq.innerHTML = '<p>'+escapeHtml(bq.textContent.trim())+'</p>';
-                }
-              });
-              syncWysiwygToSource();
-            }, 0);
-            break;
-          }
-          case 'code': wrapInline('<code>','</code>'); break;
-          case 'codeblock': insertRichCodeBlock(); break;
-          case 'link': richLink(); break;
-          case 'image': richImage(); break;
-          case 'ul': document.execCommand('insertUnorderedList'); break;
-          case 'ol': document.execCommand('insertOrderedList'); break;
-          case 'hr': document.execCommand('insertHorizontalRule'); break;
-          case 'table': insertRichTable(); break;
-        }
-      }
-    }
-
-    document.querySelectorAll('[data-cmd]').forEach(btn=>{
-      btn.addEventListener('click', ()=>onToolbar(btn.dataset.cmd));
-    });
-
-    /* 源码模式：包裹 */
-    function mdWrap(before, after, placeholder){
-      const ta = textarea;
-      const start = ta.selectionStart, end = ta.selectionEnd;
-      const sel = ta.value.substring(start, end);
-      const ins = sel ? before+sel+after : before+placeholder+after;
-      ta.value = ta.value.substring(0,start) + ins + ta.value.substring(end);
-      ta.focus();
-      if(!sel) ta.setSelectionRange(start+before.length, start+before.length+placeholder.length);
-    }
-
-    function insertCodeBlock(){
-      const ta = textarea;
-      const s = ta.selectionStart, e = ta.selectionEnd;
-      const sel = ta.value.substring(s,e);
-      const ins = sel ? '\n```\n'+sel+'\n```\n' : '\n```\n代码块\n```\n';
-      ta.value = ta.value.substring(0,s)+ins+ta.value.substring(e);
-      ta.focus();
-    }
-
-    function insertTable(){
-      const ta = textarea;
-      const s = ta.selectionStart, e = ta.selectionEnd;
-      const sel = ta.value.substring(s,e);
-      const ins = '\n| 标题1 | 标题2 | 标题3 |\n|---|---|---|\n| '+(sel||'内容')+' | | |\n';
-      ta.value = ta.value.substring(0,s)+ins+ta.value.substring(e);
-      ta.focus();
-    }
-
-    function insertList(prefix){
-      const ta = textarea;
-      const s = ta.selectionStart, e = ta.selectionEnd;
-      const sel = ta.value.substring(s,e);
-      if(sel){
-        const items = sel.split('\n').map(l=>prefix+l).join('\n');
-        ta.value = ta.value.substring(0,s)+items+ta.value.substring(e);
-      } else {
-        const ls = ta.value.lastIndexOf('\n',s-1)+1;
-        const le = ta.value.indexOf('\n',s);
-        const end = le===-1?ta.value.length:le;
-        const line = ta.value.substring(ls,end);
-        ta.value = ta.value.substring(0,ls)+prefix+line+ta.value.substring(end);
-      }
-      ta.focus();
-    }
-
-    /* WYSIWYG：行内代码包裹 */
-    function wrapInline(open, close){
-      const sel = window.getSelection();
-      if(!sel.rangeCount) return;
-      const range = sel.getRangeAt(0);
-      const text = range.toString()||'代码';
-      const wrapper = document.createElement('span');
-      wrapper.innerHTML = open+escapeHtml(text)+close;
-      const node = wrapper.firstChild;
-      range.deleteContents();
-      range.insertNode(node);
-      syncWysiwygToSource();
-    }
-
-    /* WYSIWYG：代码块 */
-    function insertRichCodeBlock(){
-      const sel = window.getSelection();
-      const text = sel.toString()||'代码块';
-      document.execCommand('insertHTML', false, '<pre><code>'+escapeHtml(text)+'</code></pre><p><br></p>');
-      syncWysiwygToSource();
-    }
-
-    /* WYSIWYG：表格 */
-    function insertRichTable(){
-      const html = '<table><thead><tr><th>标题1</th><th>标题2</th><th>标题3</th></tr></thead><tbody><tr><td>内容</td><td></td><td></td></tr></tbody></table><p><br></p>';
-      document.execCommand('insertHTML', false, html);
-      syncWysiwygToSource();
-    }
-
-    /* WYSIWYG：链接 */
-    function richLink(){
-      const url = prompt('输入链接地址：');
-      if(url) document.execCommand('createLink', false, url);
-      syncWysiwygToSource();
-    }
-
-    /* WYSIWYG：图片 */
-    function richImage(){
-      const url = prompt('输入图片地址：');
-      if(url) document.execCommand('insertImage', false, url);
-      syncWysiwygToSource();
-    }
-
-    /* 标题下拉 */
-    document.getElementById('headingSelect').addEventListener('change',function(){
-      const level = this.value;
-      this.value='';
-      if(!level) return;
-      if(editorMode === 'source'){
-        setHeadingSource(level);
-      } else {
-        wysiwygEl.focus();
-        document.execCommand('formatBlock', false, level==='p'?'P':level.toUpperCase());
-        syncWysiwygToSource();
-      }
-    });
-
-    function setHeadingSource(level){
-      const ta = textarea;
-      const start = ta.selectionStart;
-      const ls = ta.value.lastIndexOf('\n',start-1)+1;
-      const le = ta.value.indexOf('\n',start);
-      const end = le===-1?ta.value.length:le;
-      const line = ta.value.substring(ls,end);
-      let prefix = '';
-      if(level==='h1') prefix='# ';
-      else if(level==='h2') prefix='## ';
-      else if(level==='h3') prefix='### ';
-      const newLine = line.replace(/^#{1,4} /,'');
-      ta.value = ta.value.substring(0,ls)+prefix+newLine+ta.value.substring(end);
-      ta.focus();
-    }
-
-    /* WYSIWYG 粘贴：Markdown 源码即时渲染 */
-    wysiwygEl.addEventListener('paste', e=>{
-      const cd = e.clipboardData||window.clipboardData;
-      if(!cd) return;
-      const text = cd.getData('text/plain');
-      if(!text) return;
-      // 检测是否是 markdown 源码（含 #、-、*、```、|、> 等）
-      if(/^#{1,6} |^- |^\* |^```|^\|.*\||^\d+\. |^> /.test(text)){
-        e.preventDefault();
-        const html = MD.render(text);
-        document.execCommand('insertHTML', false, html);
-        syncWysiwygToSource();
-      }
-    });
-
-    /* WYSIWYG 键盘事件：检测 markdown 快捷键 */
-    wysiwygEl.addEventListener('keydown', e=>{
-      // 空格键：检测是否刚输入了 > 或 - 或 * 等
-      if(e.key === ' '){
-        const sel = window.getSelection();
-        if(!sel.rangeCount) return;
-        const range = sel.getRangeAt(0);
-        const node = range.startContainer;
-        if(node.nodeType !== Node.TEXT_NODE) return;
-        const text = node.textContent;
-        const offset = range.startOffset;
-        // 检测 > 引用
-        if(text.substring(0, offset) === '>' && !node.parentElement.closest('blockquote')){
-          e.preventDefault();
-          // 删除 > 字符
-          node.textContent = text.substring(offset);
-          // 应用 blockquote
-          document.execCommand('formatBlock', false, 'BLOCKQUOTE');
-          syncWysiwygToSource();
-          return;
-        }
-        // 检测 - 无序列表
-        if(text.substring(0, offset) === '-' && !node.parentElement.closest('ul')){
-          e.preventDefault();
-          node.textContent = text.substring(offset);
-          // 如果父元素是 p/div，先移除再插入列表
-          const parent = node.parentElement;
-          if(parent && (parent.tagName==='P' || parent.tagName==='DIV')){
-            const li = document.createElement('li');
-            li.textContent = parent.textContent;
-            const ul = document.createElement('ul');
-            ul.appendChild(li);
-            parent.parentNode.replaceChild(ul, parent);
-            // 光标移到 li 内
-            const range = document.createRange();
-            range.setStart(li, 0);
-            range.collapse(true);
-            const sel = window.getSelection();
-            sel.removeAllRanges();
-            sel.addRange(range);
-          } else {
-            document.execCommand('insertUnorderedList');
-          }
-          syncWysiwygToSource();
-          return;
-        }
-        // 检测 * 无序列表
-        if(text.substring(0, offset) === '*' && !node.parentElement.closest('ul')){
-          e.preventDefault();
-          node.textContent = text.substring(offset);
-          const parent = node.parentElement;
-          if(parent && (parent.tagName==='P' || parent.tagName==='DIV')){
-            const li = document.createElement('li');
-            li.textContent = parent.textContent;
-            const ul = document.createElement('ul');
-            ul.appendChild(li);
-            parent.parentNode.replaceChild(ul, parent);
-            const range = document.createRange();
-            range.setStart(li, 0);
-            range.collapse(true);
-            const sel = window.getSelection();
-            sel.removeAllRanges();
-            sel.addRange(range);
-          } else {
-            document.execCommand('insertUnorderedList');
-          }
-          syncWysiwygToSource();
-          return;
-        }
-        // 检测 1. 有序列表
-        if(/^\d+\.$/.test(text.substring(0, offset)) && !node.parentElement.closest('ol')){
-          e.preventDefault();
-          node.textContent = text.substring(offset);
-          document.execCommand('insertOrderedList');
-          syncWysiwygToSource();
-          return;
-        }
-        // 检测 # 标题
-        const headingMatch = text.substring(0, offset).match(/^(#{1,6})$/);
-        if(headingMatch && !node.parentElement.closest('h1,h2,h3,h4,h5,h6')){
-          e.preventDefault();
-          node.textContent = text.substring(offset);
-          const level = Math.min(headingMatch[1].length, 4);
-          document.execCommand('formatBlock', false, 'H'+level);
-          syncWysiwygToSource();
-          return;
-        }
-      }
-    });
-
-    /* 快捷键 */
-    document.addEventListener('keydown', e=>{
-      if((e.ctrlKey||e.metaKey)&&e.key==='s'){ e.preventDefault(); save(document.getElementById('status').value); }
-    });
-    textarea.addEventListener('keydown',e=>{
-      if((e.ctrlKey||e.metaKey)&&e.key==='b'){ e.preventDefault(); mdWrap('**','**','加粗文字'); }
-      if((e.ctrlKey||e.metaKey)&&e.key==='i'){ e.preventDefault(); mdWrap('*','*','斜体文字'); }
-      if(e.key==='Tab'){ e.preventDefault(); const s=textarea.selectionStart; textarea.value=textarea.value.substring(0,s)+'  '+textarea.value.substring(textarea.selectionEnd); textarea.selectionStart=textarea.selectionEnd=s+2; }
-    });
-
-    /* ===== 表单收集 ===== */
-    function getFormData(){
-      // 确保 source 模式数据最新
-      if(editorMode==='wysiwyg') syncWysiwygToSource();
-      return {
+    // ===== 保存 =====
+    async function save(status){
+      const data = {
         title: document.getElementById('title').value.trim(),
-        content: textarea.value.trim(),
+        content: easyMDE.value().trim(),
         date: document.getElementById('date').value || new Date().toISOString().substring(0,10),
         cover: document.getElementById('cover').value.trim(),
         tag: document.getElementById('tag').value.trim(),
         excerpt: document.getElementById('excerpt').value.trim(),
         categoryId: document.getElementById('categoryId').value ? +document.getElementById('categoryId').value : null,
-        status: document.getElementById('status').value
+        status: status
       };
-    }
-
-    /* ===== 保存 ===== */
-    async function save(status){
-      const data = getFormData();
       if(!data.title){ UI.toast('标题不能为空'); return; }
       if(!data.content){ UI.toast('正文不能为空'); return; }
-      data.status = status;
       data.slug = data.title.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'').toLowerCase();
       try {
         if(editId) await API.updatePost(editId, data);
@@ -835,6 +267,11 @@
 
     document.getElementById('publishBtn').addEventListener('click',()=>save('pub'));
     document.getElementById('saveDraftBtn').addEventListener('click',()=>save('draft'));
+
+    // Ctrl+S 保存
+    document.addEventListener('keydown', e=>{
+      if((e.ctrlKey||e.metaKey)&&e.key==='s'){ e.preventDefault(); save(document.getElementById('status').value); }
+    });
   </script>
 </body>
 </html>

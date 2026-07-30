@@ -93,10 +93,10 @@ window.MD = (function(){
     s = s.replace(/\*(.+?)\*/g,'<em>$1</em>');
     // 行内代码
     s = s.replace(/`(.+?)`/g,'<code>$1</code>');
+    // 图片（必须放在链接前面）
+    s = s.replace(/!\[([^\]]*)\]\(([^)]+)\)/g,'<img src="$2" alt="$1" loading="lazy">');
     // 链接
     s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
-    // 图片
-    s = s.replace(/!\[([^\]]*)\]\(([^)]+)\)/g,'<img src="$2" alt="$1" loading="lazy">');
     return s;
   }
 
