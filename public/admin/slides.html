@@ -49,7 +49,7 @@
       </div>
     </header>
 
-    <section id="slideList" class="space-y-3 max-w-5xl">
+    <section id="slideList" class="space-y-3">
       <div class="card p-6 text-center" style="color: var(--warm-ink-3);">加载中…</div>
     </section>
   </main>
@@ -91,36 +91,43 @@
       el.innerHTML = slides.map((s, i) => {
         const img = imgUrl(s.bgImage);
         return `
-        <article class="card p-4 relative flex flex-col gap-3" data-idx="${i}">
-          <div class="flex items-center gap-4 flex-wrap">
-            <div class="w-28 flex-shrink-0 aspect-video rounded-lg overflow-hidden" style="background: var(--warm-surface-2);">
-              ${img ? `<img src="${img}" alt="${esc(s.title)}" class="w-full h-full object-cover" data-preview>` : `<div class="w-full h-full flex items-center justify-center" style="color: var(--warm-ink-3);"><i data-lucide="image" class="w-5 h-5"></i></div>`}
+        <article class="card p-5" data-idx="${i}">
+          <div class="flex items-end gap-4 flex-wrap mb-4">
+            <div class="w-40 flex-shrink-0">
+              <label class="text-caption block mb-1" style="color: var(--warm-ink-3);">图片预览</label>
+              <div class="aspect-video rounded-lg overflow-hidden" style="background: var(--warm-surface-2);">
+                ${img ? `<img src="${img}" alt="${esc(s.title)}" class="w-full h-full object-cover" data-preview>` : `<div class="w-full h-full flex items-center justify-center" style="color: var(--warm-ink-3);"><i data-lucide="image" class="w-6 h-6"></i></div>`}
+              </div>
             </div>
-            <div class="flex items-center gap-3 flex-1 min-w-0 flex-wrap">
-              <div class="w-28">
-                <label class="text-caption block mb-1" style="color: var(--warm-ink-3);">小标题</label>
-                <input type="text" value="${esc(s.tag)}" data-field="tag" class="input-field w-full rounded-lg px-2.5 py-1.5 text-sm" placeholder="小标题">
-              </div>
-              <div class="w-32">
-                <label class="text-caption block mb-1" style="color: var(--warm-ink-3);">标题</label>
-                <input type="text" value="${esc(s.title)}" data-field="title" class="input-field w-full rounded-lg px-2.5 py-1.5 text-sm" placeholder="标题">
-              </div>
-              <div class="flex-1 min-w-[200px]">
-                <label class="text-caption block mb-1" style="color: var(--warm-ink-3);">摘要</label>
-                <input type="text" value="${esc(s.description)}" data-field="description" class="input-field w-full rounded-lg px-2.5 py-1.5 text-sm" placeholder="一句话概括">
-              </div>
+            <div class="flex-1 min-w-[200px]">
+              <label class="text-caption block mb-1" style="color: var(--warm-ink-3);">图片地址</label>
+              <input type="text" value="${esc(s.bgImage)}" data-field="bgImage" class="input-field w-full rounded-lg px-2.5 py-1.5 text-sm" placeholder="图片地址，如 images/hero.jpg">
+            </div>
+            <div class="flex flex-col">
+              <label class="text-caption block mb-1 invisible">.</label>
+              <button type="button" class="btn-danger inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-sm font-medium act-del">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>删除
+              </button>
             </div>
           </div>
-          <div class="flex items-center gap-3 pt-3 flex-wrap" style="border-top: 1px solid var(--warm-line);">
-            <div class="flex-1 min-w-[200px] flex items-center gap-2">
-              <label class="text-caption flex-shrink-0" style="color: var(--warm-ink-3);">图片</label>
-              <input type="text" value="${esc(s.bgImage)}" data-field="bgImage" class="input-field flex-1 min-w-0 rounded-lg px-2.5 py-1.5 text-sm" placeholder="图片地址，如 images/hero.jpg">
+          <div class="flex items-end gap-3 flex-wrap pt-4" style="border-top: 1px solid var(--warm-line);">
+            <div class="w-32">
+              <label class="text-caption block mb-1" style="color: var(--warm-ink-3);">小标题</label>
+              <input type="text" value="${esc(s.tag)}" data-field="tag" class="input-field w-full rounded-lg px-2.5 py-1.5 text-sm" placeholder="小标题">
+            </div>
+            <div class="w-40">
+              <label class="text-caption block mb-1" style="color: var(--warm-ink-3);">标题</label>
+              <input type="text" value="${esc(s.title)}" data-field="title" class="input-field w-full rounded-lg px-2.5 py-1.5 text-sm" placeholder="标题">
+            </div>
+            <div class="flex-1 min-w-[200px]">
+              <label class="text-caption block mb-1" style="color: var(--warm-ink-3);">摘要</label>
+              <input type="text" value="${esc(s.description)}" data-field="description" class="input-field w-full rounded-lg px-2.5 py-1.5 text-sm" placeholder="一句话概括">
             </div>
             <div class="w-44">
               <label class="text-caption block mb-1" style="color: var(--warm-ink-3);">关联文章</label>
               <select data-field="postId" class="input-field w-full rounded-lg px-2.5 py-1.5 text-sm">${postOptions(s.postId)}</select>
             </div>
-            <div class="w-16">
+            <div class="w-20">
               <label class="text-caption block mb-1" style="color: var(--warm-ink-3);">排序</label>
               <input type="number" min="0" value="${s.sortOrder ?? i + 1}" data-field="sortOrder" class="input-field w-full rounded-lg px-2.5 py-1.5 text-sm tabular-nums text-center">
             </div>
@@ -130,12 +137,6 @@
                 <input type="checkbox" data-field="status" ${s.status !== 'inactive' ? 'checked' : ''}>
                 <span class="track"></span><span class="thumb"></span>
               </label>
-            </div>
-            <div class="flex flex-col">
-              <label class="text-caption block mb-1 invisible">.</label>
-              <button type="button" class="btn-danger inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-sm font-medium act-del">
-                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>删除
-              </button>
             </div>
           </div>
         </article>`;
