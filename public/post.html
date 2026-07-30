@@ -6,97 +6,197 @@
   <title>文章详情 — 远远的天空</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Noto+Serif+SC:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Noto+Serif+SC:wght@300;400;500;600;700;900&family=Fira+Code:wght@400;500;600&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/tokens.css">
   <style>
     *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
     html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased}
-    body{font-family:var(--sans);background:var(--dawn-1);color:var(--dawn-ink);line-height:1.85;min-height:100vh}
+    body{font-family:var(--sans);background:var(--cream);color:var(--dawn-ink);line-height:1.85;min-height:100vh}
     img{display:block;max-width:100%;height:auto}
     a{color:inherit;text-decoration:none}
+    button{cursor:pointer;border:none;background:none;font-family:inherit}
+    ul{list-style:none}
     ::selection{background:var(--gold);color:#fff}
 
-    /* 导航 */
-    .topbar{position:sticky;top:0;z-index:50;background:rgba(255,255,255,0.75);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid rgba(0,0,0,0.06);padding:14px 0}
-    .topbar-inner{max-width:var(--max);margin:0 auto;padding:0 40px;display:flex;align-items:center;gap:18px}
-    .topbar-back{font-family:var(--serif);font-size:0.9rem;color:var(--dawn-deep);display:flex;align-items:center;gap:6px;transition:color 0.3s}
-    .topbar-back:hover{color:var(--dawn-ink)}
-    .topbar-back svg{width:16px;height:16px}
-    .topbar-home{font-family:var(--serif);font-weight:700;font-size:1rem;color:var(--dawn-ink);margin-left:auto}
+    /* ===== 阅读进度条 ===== */
+    .progress-bar{position:fixed;top:0;left:0;right:0;z-index:200;height:3px;pointer-events:none}
+    .progress-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--gold-soft),var(--gold-deep));transition:width 0.1s linear}
 
-    /* 文章区 */
-    .post-wrap{max-width:740px;margin:0 auto;padding:40px 24px 80px}
-    .post-cover{width:100%;border-radius:20px;margin-bottom:40px;aspect-ratio:16/9;object-fit:cover;box-shadow:0 20px 60px rgba(0,0,0,0.15)}
-    .post-header{margin-bottom:40px}
-    .post-tag{display:inline-flex;align-items:center;gap:8px;font-size:0.72rem;letter-spacing:0.2em;font-weight:500;color:var(--dawn-deep);margin-bottom:16px}
-    .post-tag::before{content:'';width:20px;height:1px;background:var(--dawn-deep)}
-    .post-title{font-family:var(--serif);font-weight:700;font-size:clamp(1.8rem,4vw,2.8rem);line-height:1.25;color:var(--dawn-ink);margin-bottom:16px}
-    .post-meta{display:flex;gap:18px;font-size:0.82rem;color:rgba(74,42,24,0.55);flex-wrap:wrap}
+    /* ===== 顶部导航 ===== */
+    .topbar{position:sticky;top:0;z-index:100;background:rgba(253,250,245,0.85);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(0,0,0,0.05)}
+    .topbar-inner{max-width:var(--max);margin:0 auto;padding:14px 40px;display:flex;align-items:center;gap:12px}
+    .topbar-brand{font-family:var(--serif);font-weight:700;font-size:1.05rem;color:var(--dawn-ink);letter-spacing:0.02em}
+    .topbar-spacer{flex:1}
+    .topbar-back{display:inline-flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--taupe);padding:6px 14px 6px 10px;border-radius:100px;background:rgba(201,118,74,0.08);transition:all 0.3s var(--ease)}
+    .topbar-back:hover{color:var(--dawn-deep);background:rgba(201,118,74,0.15)}
+    .topbar-back svg{width:14px;height:14px;transition:transform 0.3s var(--ease)}
+    .topbar-back:hover svg{transform:translateX(-3px)}
+
+    /* ===== 文章容器 ===== */
+    .post-wrap{max-width:740px;margin:0 auto;padding:48px 24px 60px}
+
+    /* ===== 封面（比正文稍宽，形成视觉层次）===== */
+    .post-cover-wrap{max-width:880px;margin:0 auto;padding:48px 24px 0}
+    .post-cover{width:100%;border-radius:20px;aspect-ratio:21/9;object-fit:cover;box-shadow:0 20px 60px rgba(0,0,0,0.12)}
+
+    /* ===== 文章头部 ===== */
+    .post-header{text-align:center;margin-bottom:40px}
+    .post-cats{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-bottom:18px}
+    .post-cat{display:inline-flex;align-items:center;padding:4px 14px;border-radius:100px;font-size:0.72rem;font-weight:500;background:rgba(201,118,74,0.1);color:var(--dawn-deep)}
+    .post-title{font-family:var(--serif);font-weight:700;font-size:clamp(1.8rem,4.5vw,2.6rem);line-height:1.3;color:var(--dawn-ink);margin-bottom:20px;letter-spacing:-0.01em}
+    .post-meta{display:flex;flex-wrap:wrap;justify-content:center;gap:16px;font-size:0.82rem;color:var(--taupe)}
     .post-meta span{display:inline-flex;align-items:center;gap:5px}
-    .post-meta svg{width:13px;height:13px}
+    .post-meta svg{width:14px;height:14px}
 
-    /* Markdown 正文 */
-    .post-content{font-family:var(--serif);font-size:1.05rem;line-height:2;color:var(--dawn-ink)}
-    .post-content h1,.post-content h2,.post-content h3,.post-content h4{font-family:var(--serif);margin:2em 0 0.6em;line-height:1.3}
+    /* ===== 摘要区块 ===== */
+    .post-summary{margin:0 0 40px;padding:24px 28px;background:rgba(201,118,74,0.06);border-left:4px solid var(--gold-soft);border-radius:0 14px 14px 0;font-size:0.95rem;line-height:1.9;color:var(--taupe)}
+
+    /* 小屏时封面和正文统一边距 */
+    @media(max-width:920px){
+      .post-cover-wrap{padding:32px 24px 0}
+    }
+    .post-summary strong{color:var(--dawn-deep);font-weight:600}
+
+    /* ===== Markdown 正文 ===== */
+    .post-content{font-size:1.05rem;line-height:2;color:var(--dawn-ink)}
+    .post-content h1,.post-content h2,.post-content h3,.post-content h4{font-family:var(--serif);margin:2.2em 0 0.6em;line-height:1.3;color:var(--dawn-ink)}
     .post-content h1{font-size:1.8rem;font-weight:700}
-    .post-content h2{font-size:1.5rem;font-weight:700;color:var(--dawn-deep)}
+    .post-content h2{font-size:1.45rem;font-weight:700;padding-top:0.5em}
     .post-content h3{font-size:1.2rem;font-weight:600;color:var(--dawn-deep)}
     .post-content h4{font-size:1.05rem;font-weight:600}
     .post-content p{margin:1em 0}
-    .post-content ul{margin:1em 0;padding-left:1.5em}
+    .post-content ul,.post-content ol{margin:1em 0;padding-left:1.5em}
+    .post-content ul{list-style:disc}
+    .post-content ol{list-style:decimal}
     .post-content li{margin:0.4em 0}
+    .post-content blockquote{border-left:4px solid var(--gold-soft);padding:0.5em 0 0.5em 1.2em;margin:1.5em 0;color:var(--taupe);background:rgba(212,179,129,0.08);border-radius:0 10px 10px 0}
+    .post-content blockquote p{margin:0}
     .post-content strong{font-weight:700}
     .post-content em{font-style:italic}
     .post-content a{color:var(--dawn-deep);border-bottom:1px solid var(--dawn-deep);transition:opacity 0.3s}
     .post-content a:hover{opacity:0.7}
-    .post-content code{font-family:monospace;background:rgba(74,42,24,0.08);padding:2px 6px;border-radius:4px;font-size:0.9em}
-    .post-content pre{background:var(--dawn-ink);color:var(--dawn-1);padding:20px 24px;border-radius:12px;overflow-x:auto;margin:1.5em 0;font-size:0.9rem;line-height:1.7}
-    .post-content pre code{background:none;padding:0;font-size:inherit}
-    .post-content hr{border:none;height:1px;background:rgba(74,42,24,0.15);margin:2em 0}
-    .post-content img{border-radius:12px;margin:1.5em 0}
+    .post-content code{font-family:'Fira Code','JetBrains Mono','SF Mono',Monaco,'Cascadia Code','Roboto Mono',Consolas,'Courier New',monospace;background:rgba(74,42,24,0.08);padding:2px 7px;border-radius:4px;font-size:0.88em;font-variant-ligatures:contextual;font-feature-settings:'calt' 1}
+    .post-content pre{position:relative;background:#1e1e2e;color:#cdd6f4;padding:18px 22px;border-radius:12px;overflow-x:auto;margin:1.5em 0;font-family:'Fira Code','JetBrains Mono','SF Mono',Monaco,'Cascadia Code','Roboto Mono',Consolas,'Courier New',monospace;font-size:0.9rem;line-height:1.7;font-variant-ligatures:contextual;font-feature-settings:'calt' 1}
+    .post-content pre code{background:none;padding:0;font-size:inherit;color:inherit}
+    .post-content pre .code-copy{position:absolute;top:10px;right:10px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:6px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.5);opacity:0;transition:all 0.25s;font-size:0.85rem;border:1px solid rgba(255,255,255,0.1)}
+    .post-content pre:hover .code-copy{opacity:1}
+    .post-content pre .code-copy:hover{background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.25)}
+    .post-content pre .code-copy.done{color:#a6e3a1;border-color:rgba(166,227,161,0.4);opacity:1}
+    .post-content hr{border:none;height:1px;background:rgba(74,42,24,0.12);margin:2.5em 0}
+    .post-content img{max-width:100%;border-radius:12px;margin:1.5em 0}
+    .post-content table{width:100%;border-collapse:collapse;margin:1.5em 0;font-size:0.95rem}
+    .post-content th,.post-content td{padding:10px 14px;border:1px solid rgba(74,42,24,0.12);text-align:left}
+    .post-content th{background:rgba(201,118,74,0.08);font-weight:600}
 
-    /* 空态 */
-    .empty{text-align:center;padding:100px 24px;color:var(--taupe)}
-    .empty h2{font-family:var(--serif);font-size:1.5rem;margin-bottom:12px;color:var(--dawn-ink)}
-    .empty a{color:var(--dawn-deep);border-bottom:1px solid var(--dawn-deep)}
+    /* ===== 文章底部 ===== */
+    .post-footer{margin-top:48px;padding-top:32px;border-top:1px solid rgba(74,42,24,0.1)}
+    .post-footer-row{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:16px}
+    .post-tags{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+    .post-tags-label{font-size:0.82rem;color:var(--taupe)}
+    .post-tag{display:inline-flex;padding:5px 14px;border-radius:100px;font-size:0.77rem;font-weight:500;background:rgba(201,118,74,0.08);color:var(--dawn-deep);transition:all 0.3s}
+    .post-tag:hover{background:rgba(201,118,74,0.18)}
+    .share-btn{display:inline-flex;align-items:center;gap:5px;padding:5px 16px;border-radius:100px;font-size:0.77rem;font-weight:500;border:1px solid rgba(74,42,24,0.12);color:var(--taupe);background:transparent;transition:all 0.3s}
+    .share-btn:hover{color:var(--dawn-deep);border-color:var(--dawn-deep)}
+    .share-btn svg{width:12px;height:12px}
 
-    /* 页脚 */
-    .post-foot{text-align:center;padding:40px 0 60px;border-top:1px solid rgba(0,0,0,0.06)}
-    .post-foot a{font-family:var(--serif);font-size:0.95rem;color:var(--dawn-deep);display:inline-flex;align-items:center;gap:8px;transition:gap 0.3s}
-    .post-foot a:hover{gap:14px}
-    .post-foot svg{width:16px;height:16px}
+    /* ===== 上下篇导航 ===== */
+    .post-nav{margin-top:36px;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .post-nav-card{display:block;padding:18px 20px;border-radius:14px;border:1px solid rgba(74,42,24,0.08);background:rgba(255,255,255,0.5);transition:all 0.3s}
+    .post-nav-card:hover{border-color:var(--gold-soft);background:#fff}
+    .post-nav-card.r{text-align:right}
+    .post-nav-card.empty{opacity:0.4;pointer-events:none}
+    .post-nav-label{display:flex;align-items:center;gap:4px;font-size:0.75rem;color:var(--taupe);margin-bottom:6px}
+    .post-nav-label.r{justify-content:flex-end}
+    .post-nav-label svg{width:13px;height:13px}
+    .post-nav-title{font-size:0.88rem;font-weight:500;color:var(--dawn-ink);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .post-nav-card:hover .post-nav-title{color:var(--dawn-deep)}
 
-    @media(max-width:640px){.post-wrap{padding:24px 16px 60px}}
+    /* ===== 作者签名 ===== */
+    .author-card{margin-top:48px;display:flex;align-items:center;gap:20px;padding:28px 32px;background:linear-gradient(135deg,rgba(201,118,74,0.08),rgba(212,179,129,0.08));border-radius:18px}
+    .author-avatar{width:64px;height:64px;border-radius:50%;object-fit:cover;flex-shrink:0;border:3px solid #fff;box-shadow:0 4px 16px rgba(0,0,0,0.1)}
+    .author-info h3{font-family:var(--serif);font-size:1.05rem;font-weight:600;color:var(--dawn-ink);margin-bottom:4px}
+    .author-info p{font-size:0.82rem;color:var(--taupe);line-height:1.7}
+
+    /* ===== 回到顶部 ===== */
+    .back-top{position:fixed;bottom:30px;right:30px;z-index:50;width:42px;height:42px;border-radius:50%;background:var(--dawn-deep);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,0.2);opacity:0;transform:translateY(20px);transition:all 0.4s var(--ease);pointer-events:none}
+    .back-top.show{opacity:1;transform:translateY(0);pointer-events:auto}
+    .back-top:hover{background:var(--dawn-ink);transform:translateY(-3px)}
+    .back-top svg{width:18px;height:18px}
+
+    /* ===== 加载 / 空态 ===== */
+    .loading-state,.empty-state{text-align:center;padding:100px 24px}
+    .loading-state h2,.empty-state h2{font-family:var(--serif);font-size:1.4rem;margin-bottom:10px}
+    .empty-state p{color:var(--taupe);margin-bottom:20px}
+    .empty-state a{color:var(--dawn-deep);border-bottom:1px solid var(--dawn-deep)}
+    .loading-dots{display:inline-flex;gap:6px}
+    .loading-dots span{width:8px;height:8px;border-radius:50%;background:var(--dawn-deep);animation:bounce 1.4s ease-in-out infinite}
+    .loading-dots span:nth-child(2){animation-delay:0.16s}
+    .loading-dots span:nth-child(3){animation-delay:0.32s}
+    @keyframes bounce{0%,80%,100%{transform:scale(0.6);opacity:0.4}40%{transform:scale(1);opacity:1}}
+
+    @media(max-width:640px){
+      .topbar-inner{padding:12px 16px}
+      .post-wrap{padding:28px 16px 50px}
+      .post-nav{grid-template-columns:1fr}
+      .back-top{bottom:20px;right:20px;width:38px;height:38px}
+      .author-card{flex-direction:column;text-align:center;padding:24px}
+    }
   </style>
 </head>
 <body>
 
+  <!-- 阅读进度条 -->
+  <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+
+  <!-- 导航 -->
   <header class="topbar">
     <div class="topbar-inner">
-      <a href="javascript:history.back()" class="topbar-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>返回</a>
-      <a href="index.html" class="topbar-home">远远的天空</a>
+      <a href="javascript:history.back()" class="topbar-back">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>返回
+      </a>
+      <span class="topbar-spacer"></span>
+      <a href="index.html" class="topbar-brand">远远的天空</a>
     </div>
   </header>
 
+  <!-- 正文 -->
   <main id="postContent">
-    <div class="empty"><h2>加载中……</h2></div>
+    <div class="loading-state">
+      <div class="loading-dots"><span></span><span></span><span></span></div>
+      <h2 style="margin-top:16px;color:var(--taupe);font-weight:400;font-size:1rem">正在载入文章……</h2>
+    </div>
   </main>
 
-  <footer class="post-foot">
-    <a href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>回到天空</a>
-  </footer>
+  <!-- 回到顶部 -->
+  <button class="back-top" id="backTop">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+  </button>
 
   <script src="js/api.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/md.js"></script>
   <script>
+    /* 阅读进度条 + 回到顶部 */
+    let ticking = false;
+    window.addEventListener('scroll',()=>{
+      if(!ticking){ requestAnimationFrame(()=>{
+        const st = window.scrollY;
+        const dh = document.documentElement.scrollHeight - window.innerHeight;
+        document.getElementById('progressFill').style.width = dh>0 ? (st/dh*100)+'%' : '0%';
+        document.getElementById('backTop').classList.toggle('show', st>300);
+        ticking=false;
+      }); ticking=true; }
+    },{passive:true});
+    document.getElementById('backTop').addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
+
+    /* 渲染文章 */
     (async function(){
       const params = new URLSearchParams(location.search);
       const idOrSlug = params.get('id') || params.get('slug');
       const el = document.getElementById('postContent');
 
       if(!idOrSlug){
-        el.innerHTML = `<div class="empty"><h2>文章未找到</h2><p>没有指定文章 ID。回到<a href="index.html">首页</a>看看？</p></div>`;
+        el.innerHTML = `<div class="empty-state"><h2>文章未找到</h2><p>没有指定文章 ID。</p><a href="index.html">回到首页</a></div>`;
         document.title = '文章未找到 — 远远的天空';
         return;
       }
@@ -104,26 +204,131 @@
       try {
         const post = await API.getPost(idOrSlug);
         if(post.status !== 'pub' && !API.isAuthed()){
-          el.innerHTML = `<div class="empty"><h2>这篇文章尚未发布</h2><p>它是草稿状态，只有作者可以查看。回到<a href="index.html">首页</a>？</p></div>`;
+          el.innerHTML = `<div class="empty-state"><h2>尚未发布</h2><p>这篇文章目前是草稿状态。</p><a href="index.html">回到首页</a></div>`;
           return;
         }
         document.title = post.title + ' — 远远的天空';
-        const tagHtml = post.tag ? post.tag.split(',').map(t=>t.trim()).filter(Boolean).slice(0,3).join(' · ') : '';
+
+        // 分类标签
+        let catHtml = '';
+        if(post.tag){
+          catHtml = '<div class="post-cats">'+post.tag.split(',').map(t=>`<span class="post-cat">${t.trim()}</span>`).join('')+'</div>';
+        }
+
+        // 摘要区块
+        let summaryHtml = '';
+        if(post.excerpt){
+          summaryHtml = `<div class="post-summary">${post.excerpt}</div>`;
+        }
+
+        // 正文 HTML + 代码复制按钮
+        let contentHtml = MD.render(post.content);
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = contentHtml;
+        tempDiv.querySelectorAll('pre').forEach(pre=>{
+          if(pre.querySelector('.code-copy')) return;
+          const btn = document.createElement('button');
+          btn.className = 'code-copy';
+          btn.setAttribute('aria-label','复制代码');
+          btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+          btn.addEventListener('click',()=>{
+            const code = pre.querySelector('code');
+            const text = code ? code.textContent : pre.textContent;
+            const fallback = ()=>{
+              const ta = document.createElement('textarea');
+              ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
+              document.body.appendChild(ta); ta.select();
+              try{document.execCommand('copy')}catch(e){}
+              document.body.removeChild(ta);
+            };
+            const done = ()=>{
+              btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+              btn.classList.add('done');
+              setTimeout(()=>{ btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'; btn.classList.remove('done'); },2000);
+            };
+            if(navigator.clipboard&&window.isSecureContext) navigator.clipboard.writeText(text).then(done).catch(()=>{fallback();done()});
+            else{fallback();done()}
+          });
+          pre.style.position='relative';
+          pre.appendChild(btn);
+        });
+        contentHtml = tempDiv.innerHTML;
+
+        // 阅读时间估算
+        const wordCount = (post.content||'').length;
+        const readingMin = Math.max(1, Math.ceil(wordCount/500));
+
+        // 站点配置
+        const config = await API.getConfig();
+
         el.innerHTML = `
-          ${post.cover ? `<img src="${post.cover}" alt="${post.title}" class="post-cover">` : ''}
+          ${post.cover ? `<div class="post-cover-wrap" style="margin-bottom:44px"><img src="${post.cover}" alt="${post.title}" class="post-cover"></div>` : ''}
+          <div class="post-wrap">
           <article>
-            <div class="post-header">
-              ${tagHtml ? `<div class="post-tag">${tagHtml}</div>` : ''}
+            <header class="post-header">
+              ${catHtml}
               <h1 class="post-title">${post.title}</h1>
               <div class="post-meta">
-                <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>${post.date}</span>
-                ${post.status==='draft'?'<span style="color:var(--dusk-2)">草稿</span>':''}
+                <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${post.date}</span>
+                <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>${readingMin} 分钟</span>
+                <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>${wordCount} 字</span>
               </div>
+            </header>
+            ${summaryHtml}
+            <div class="post-content">${contentHtml}</div>
+          </article>
+          <footer class="post-footer">
+            <div class="post-footer-row">
+              <div class="post-tags">
+                <span class="post-tags-label">标签：</span>
+                ${post.tag ? post.tag.split(',').map(t=>`<a href="posts.html?tag=${encodeURIComponent(t.trim())}" class="post-tag">${t.trim()}</a>`).join('') : '<span style="color:var(--taupe);font-size:0.82rem">无</span>'}
+              </div>
+              <button class="share-btn" id="copyLinkBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>复制链接</button>
             </div>
-            <div class="post-content">${MD.render(post.content)}</div>
-          </article>`;
+          </footer>
+          <div class="author-card">
+            <img src="${config.authorAvatar||'images/avatar.jpg'}" alt="作者" class="author-avatar">
+            <div class="author-info">
+              <h3>${config.authorName||'远远'}</h3>
+              <p>${config.authorBio||''}</p>
+            </div>
+          </div>
+          </div>`;
+
+        /* 复制链接 */
+        const copyBtn = document.getElementById('copyLinkBtn');
+        if(copyBtn){
+          copyBtn.addEventListener('click',()=>{
+            const url = window.location.href;
+            const done = ()=>{ copyBtn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>已复制'; setTimeout(()=>{ copyBtn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>复制链接'; },2000); };
+            if(navigator.clipboard&&window.isSecureContext) navigator.clipboard.writeText(url).then(done).catch(()=>{done()});
+            else done();
+          });
+        }
+
+        /* 加载上下篇导航 */
+        try {
+          const allPosts = await API.getPosts();
+          const pubPosts = allPosts.filter(p=>p.status==='pub').sort((a,b)=>b.date.localeCompare(a.date));
+          const curIdx = pubPosts.findIndex(p=>p.id===post.id);
+          const prevPost = curIdx>0 ? pubPosts[curIdx-1] : null;
+          const nextPost = curIdx>=0&&curIdx<pubPosts.length-1 ? pubPosts[curIdx+1] : null;
+          let navHtml = '';
+          if(prevPost||nextPost){
+            navHtml = '<nav class="post-nav">';
+            if(prevPost) navHtml += `<a href="post.html?id=${prevPost.id}" class="post-nav-card"><div class="post-nav-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>上一篇</div><div class="post-nav-title">${prevPost.title}</div></a>`;
+            else navHtml += '<div class="post-nav-card empty"></div>';
+            if(nextPost) navHtml += `<a href="post.html?id=${nextPost.id}" class="post-nav-card r"><div class="post-nav-label r">下一篇<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div><div class="post-nav-title">${nextPost.title}</div></a>`;
+            else navHtml += '<div class="post-nav-card empty"></div>';
+            navHtml += '</nav>';
+            const wrapEl = el.querySelector('.post-wrap');
+            if(wrapEl) wrapEl.insertAdjacentHTML('beforeend', navHtml);
+            else el.insertAdjacentHTML('beforeend', `<div class="post-wrap">${navHtml}</div>`);
+          }
+        } catch(e){ /* 导航失败静默 */ }
+
       } catch(e){
-        el.innerHTML = `<div class="empty"><h2>文章不存在</h2><p>${e.message||'找不到这篇文章'}。回到<a href="index.html">首页</a>？</p></div>`;
+        el.innerHTML = `<div class="empty-state"><h2>文章不存在</h2><p>${e.message||'找不到这篇文章'}。</p><a href="index.html">回到首页</a></div>`;
         document.title = '文章未找到 — 远远的天空';
       }
     })();
