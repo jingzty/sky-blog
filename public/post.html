@@ -221,38 +221,8 @@
           summaryHtml = `<div class="post-summary">${post.excerpt}</div>`;
         }
 
-        // 正文 HTML + 代码复制按钮
-        let contentHtml = MD.render(post.content);
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = contentHtml;
-        tempDiv.querySelectorAll('pre').forEach(pre=>{
-          if(pre.querySelector('.code-copy')) return;
-          const btn = document.createElement('button');
-          btn.className = 'code-copy';
-          btn.setAttribute('aria-label','复制代码');
-          btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
-          btn.addEventListener('click',()=>{
-            const code = pre.querySelector('code');
-            const text = code ? code.textContent : pre.textContent;
-            const fallback = ()=>{
-              const ta = document.createElement('textarea');
-              ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
-              document.body.appendChild(ta); ta.select();
-              try{document.execCommand('copy')}catch(e){}
-              document.body.removeChild(ta);
-            };
-            const done = ()=>{
-              btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
-              btn.classList.add('done');
-              setTimeout(()=>{ btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'; btn.classList.remove('done'); },2000);
-            };
-            if(navigator.clipboard&&window.isSecureContext) navigator.clipboard.writeText(text).then(done).catch(()=>{fallback();done()});
-            else{fallback();done()}
-          });
-          pre.style.position='relative';
-          pre.appendChild(btn);
-        });
-        contentHtml = tempDiv.innerHTML;
+        // 正文 HTML（代码复制按钮在真实 DOM 注入后再绑定，避免 innerHTML 序列化丢失事件）
+        const contentHtml = MD.render(post.content);
 
         // 阅读时间估算
         const wordCount = (post.content||'').length;
@@ -294,6 +264,35 @@
             </div>
           </div>
           </div>`;
+
+        /* 代码块复制按钮：在真实 DOM 上注入并绑定事件 */
+        el.querySelectorAll('.post-content pre').forEach(pre=>{
+          if(pre.querySelector('.code-copy')) return;
+          const btn = document.createElement('button');
+          btn.className = 'code-copy';
+          btn.setAttribute('aria-label','复制代码');
+          btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+          btn.addEventListener('click',()=>{
+            const code = pre.querySelector('code');
+            const text = code ? code.textContent : pre.textContent;
+            const fallback = ()=>{
+              const ta = document.createElement('textarea');
+              ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
+              document.body.appendChild(ta); ta.select();
+              try{document.execCommand('copy')}catch(e){}
+              document.body.removeChild(ta);
+            };
+            const done = ()=>{
+              btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+              btn.classList.add('done');
+              setTimeout(()=>{ btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'; btn.classList.remove('done'); },2000);
+            };
+            if(navigator.clipboard&&window.isSecureContext) navigator.clipboard.writeText(text).then(done).catch(()=>{fallback();done()});
+            else{fallback();done()}
+          });
+          pre.style.position='relative';
+          pre.appendChild(btn);
+        });
 
         /* 复制链接 */
         const copyBtn = document.getElementById('copyLinkBtn');
