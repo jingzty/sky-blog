@@ -78,10 +78,12 @@
     .post-content code{font-family:'Fira Code','JetBrains Mono','SF Mono',Monaco,'Cascadia Code','Roboto Mono',Consolas,'Courier New',monospace;background:rgba(74,42,24,0.08);padding:2px 7px;border-radius:4px;font-size:0.88em;font-variant-ligatures:contextual;font-feature-settings:'calt' 1}
     .post-content pre{position:relative;background:#1e1e2e;color:#cdd6f4;padding:18px 22px;border-radius:12px;overflow-x:auto;margin:1.5em 0;font-family:'Fira Code','JetBrains Mono','SF Mono',Monaco,'Cascadia Code','Roboto Mono',Consolas,'Courier New',monospace;font-size:0.9rem;line-height:1.7;font-variant-ligatures:contextual;font-feature-settings:'calt' 1}
     .post-content pre code{background:none;padding:0;font-size:inherit;color:inherit}
-    .post-content pre .code-copy{position:absolute;top:10px;right:10px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:6px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.5);opacity:0;transition:all 0.25s;font-size:0.85rem;border:1px solid rgba(255,255,255,0.1)}
-    .post-content pre:hover .code-copy{opacity:1}
-    .post-content pre .code-copy:hover{background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.25)}
-    .post-content pre .code-copy.done{color:#a6e3a1;border-color:rgba(166,227,161,0.4);opacity:1}
+    .post-content .code-block{position:relative;margin:1.5em 0}
+    .post-content .code-block pre{margin:0}
+    .post-content .code-block .code-copy{position:absolute;top:10px;right:10px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:6px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.5);opacity:0;transition:all 0.25s;font-size:0.85rem;border:1px solid rgba(255,255,255,0.1)}
+    .post-content .code-block:hover .code-copy{opacity:1}
+    .post-content .code-block .code-copy:hover{background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.25)}
+    .post-content .code-block .code-copy.done{color:#a6e3a1;border-color:rgba(166,227,161,0.4);opacity:1}
     .post-content hr{border:none;height:1px;background:rgba(74,42,24,0.12);margin:2.5em 0}
     .post-content img{max-width:100%;border-radius:12px;margin:1.5em 0}
     .post-content table{width:100%;border-collapse:collapse;margin:1.5em 0;font-size:0.95rem}
@@ -267,7 +269,11 @@
 
         /* 代码块复制按钮：在真实 DOM 上注入并绑定事件 */
         el.querySelectorAll('.post-content pre').forEach(pre=>{
-          if(pre.querySelector('.code-copy')) return;
+          if(pre.closest('.code-block')) return;
+          const wrap = document.createElement('div');
+          wrap.className = 'code-block';
+          pre.parentNode.insertBefore(wrap, pre);
+          wrap.appendChild(pre);
           const btn = document.createElement('button');
           btn.className = 'code-copy';
           btn.setAttribute('aria-label','复制代码');
@@ -290,8 +296,7 @@
             if(navigator.clipboard&&window.isSecureContext) navigator.clipboard.writeText(text).then(done).catch(()=>{fallback();done()});
             else{fallback();done()}
           });
-          pre.style.position='relative';
-          pre.appendChild(btn);
+          wrap.appendChild(btn);
         });
 
         /* 复制链接 */
