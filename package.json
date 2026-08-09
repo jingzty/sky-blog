@@ -1,0 +1,20 @@
+{
+  "name": "sky-blog2",
+  "version": "2.0.0",
+  "private": true,
+  "description": "远远的天空 — 重构版（精简数据层 / 预编译语句 / 索引 / 轻量列表）",
+  "scripts": {
+    "start": "node server.js",
+    "seed": "SEED=1 node server.js",
+    "check-links": "node scripts/check-links.js",
+    "test:e2e": "node scripts/e2e.js",
+    "shots": "node scripts/shot-all.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.0.0",
+    "express": "^4.19.0"
+  },
+  "devDependencies": {
+    "playwright": "^1.44.0"
+  }
+}

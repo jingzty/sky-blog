@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>文章管理 — 远远的天空</title>
+  <link rel="stylesheet" href="../css/admin.css">
+  <script src="../js/vendor/tailwind4.js"></script>
+  <script src="../js/vendor/lucide.js"></script>
+  <style type="text/tailwindcss">
+    @theme inline {
+      --color-warm-bg: var(--warm-bg); --color-warm-surface: var(--warm-surface);
+      --color-warm-surface-2: var(--warm-surface-2); --color-warm-surface-3: var(--warm-surface-3);
+      --color-warm-ink: var(--warm-ink); --color-warm-ink-2: var(--warm-ink-2); --color-warm-ink-3: var(--warm-ink-3);
+      --color-warm-brand: var(--warm-brand); --color-warm-brand-50: var(--warm-brand-50);
+      --color-warm-brand-100: var(--warm-brand-100); --color-warm-brand-300: var(--warm-brand-300);
+      --color-warm-brand-500: var(--warm-brand-500); --color-warm-brand-600: var(--warm-brand-600);
+      --color-warm-line: var(--warm-line);
+      --color-warm-state-success: var(--warm-state-success); --color-warm-state-warning: var(--warm-state-warning);
+      --color-warm-state-error: var(--warm-state-error); --color-warm-state-info: var(--warm-state-info);
+      --radius-warm-md: var(--warm-radius-medium); --radius-warm-lg: var(--warm-radius-large);
+    }
+  </style>
+</head>
+<body class="min-h-screen" data-page="articles">
+  <div id="sidebar-slot"></div>
+
+  <main class="admin-main ml-[240px] min-h-screen p-8">
+    <header class="mb-8 flex items-start justify-between">
+      <div>
+        <h1 class="text-h1 mb-1" style="color: var(--warm-ink);">文章管理</h1>
+        <p class="text-body" style="color: var(--warm-ink-2);">管理你的文章、草稿与发布状态</p>
+      </div>
+      <a href="editor.html" class="btn-primary flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium">
+        <i data-lucide="plus" class="w-4 h-4"></i><span>写新文章</span>
+      </a>
+    </header>
+
+    <!-- filters -->
+    <section class="card p-5 mb-6">
+      <div class="flex flex-wrap items-center gap-4">
+        <div class="relative flex-1 min-w-[240px]">
+          <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style="color: var(--warm-ink-3);"></i>
+          <input type="text" id="fSearch" placeholder="搜索文章标题..." class="input-field w-full pl-9 pr-4 py-2.5 rounded-lg text-sm" />
+        </div>
+        <select id="fStatus" class="input-field px-3 py-2.5 rounded-lg text-sm min-w-[120px]">
+          <option value="">全部状态</option><option value="pub">已发布</option><option value="draft">草稿</option>
+        </select>
+        <select id="fCat" class="input-field px-3 py-2.5 rounded-lg text-sm min-w-[120px]">
+          <option value="">全部分类</option>
+        </select>
+        <button id="fBtn" class="btn-secondary flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium">
+          <i data-lucide="filter" class="w-4 h-4"></i><span>筛选</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- bulk actions -->
+    <section class="flex flex-wrap items-center gap-3 mb-4">
+      <label class="flex items-center gap-2 px-1 py-1 text-sm cursor-pointer" style="color: var(--warm-ink-2);">
+        <input type="checkbox" id="selectAll" class="w-4 h-4 rounded" style="accent-color: var(--warm-brand);" />
+        <span>全选</span>
+      </label>
+      <button id="bulkPub" class="btn-secondary flex items-center gap-2 px-3 py-2 rounded-lg text-sm">
+        <i data-lucide="check-circle-2" class="w-4 h-4"></i><span>批量发布</span>
+      </button>
+      <button id="bulkDraft" class="btn-secondary flex items-center gap-2 px-3 py-2 rounded-lg text-sm">
+        <i data-lucide="clock" class="w-4 h-4"></i><span>批量移到草稿</span>
+      </button>
+      <button id="bulkDel" class="btn-secondary flex items-center gap-2 px-3 py-2 rounded-lg text-sm" style="color: var(--warm-state-error);">
+        <i data-lucide="trash-2" class="w-4 h-4"></i><span>批量删除</span>
+      </button>
+    </section>
+
+    <!-- table -->
+    <section class="card overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b" style="border-color: var(--warm-line); background: var(--warm-surface-2);">
+              <th class="w-10 px-4 py-3 text-left"></th>
+              <th class="px-4 py-3 text-left font-medium w-[80px]" style="color: var(--warm-ink-2);">封面</th>
+              <th class="px-4 py-3 text-left font-medium" style="color: var(--warm-ink-2);">标题</th>
+              <th class="px-4 py-3 text-left font-medium w-[110px]" style="color: var(--warm-ink-2);">分类</th>
+              <th class="px-4 py-3 text-left font-medium w-[90px]" style="color: var(--warm-ink-2);">状态</th>
+              <th class="px-4 py-3 text-left font-medium w-[120px]" style="color: var(--warm-ink-2);">日期</th>
+              <th class="px-4 py-3 text-left font-medium w-[120px]" style="color: var(--warm-ink-2);">操作</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+      <div id="empty" class="empty-state hidden">
+        <p>还没有文章，<a href="editor.html">写第一篇</a></p>
+      </div>
+    </section>
+  </main>
+
+  <script src="../js/api.js"></script>
+  <script src="../js/ui.js"></script>
+  <script src="../js/admin.js"></script>
+  <script>
+    if (!API.isAuthed()) window.location.href = '../login.html';
+
+    let allPosts = [], catMap = {};
+
+    const coverUrl = Admin.coverUrl;
+    const esc = Admin.esc;
+
+    async function loadCats() {
+      const cats = await API.getCategories();
+      catMap = {}; cats.forEach(c => catMap[c.id] = c);
+      const sel = document.getElementById('fCat');
+      sel.innerHTML = '<option value="">全部分类</option>' + cats.filter(c => c.name !== '全部').map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+    }
+
+    async function load() {
+      try {
+        const params = { all: 1 };
+        const s = document.getElementById('fSearch').value.trim();
+        const c = document.getElementById('fCat').value;
+        if (s) params.q = s;
+        if (c) params.categoryId = c;
+        allPosts = await API.getPosts(params);
+        const st = document.getElementById('fStatus').value;
+        if (st) allPosts = allPosts.filter(p => p.status === st);
+        render();
+      } catch (e) { Admin.toast('加载失败: ' + e.message); }
+    }
+
+    function render() {
+      const tb = document.getElementById('rows');
+      const empty = document.getElementById('empty');
+      if (allPosts.length === 0) {
+        tb.innerHTML = ''; empty.classList.remove('hidden'); return;
+      }
+      empty.classList.add('hidden');
+      tb.innerHTML = allPosts.map(p => {
+        const cat = catMap[p.categoryId];
+        const cover = coverUrl(p.cover);
+        return `
+          <tr class="article-row border-b" style="border-color: var(--warm-line);" data-id="${p.id}">
+            <td class="px-4 py-4"><input type="checkbox" class="row-check w-4 h-4 rounded" style="accent-color: var(--warm-brand);" /></td>
+            <td class="px-4 py-4">
+              <div class="w-14 aspect-video rounded-md overflow-hidden" style="background: var(--warm-surface-2);">
+                ${cover ? `<img src="${cover}" alt="${esc(p.title)}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center" style="color: var(--warm-ink-3);"><i data-lucide="image" class="w-4 h-4"></i></div>`}
+              </div>
+            </td>
+            <td class="px-4 py-4">
+              <div class="font-medium" style="color: var(--warm-ink);">${esc(p.title)}</div>
+              ${p.excerpt ? `<div class="text-caption mt-1 line-clamp-1" style="color: var(--warm-ink-3);">${esc(p.excerpt)}</div>` : ''}
+            </td>
+            <td class="px-4 py-4" style="color: var(--warm-ink-2);">${cat ? esc(cat.name) : '<span style="color:var(--warm-ink-3)">未分类</span>'}</td>
+            <td class="px-4 py-4"><span class="status-badge ${p.status === 'pub' ? 'status-pub' : 'status-draft'}">${p.status === 'pub' ? '已发布' : '草稿'}</span></td>
+            <td class="px-4 py-4 tabular-nums" style="color: var(--warm-ink-2);">${p.date || '-'}</td>
+            <td class="px-4 py-4">
+              <div class="flex items-center gap-2">
+                <a href="editor.html?id=${p.id}" class="icon-btn p-1 rounded" title="编辑"><i data-lucide="edit-3" class="w-4 h-4"></i></a>
+                <a href="../post.html?id=${p.id}" target="_blank" class="icon-btn p-1 rounded" title="预览"><i data-lucide="eye" class="w-4 h-4"></i></a>
+                <button class="icon-btn p-1 rounded act-toggle" data-status="${p.status === 'pub' ? 'draft' : 'pub'}" title="${p.status === 'pub' ? '改为草稿' : '发布'}">
+                  <i data-lucide="${p.status === 'pub' ? 'archive' : 'send'}" class="w-4 h-4"></i>
+                </button>
+                <button class="icon-btn p-1 rounded act-del" title="删除" style="color: var(--warm-state-error);"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+              </div>
+            </td>
+          </tr>`;
+      }).join('');
+      lucide.createIcons();
+      bindRowEvents();
+    }
+
+    function bindRowEvents() {
+      document.querySelectorAll('.act-toggle').forEach(b => b.onclick = async () => {
+        const id = +b.closest('tr').dataset.id;
+        const st = b.dataset.status;
+        try { await API.setPostStatus(id, st); Admin.toast(st === 'pub' ? '已发布' : '已改为草稿'); load(); }
+        catch (e) { Admin.toast('操作失败: ' + e.message); }
+      });
+      document.querySelectorAll('.act-del').forEach(b => b.onclick = async () => {
+        if (!confirm('确定删除这篇文章？不可恢复。')) return;
+        const id = +b.closest('tr').dataset.id;
+        try { await API.deletePost(id); Admin.toast('已删除'); load(); }
+        catch (e) { Admin.toast('删除失败: ' + e.message); }
+      });
+    }
+
+    function selectedIds() {
+      return [...document.querySelectorAll('.row-check:checked')].map(c => +c.closest('tr').dataset.id);
+    }
+
+    document.getElementById('selectAll').onchange = e => {
+      document.querySelectorAll('.row-check').forEach(c => c.checked = e.target.checked);
+    };
+    document.getElementById('fBtn').onclick = load;
+    document.getElementById('fSearch').onkeydown = e => { if (e.key === 'Enter') load(); };
+    document.getElementById('bulkPub').onclick = async () => {
+      const ids = selectedIds(); if (!ids.length) return Admin.toast('请先选择文章');
+      for (const id of ids) await API.setPostStatus(id, 'pub');
+      Admin.toast('已批量发布'); load();
+    };
+    document.getElementById('bulkDraft').onclick = async () => {
+      const ids = selectedIds(); if (!ids.length) return Admin.toast('请先选择文章');
+      for (const id of ids) await API.setPostStatus(id, 'draft');
+      Admin.toast('已批量移到草稿'); load();
+    };
+    document.getElementById('bulkDel').onclick = async () => {
+      const ids = selectedIds(); if (!ids.length) return Admin.toast('请先选择文章');
+      if (!confirm(`确定删除选中的 ${ids.length} 篇文章？不可恢复。`)) return;
+      for (const id of ids) await API.deletePost(id);
+      Admin.toast('已批量删除'); load();
+    };
+
+    (async () => { await loadCats(); await load(); })();
+  </script>
+</body>
+</html>

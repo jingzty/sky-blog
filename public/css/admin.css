@@ -1,0 +1,198 @@
+/*
+ * 博客后台管理 - 温暖文艺风格设计系统
+ * Warm literary admin design tokens & components
+ * 适配 Tailwind v4 browser（@theme 在各页 <style type="text/tailwindcss"> 中注册）
+ */
+
+:root {
+  /* --- Core page surfaces --- */
+  --warm-bg: #fdf8f3;
+  --warm-surface: #f7f2ec;
+  --warm-surface-2: #efe9e1;
+  --warm-surface-3: #e7e0d6;
+
+  /* --- Text ink --- */
+  --warm-ink: #3d3833;
+  --warm-ink-2: #6b635a;
+  --warm-ink-3: #9b9186;
+  --warm-ink-placeholder: #b5aa9d;
+
+  /* --- Brand primary (warm ochre / terracotta) --- */
+  --warm-brand: #c17a4b;
+  --warm-brand-50: #fbf4ee;
+  --warm-brand-100: #f4e3d6;
+  --warm-brand-200: #e8c6ad;
+  --warm-brand-300: #daa27d;
+  --warm-brand-400: #c17a4b;
+  --warm-brand-500: #a7633a;
+  --warm-brand-600: #8b4e2d;
+  --warm-brand-700: #6f3d24;
+  --warm-brand-ink: #ffffff;
+
+  /* --- Semantic state colors --- */
+  --warm-state-success: #5a8a6e;
+  --warm-state-success-bg: #eaf3ee;
+  --warm-state-warning: #c9a23d;
+  --warm-state-warning-bg: #f9f3df;
+  --warm-state-error: #c25b5b;
+  --warm-state-error-bg: #f8e8e8;
+  --warm-state-info: #5e8aa3;
+  --warm-state-info-bg: #e8f1f5;
+
+  /* --- Lines & borders --- */
+  --warm-line: #e7dfd5;
+  --warm-line-strong: #d9cfc2;
+
+  /* --- Shadows --- */
+  --warm-shadow-1: 0 1px 2px rgba(61, 56, 51, 0.04), 0 1px 1px rgba(61, 56, 51, 0.03);
+  --warm-shadow-2: 0 8px 24px -8px rgba(61, 56, 51, 0.14);
+  --warm-shadow-3: 0 24px 60px -20px rgba(61, 56, 51, 0.22);
+
+  /* --- Radius --- */
+  --warm-radius-small: 4px;
+  --warm-radius-medium: 8px;
+  --warm-radius-large: 12px;
+  --warm-radius-pill: 9999px;
+
+  /* --- Typography --- */
+  --warm-font-title: "PingFang SC", "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+  --warm-font-body: "PingFang SC", "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+  --warm-font-mono: "SF Mono", "Fira Code", "JetBrains Mono", monospace;
+}
+
+.dark {
+  --warm-bg: #1b1815;
+  --warm-surface: #26221e;
+  --warm-surface-2: #302c27;
+  --warm-surface-3: #3b3630;
+  --warm-ink: #f3eee8;
+  --warm-ink-2: #c9c0b6;
+  --warm-ink-3: #9b9186;
+  --warm-line: rgba(243, 238, 232, 0.1);
+}
+
+/* --- Typography utilities --- */
+.font-title { font-family: var(--warm-font-title); }
+.font-body { font-family: var(--warm-font-body); }
+.font-mono { font-family: var(--warm-font-mono); }
+
+.text-display { font-size: clamp(32px, 4vw, 48px); line-height: 1.1; font-weight: 600; letter-spacing: -0.02em; }
+.text-h1 { font-size: clamp(26px, 3vw, 36px); line-height: 1.2; font-weight: 600; letter-spacing: -0.015em; }
+.text-h2 { font-size: clamp(20px, 2.2vw, 26px); line-height: 1.25; font-weight: 600; }
+.text-h3 { font-size: 18px; line-height: 1.35; font-weight: 600; }
+.text-body-lg { font-size: 16px; line-height: 1.65; }
+.text-body { font-size: 14px; line-height: 1.6; }
+.text-caption { font-size: 12px; line-height: 1.5; letter-spacing: 0.005em; }
+.tabular-nums { font-variant-numeric: tabular-nums; }
+
+/* --- Base --- */
+body { font-family: var(--warm-font-body); background: var(--warm-bg); color: var(--warm-ink); }
+::selection { background: var(--warm-brand-100); color: var(--warm-brand-700); }
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* --- Sidebar --- */
+.sidebar-item { transition: background-color 0.15s ease, color 0.15s ease; }
+.sidebar-item:hover { background: rgba(193, 122, 75, 0.08); }
+.sidebar-item[data-active="true"] {
+  background: rgba(193, 122, 75, 0.12);
+  color: var(--warm-brand-600);
+  border-left: 3px solid var(--warm-brand);
+}
+
+/* --- Card --- */
+.card {
+  background: var(--warm-surface);
+  border-radius: var(--warm-radius-large);
+  box-shadow: var(--warm-shadow-1);
+  border: 1px solid var(--warm-line);
+}
+
+/* --- Buttons --- */
+.btn-primary {
+  background: var(--warm-brand);
+  color: var(--warm-brand-ink);
+  transition: all 0.15s ease;
+}
+.btn-primary:hover { background: var(--warm-brand-500); transform: translateY(-1px); }
+.btn-secondary {
+  background: transparent;
+  border: 1px solid var(--warm-line);
+  color: var(--warm-ink-2);
+  transition: all 0.15s ease;
+}
+.btn-secondary:hover { background: var(--warm-surface-2); }
+.btn-danger {
+  background: transparent;
+  border: 1px solid var(--warm-line);
+  color: var(--warm-state-error);
+  transition: all 0.15s ease;
+}
+.btn-danger:hover { background: var(--warm-state-error-bg); border-color: var(--warm-state-error); }
+
+/* --- Inputs --- */
+.input-field {
+  border: 1px solid var(--warm-line);
+  background: var(--warm-surface);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  color: var(--warm-ink);
+}
+.input-field::placeholder { color: var(--warm-ink-placeholder); }
+.input-field:focus {
+  outline: none;
+  border-color: var(--warm-brand-300);
+  box-shadow: 0 0 0 3px var(--warm-brand-50);
+}
+
+/* --- Badges & dots --- */
+.status-badge { font-size: 12px; padding: 2px 10px; border-radius: var(--warm-radius-pill); font-weight: 500; display: inline-block; }
+.status-pub { background: var(--warm-state-success-bg); color: var(--warm-state-success); }
+.status-draft { background: var(--warm-state-warning-bg); color: var(--warm-state-warning); }
+.color-dot { display: inline-block; width: 14px; height: 14px; border-radius: var(--warm-radius-pill); border: 1px solid rgba(0,0,0,0.08); }
+
+/* --- KPI / quick actions / todos (dashboard) --- */
+.kpi-icon { background: var(--warm-brand-50); color: var(--warm-brand-600); }
+.quick-action { transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease; }
+.quick-action:hover { transform: translateY(-2px); box-shadow: var(--warm-shadow-2); }
+.todo-item { transition: background-color 0.15s ease; }
+.todo-item:hover { background: var(--warm-surface-2); }
+
+/* --- Table rows --- */
+.article-row { transition: background-color 0.15s ease; }
+.article-row:hover { background: var(--warm-surface-2); }
+.icon-btn { color: var(--warm-ink-3); transition: color 0.15s ease; }
+.icon-btn:hover { color: var(--warm-brand-600); }
+.action-link { color: var(--warm-ink-2); transition: color 0.15s ease; }
+.action-link:hover { color: var(--warm-brand-600); }
+.action-link.danger { color: var(--warm-state-error); }
+.action-link.danger:hover { color: #a84444; }
+
+/* --- Empty state --- */
+.empty-state { padding: 64px 24px; text-align: center; color: var(--warm-ink-3); }
+.empty-state a { color: var(--warm-brand-600); border-bottom: 1px solid currentColor; }
+
+/* --- Toast (reuse from ui.js, but style fallback) --- */
+.pi-toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: var(--warm-ink); color: var(--warm-bg);
+  padding: 10px 20px; border-radius: var(--warm-radius-pill);
+  font-size: 13px; z-index: 9999; box-shadow: var(--warm-shadow-2);
+  animation: pi-toast-in 0.25s ease;
+}
+@keyframes pi-toast-in { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+/* --- Responsive: collapse sidebar on small screens --- */
+@media (max-width: 768px) {
+  .admin-sidebar {
+    position: relative !important; width: 100% !important; height: auto !important;
+    flex-direction: row !important; flex-wrap: wrap; align-items: center;
+    padding: 12px 16px !important; gap: 8px;
+  }
+  .admin-sidebar .sb-brand { padding: 0 !important; border: none !important; }
+  .admin-sidebar .sb-nav { display: flex !important; flex: 1; padding: 0 !important; gap: 4px; overflow-x: auto; }
+  .admin-sidebar .sb-nav a { padding: 8px 12px !important; white-space: nowrap; border-left: none !important; border-bottom: 3px solid transparent; }
+  .admin-sidebar .sb-nav a[data-active="true"] { border-left: none; border-bottom: 3px solid var(--warm-brand); }
+  .admin-sidebar .sb-foot { display: none; }
+  .admin-main { margin-left: 0 !important; padding: 24px 16px !important; }
+}

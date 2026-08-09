@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>404 — 远远的天空</title>
+  <link rel="preconnect" href="https://fonts.googleapis.cn">
+  <link rel="preconnect" href="https://fonts.gstatic.cn" crossorigin>
+  <link href="https://fonts.googleapis.cn/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Noto+Serif+SC:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/tokens.css">
+  <style>
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:var(--sans);min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,var(--night-3) 0%,var(--night-2) 50%,var(--night-1) 100%);color:var(--night-ink)}
+    .box{text-align:center;padding:48px 24px}
+    .box h1{font-family:var(--serif);font-size:clamp(4rem,12vw,8rem);font-weight:900;color:#fff;line-height:1;margin-bottom:12px;text-shadow:0 0 60px rgba(217,168,95,0.3)}
+    .box p{font-size:1rem;color:var(--text-dim);margin-bottom:32px;line-height:1.8}
+    .box a{display:inline-flex;align-items:center;gap:8px;font-family:var(--serif);font-size:1rem;color:#fff;padding:13px 32px;border:1.5px solid rgba(255,255,255,0.25);border-radius:100px;transition:all 0.4s var(--ease)}
+    .box a:hover{background:var(--gold);color:#1a1206;border-color:var(--gold)}
+    .box svg{width:16px;height:16px}
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>404</h1>
+    <p>这片天空下没有你要找的页面。<br>也许它是一片还没飘到的云。</p>
+    <a href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>回到天空</a>
+  </div>
+</body>
+</html>

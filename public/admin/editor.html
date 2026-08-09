@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>编辑文章 — 远远的天空</title>
+  <link rel="stylesheet" href="../css/admin.css">
+  <link rel="stylesheet" href="../js/codemirror.min.css">
+  <link rel="stylesheet" href="../js/easymde.min.css">
+  <script src="../js/vendor/tailwind4.js"></script>
+  <script src="../js/vendor/lucide.js"></script>
+  <style type="text/tailwindcss">
+    @theme inline {
+      --color-warm-bg: var(--warm-bg); --color-warm-surface: var(--warm-surface);
+      --color-warm-surface-2: var(--warm-surface-2); --color-warm-surface-3: var(--warm-surface-3);
+      --color-warm-ink: var(--warm-ink); --color-warm-ink-2: var(--warm-ink-2); --color-warm-ink-3: var(--warm-ink-3);
+      --color-warm-brand: var(--warm-brand); --color-warm-brand-50: var(--warm-brand-50);
+      --color-warm-brand-100: var(--warm-brand-100); --color-warm-brand-300: var(--warm-brand-300);
+      --color-warm-brand-500: var(--warm-brand-500); --color-warm-brand-600: var(--warm-brand-600);
+      --color-warm-line: var(--warm-line);
+      --radius-warm-md: var(--warm-radius-medium); --radius-warm-lg: var(--warm-radius-large);
+    }
+  </style>
+  <style>
+    /* EasyMDE 主题适配温暖色系 */
+    .EasyMDEContainer { background: var(--warm-surface); border-radius: var(--warm-radius-large); border: 1px solid var(--warm-line); box-shadow: var(--warm-shadow-1); overflow: hidden; }
+    .editor-toolbar { border-top: none !important; border-bottom: 1px solid var(--warm-line) !important; background: var(--warm-surface-2) !important; padding: 8px 12px; }
+    .editor-toolbar button { color: var(--warm-ink-2) !important; border: none; border-radius: 6px; min-width: 30px; height: 30px; }
+    .editor-toolbar button:hover { background: var(--warm-surface-3); color: var(--warm-ink) !important; }
+    .editor-toolbar button.active { background: var(--warm-brand-100); color: var(--warm-brand-600) !important; }
+    .editor-toolbar i.separator { border-left-color: var(--warm-line); }
+    .CodeMirror { border: none !important; padding: 18px 22px; font-family: var(--warm-font-mono); font-size: 14px; line-height: 1.8; color: var(--warm-ink); min-height: 420px; background: var(--warm-surface) !important; }
+    .CodeMirror-cursor { border-color: var(--warm-brand); }
+    .CodeMirror-selected { background: var(--warm-brand-50) !important; }
+    .CodeMirror-line::selection, .CodeMirror-line > span::selection, .CodeMirror-line > span > span::selection { background: var(--warm-brand-50); }
+    .editor-preview, .editor-preview-side { padding: 18px 22px; font-family: var(--warm-font-title); font-size: 15px; line-height: 1.9; color: var(--warm-ink); background: var(--warm-surface) !important; }
+    .editor-preview h1, .editor-preview-side h1 { font-size: 1.7rem; font-weight: 700; margin: 1em 0 0.5em; }
+    .editor-preview h2, .editor-preview-side h2 { font-size: 1.4rem; font-weight: 700; margin: 1.2em 0 0.5em; }
+    .editor-preview h3, .editor-preview-side h3 { font-size: 1.15rem; font-weight: 600; margin: 1em 0 0.4em; color: var(--warm-brand-600); }
+    .editor-preview p, .editor-preview-side p { margin: 0.6em 0; }
+    .editor-preview blockquote, .editor-preview-side blockquote { border-left: 3px solid var(--warm-brand-300); padding: 0.4em 0 0.4em 1em; margin: 1em 0; background: var(--warm-brand-50); border-radius: 0 8px 8px 0; color: var(--warm-ink-2); }
+    .editor-preview code, .editor-preview-side code { font-family: var(--warm-font-mono); background: var(--warm-surface-3); padding: 2px 6px; border-radius: 4px; font-size: 0.85em; }
+    .editor-preview pre, .editor-preview-side pre { background: #2b2622; color: #e8dfd4; padding: 14px 18px; border-radius: 10px; overflow-x: auto; margin: 1em 0; font-family: var(--warm-font-mono); font-size: 13px; line-height: 1.7; }
+    .editor-preview pre code, .editor-preview-side pre code { background: none; padding: 0; color: inherit; }
+    .editor-preview img, .editor-preview-side img { max-width: 100%; border-radius: 10px; margin: 1em 0; }
+    .editor-preview hr, .editor-preview-side hr { border: none; border-top: 1px solid var(--warm-line); margin: 2em 0; }
+    .editor-preview a, .editor-preview-side a { color: var(--warm-brand-600); text-decoration: underline; text-underline-offset: 2px; }
+    .editor-preview table, .editor-preview-side table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 14px; }
+    .editor-preview th, .editor-preview td, .editor-preview-side th, .editor-preview-side td { padding: 8px 12px; border: 1px solid var(--warm-line); text-align: left; }
+    .editor-preview th, .editor-preview-side th { background: var(--warm-surface-3); font-weight: 600; }
+    .editor-statusbar { display: none; }
+  </style>
+</head>
+<body class="min-h-screen" data-page="articles">
+  <div id="sidebar-slot"></div>
+
+  <main class="admin-main ml-[240px] min-h-screen p-8">
+    <header class="mb-6 flex items-start justify-between flex-wrap gap-4">
+      <div>
+        <a href="posts.html" class="text-caption flex items-center gap-1 mb-2" style="color: var(--warm-ink-3);">
+          <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> 返回文章列表
+        </a>
+        <h1 class="text-h1" style="color: var(--warm-ink);" id="pageTitle">写新文章</h1>
+      </div>
+      <div class="flex items-center gap-3">
+        <button id="saveDraftBtn" class="btn-secondary flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium">
+          <i data-lucide="archive" class="w-4 h-4"></i><span>存草稿</span>
+        </button>
+        <button id="publishBtn" class="btn-primary flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium">
+          <i data-lucide="send" class="w-4 h-4"></i><span>发布</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start">
+      <!-- 编辑器 -->
+      <div class="space-y-4">
+        <input type="text" id="title" placeholder="写一个吸引人的标题……"
+          class="input-field w-full font-title font-semibold text-xl px-4 py-3.5 rounded-warm-lg" style="background: var(--warm-surface);">
+        <textarea id="content" placeholder="在这里书写 Markdown..."></textarea>
+      </div>
+
+      <!-- 侧栏 -->
+      <aside class="space-y-4">
+        <section class="card p-5">
+          <div class="flex items-center gap-2 mb-4">
+            <i data-lucide="settings-2" class="w-4 h-4" style="color: var(--warm-brand);"></i>
+            <h2 class="text-h3" style="color: var(--warm-ink);">发布设置</h2>
+          </div>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-caption mb-1.5" style="color: var(--warm-ink-2);">状态</label>
+              <select id="status" class="input-field w-full px-3 py-2 rounded-warm-md text-sm">
+                <option value="draft">草稿</option><option value="pub">已发布</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-caption mb-1.5" style="color: var(--warm-ink-2);">日期</label>
+              <input type="date" id="date" class="input-field w-full px-3 py-2 rounded-warm-md text-sm">
+            </div>
+            <div>
+              <label class="block text-caption mb-1.5" style="color: var(--warm-ink-2);">封面图 URL</label>
+              <input type="text" id="cover" class="input-field w-full px-3 py-2 rounded-warm-md text-sm" placeholder="images/xxx.jpg">
+              <div id="coverPreview" class="mt-2 rounded-warm-md overflow-hidden hidden" style="border: 1px solid var(--warm-line); max-height: 120px;">
+                <img id="coverPreviewImg" alt="封面预览" class="w-full h-full object-cover block">
+              </div>
+            </div>
+            <div>
+              <label class="block text-caption mb-1.5" style="color: var(--warm-ink-2);">摘要</label>
+              <textarea id="excerpt" rows="3" class="input-field w-full px-3 py-2 rounded-warm-md text-sm resize-none" placeholder="简短摘要……"></textarea>
+            </div>
+          </div>
+        </section>
+
+        <section class="card p-5">
+          <div class="flex items-center gap-2 mb-4">
+            <i data-lucide="folder-open" class="w-4 h-4" style="color: var(--warm-brand);"></i>
+            <h2 class="text-h3" style="color: var(--warm-ink);">分类与标签</h2>
+          </div>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-caption mb-1.5" style="color: var(--warm-ink-2);">分类</label>
+              <select id="categoryId" class="input-field w-full px-3 py-2 rounded-warm-md text-sm"></select>
+            </div>
+            <div>
+              <label class="block text-caption mb-1.5" style="color: var(--warm-ink-2);">标签（逗号分隔）</label>
+              <input type="text" id="tag" class="input-field w-full px-3 py-2 rounded-warm-md text-sm" placeholder="例如：旅行, 云海, 秋天">
+            </div>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <script src="../js/codemirror.min.js"></script>
+  <script src="../js/codemirror-xml.min.js"></script>
+  <script src="../js/codemirror-overlay.min.js"></script>
+  <script src="../js/codemirror-gfm.min.js"></script>
+  <script src="../js/codemirror-markdown.min.js"></script>
+  <script src="../js/easymde.min.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/ui.js"></script>
+  <script src="../js/admin.js"></script>
+  <script>
+    if (!API.isAuthed()) window.location.href = '../login.html';
+
+    const params = new URLSearchParams(location.search);
+    const editId = params.get('id') ? +params.get('id') : null;
+
+    const easyMDE = new EasyMDE({
+      element: document.getElementById('content'),
+      spellChecker: false,
+      autosave: { enabled: false },
+      renderingConfig: { singleLineBreaks: false },
+      placeholder: '在这里书写 Markdown...\n\n支持 # 标题、> 引用、- 列表、```代码块、表格等',
+      toolbar: ['bold', 'italic', 'heading', '|', 'link', 'image', 'quote', 'code', '|', 'unordered-list', 'ordered-list', 'table', 'horizontal-rule', '|', 'preview', 'side-by-side', 'fullscreen'],
+      status: false,
+      minHeight: '420px',
+    });
+
+    // 加载分类
+    (async function loadCats() {
+      const cats = await API.getCategories();
+      const sel = document.getElementById('categoryId');
+      sel.innerHTML = '<option value="">未分类</option>' + cats.filter(c => c.name !== '全部').map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    })();
+
+    // 加载文章
+    (async function () {
+      if (editId) {
+        try {
+          const post = await API.getPost(editId);
+          document.getElementById('pageTitle').textContent = '编辑文章';
+          document.getElementById('title').value = post.title || '';
+          easyMDE.value(post.content || '');
+          document.getElementById('date').value = post.date || '';
+          document.getElementById('cover').value = post.cover || '';
+          document.getElementById('tag').value = post.tag || '';
+          document.getElementById('excerpt').value = post.excerpt || '';
+          document.getElementById('status').value = post.status || 'draft';
+          if (post.categoryId) document.getElementById('categoryId').value = post.categoryId;
+          if (post.cover) showCoverPreview(post.cover);
+        } catch (e) { Admin.toast('加载文章失败: ' + e.message); }
+      } else {
+        document.getElementById('date').value = new Date().toISOString().substring(0, 10);
+      }
+    })();
+
+    const imgUrl = Admin.imgUrl;
+    function showCoverPreview(url) {
+      const preview = document.getElementById('coverPreview');
+      const img = document.getElementById('coverPreviewImg');
+      img.src = imgUrl(url);
+      preview.classList.remove('hidden');
+    }
+    document.getElementById('cover').addEventListener('input', function () {
+      const url = this.value.trim();
+      if (url) showCoverPreview(url);
+      else document.getElementById('coverPreview').classList.add('hidden');
+    });
+
+    async function save(status) {
+      const data = {
+        title: document.getElementById('title').value.trim(),
+        content: easyMDE.value().trim(),
+        date: document.getElementById('date').value || new Date().toISOString().substring(0, 10),
+        cover: document.getElementById('cover').value.trim(),
+        tag: document.getElementById('tag').value.trim(),
+        excerpt: document.getElementById('excerpt').value.trim(),
+        categoryId: document.getElementById('categoryId').value ? +document.getElementById('categoryId').value : null,
+        status: status
+      };
+      if (!data.title) return Admin.toast('标题不能为空');
+      if (!data.content) return Admin.toast('正文不能为空');
+      data.slug = data.title.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').toLowerCase();
+      try {
+        if (editId) await API.updatePost(editId, data);
+        else await API.createPost(data);
+        Admin.toast(status === 'pub' ? '已发布' : '已保存草稿');
+        setTimeout(() => { window.location.href = 'posts.html'; }, 600);
+      } catch (e) { Admin.toast('保存失败: ' + e.message); }
+    }
+
+    document.getElementById('publishBtn').addEventListener('click', () => save('pub'));
+    document.getElementById('saveDraftBtn').addEventListener('click', () => save('draft'));
+    document.addEventListener('keydown', e => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); save(document.getElementById('status').value); }
+    });
+  </script>
+</body>
+</html>

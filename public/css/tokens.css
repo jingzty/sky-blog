@@ -1,0 +1,26 @@
+/* 契约 A · 设计令牌：全站只引用变量，不写死值 */
+/* 天空漫游 · Sky Wander Tokens */
+
+:root {
+  /* 黎明 Dawn */
+  --dawn-1: #fde7d2; --dawn-2: #f9c89c; --dawn-3: #ef9f6c; --dawn-deep: #c9764a; --dawn-ink: #4a2a18;
+  /* 正午 Day */
+  --day-1: #e3f0fa; --day-2: #b6d8ef; --day-3: #7fb6db; --day-deep: #4a90c2; --day-ink: #143049;
+  /* 黄昏 Dusk */
+  --dusk-1: #f7b47a; --dusk-2: #e8744f; --dusk-3: #b8425a; --dusk-deep: #7a2740; --dusk-ink: #2e1018;
+  /* 星夜 Night */
+  --night-1: #2c2d63; --night-2: #191a3c; --night-3: #0b0c22; --night-deep: #05060f; --night-ink: #ece8f4;
+  /* 系统色 */
+  --gold: #d9a85f; --gold-soft: #ecc88a; --gold-deep: #a87a3e;
+  --cream: #faf6ee; --paper: #ffffff;
+  --text-dim: rgba(255,255,255,0.66); --text-faint: rgba(255,255,255,0.42);
+  /* 字体 */
+  --serif: 'Noto Serif SC', 'Songti SC', 'STSong', serif;
+  --sans: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  /* 动效 */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --max: 1280px;
+  /* 兼容旧令牌 */
+  --ink: #1a1714; --taupe: #8a7f72; --radius: 14px; --gap: 24px;
+}
