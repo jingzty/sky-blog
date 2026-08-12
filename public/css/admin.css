@@ -196,3 +196,13 @@ body { font-family: var(--warm-font-body); background: var(--warm-bg); color: va
   .admin-sidebar .sb-foot { display: none; }
   .admin-main { margin-left: 0 !important; padding: 24px 16px !important; }
 }
+
+/* --- 统一可点击光标: 后台所有按钮/链接/操作控件鼠标悬停一律小手 --- */
+button, a[href], a[role="button"], [role="button"],
+.btn, .btn-primary, .btn-secondary, .btn-danger, .btn-ghost,
+.icon-btn, .action-link, .quick-action, .pick-color,
+input[type="submit"], input[type="button"], input[type="reset"],
+label[for], summary, select, .tab, .nav-tab, .form-control.clickable,
+.pagination a, .pagination button {
+  cursor: pointer !important;
+}

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>安全策略 — 远远的天空</title>
+  <link rel="stylesheet" href="../css/admin.css">
+  <script src="../js/vendor/tailwind4.js"></script>
+  <script src="../js/vendor/lucide.js"></script>
+  <style type="text/tailwindcss">
+    @theme inline {
+      --color-warm-bg: var(--warm-bg); --color-warm-surface: var(--warm-surface);
+      --color-warm-surface-2: var(--warm-surface-2); --color-warm-surface-3: var(--warm-surface-3);
+      --color-warm-ink: var(--warm-ink); --color-warm-ink-2: var(--warm-ink-2); --color-warm-ink-3: var(--warm-ink-3);
+      --color-warm-brand: var(--warm-brand); --color-warm-brand-50: var(--warm-brand-50);
+      --color-warm-brand-100: var(--warm-brand-100); --color-warm-brand-300: var(--warm-brand-300);
+      --color-warm-brand-500: var(--warm-brand-500); --color-warm-brand-600: var(--warm-brand-600);
+      --color-warm-line: var(--warm-line);
+      --color-warm-state-success: var(--warm-state-success); --color-warm-state-warning: var(--warm-state-warning);
+      --color-warm-state-error: var(--warm-state-error); --color-warm-state-info: var(--warm-state-info);
+      --radius-warm-md: var(--warm-radius-medium); --radius-warm-lg: var(--warm-radius-large);
+    }
+  </style>
+</head>
+<body class="min-h-screen" data-page="security">
+  <div id="sidebar-slot"></div>
+
+  <main class="admin-main ml-[240px] min-h-screen p-8">
+    <header class="mb-8 flex items-start justify-between">
+      <div>
+        <h1 class="text-h1 mb-1" style="color: var(--warm-ink);">安全策略</h1>
+        <p class="text-body" style="color: var(--warm-ink-2);">连续登录失败达到阈值后，封禁该 IP 一段时间</p>
+      </div>
+    </header>
+
+    <div class="space-y-6 max-w-5xl">
+      <!-- 登录安全策略 -->
+      <section class="card p-6">
+        <div class="flex items-center gap-2 mb-2">
+          <i data-lucide="lock" class="w-5 h-5" style="color: var(--warm-brand);"></i>
+          <h2 class="text-h3" style="color: var(--warm-ink);">登录安全策略</h2>
+        </div>
+        <p class="text-body mb-6" style="color: var(--warm-ink-2);">连续登录失败达到阈值后，封禁该 IP 一段时间</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5 max-w-2xl">
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-medium" style="color: var(--warm-ink-2);">最大失败次数</label>
+            <input type="number" id="secMaxAttempts" min="1" max="20" class="input-field px-4 py-2.5 rounded-lg text-sm">
+          </div>
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-medium" style="color: var(--warm-ink-2);">封禁时长（分钟）</label>
+            <input type="number" id="secBanMinutes" min="1" max="1440" class="input-field px-4 py-2.5 rounded-lg text-sm">
+          </div>
+        </div>
+        <div class="mt-5 flex gap-3">
+          <button id="secSaveBtn" class="btn-secondary flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium">
+            <i data-lucide="save" class="w-4 h-4"></i><span>保存策略</span>
+          </button>
+        </div>
+
+        <div class="mt-8">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-h3" style="color: var(--warm-ink);">被封禁 IP</h3>
+            <span id="banCount" class="text-sm" style="color: var(--warm-ink-2);"></span>
+          </div>
+          <div id="banList" class="flex flex-col gap-2"></div>
+          <div id="banEmpty" class="text-sm" style="color: var(--warm-ink-2);">当前没有被封禁的 IP</div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="../js/api.js"></script>
+  <script src="../js/ui.js"></script>
+  <script src="../js/admin.js"></script>
+  <script>
+    if (!API.isAuthed()) window.location.href = '../login.html';
+
+    /* ---- 登录安全策略 ---- */
+    function fmtTime(sec) {
+      if (sec < 60) return sec + ' 秒';
+      if (sec < 3600) return Math.ceil(sec / 60) + ' 分钟';
+      return Math.ceil(sec / 3600) + ' 小时';
+    }
+    async function loadSecurity() {
+      try {
+        const s = await API.getSecurity();
+        document.getElementById('secMaxAttempts').value = s.maxAttempts;
+        document.getElementById('secBanMinutes').value = s.banMinutes;
+        renderBans(s.bans || []);
+      } catch (e) { Admin.toast('加载安全策略失败: ' + e.message); }
+    }
+    function renderBans(list) {
+      const el = document.getElementById('banList');
+      const empty = document.getElementById('banEmpty');
+      document.getElementById('banCount').textContent = list.length ? `共 ${list.length} 个` : '';
+      el.innerHTML = list.map(b => `
+        <div class="flex items-center justify-between gap-3 p-3 rounded-lg" style="background: var(--warm-surface-2);">
+          <div class="flex items-center gap-3 min-w-0">
+            <i data-lucide="ban" class="w-4 h-4 shrink-0" style="color: var(--warm-state-error);"></i>
+            <span class="text-sm font-mono truncate" style="color: var(--warm-ink);">${b.ip}</span>
+            <span class="text-xs" style="color: var(--warm-ink-2);">剩余 ${fmtTime(b.remainSec)}</span>
+          </div>
+          <button class="btn-danger inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium act-unban" data-ip="${b.ip}">
+            <i data-lucide="unlock" class="w-3.5 h-3.5"></i>解除封禁
+          </button>
+        </div>`).join('');
+      empty.style.display = list.length ? 'none' : '';
+      el.querySelectorAll('.act-unban').forEach(btn => btn.onclick = async () => {
+        try {
+          await API.unbanIp(btn.dataset.ip);
+          Admin.toast('已解除封禁: ' + btn.dataset.ip);
+          loadSecurity();
+        } catch (e) { Admin.toast('解封失败: ' + e.message); }
+      });
+      if (window.lucide) window.lucide.createIcons();
+    }
+    document.getElementById('secSaveBtn').onclick = async () => {
+      const max = parseInt(document.getElementById('secMaxAttempts').value, 10);
+      const min = parseInt(document.getElementById('secBanMinutes').value, 10);
+      if (!max || max < 1) return Admin.toast('最大失败次数至少为 1');
+      if (!min || min < 1) return Admin.toast('封禁时长至少为 1 分钟');
+      try {
+        await API.updateSecurity({ maxAttempts: max, banMinutes: min });
+        Admin.toast('安全策略已保存');
+        loadSecurity();
+      } catch (e) { Admin.toast('保存失败: ' + e.message); }
+    };
+
+    loadSecurity();
+  </script>
+</body>
+</html>

@@ -4,6 +4,7 @@
  * 契约 C 方法名/字段名零改动，前端页面只增不改即可切换。
  */
 const fs = require('fs'), path = require('path');
+const crypto = require('crypto');
 const express = require('express');
 const Database = require('better-sqlite3');
 const seed = require('./scripts/seed-data');
@@ -12,6 +13,17 @@ const PORT = process.env.PORT || 8322;
 const SEED = process.env.SEED === '1';
 const ADMIN_USER = process.env.ADMIN_USER || 'admin';
 const ADMIN_PASS = process.env.ADMIN_PASS || 'admin';
+
+/* 后台账号凭据：优先读数据库(config 表 adminUser / adminPassHash)，
+ * 未设置时回退到环境变量/默认值。密码仅存哈希，不存明文。 */
+const hashPwd = pwd => crypto.createHash('sha256').update(String(pwd)).digest('hex');
+function adminCredentials() {
+  const map = {};
+  ST && ST.cfgAll.all().forEach(r => map[r.key] = r.value);
+  const user = map.adminUser || ADMIN_USER;
+  const hash = map.adminPassHash || hashPwd(ADMIN_PASS);
+  return { user, hash };
+}
 
 /* ---------- DB ---------- */
 const DB = path.join(__dirname, 'data', 'app.db');
@@ -73,6 +85,10 @@ function queryPosts({ all, categoryId, tag, month, q, lite }) {
 /* ---------- app ---------- */
 const app = express();
 app.disable('x-powered-by');
+/* 反代部署：只信任 loopback 与内网 nginx 代理(192.168.3.213)写入的 X-Forwarded-For，
+ * 从而还原真实客户端 IP（req.ip），同时丢弃客户端伪造的前缀段，避免绕过 IP 封禁。
+ * 若代理链新增跳数/IP，需在此追加；不要把不可信的直连来源加入信任列表。 */
+app.set('trust proxy', ['loopback', '192.168.3.213', '101.133.145.147']);
 app.use(express.json({ limit: '1mb' }));
 
 /* ---------- 安全响应头 ---------- */
@@ -116,14 +132,67 @@ const optionalAuth = (req, res, next) => {
   next();
 };
 
+/* ---- 登录安全策略（IP 封禁）---- */
+/* 内存跟踪：登录失败计数 + 封禁到期时间戳。重启即清空（与 token 一致）。 */
+const loginFails = new Map();  // ip -> 连续失败次数
+const bans = new Map();        // ip -> 封禁到期时间戳(ms)
+/* 客户端 IP：通过 req.ip 还原（配合 app.set('trust proxy', …)），
+ * 只信任可信代理写入的 X-Forwarded-For 段，客户端伪造的前缀会被丢弃，
+ * 因此既能在反代架构下区分真实客户端，又不会被伪造头绕过封禁。 */
+const clientIp = req => (req.ip || req.socket.remoteAddress || '').replace(/^::ffff:/, '');
+
+/* 从 config 读策略，未设置时用默认值 */
+function secPolicy() {
+  const map = {};
+  ST && ST.cfgAll.all().forEach(r => map[r.key] = r.value);
+  return {
+    maxAttempts: Math.max(1, parseInt(map.loginMaxAttempts, 10) || 3),
+    banMinutes:  Math.max(1, parseInt(map.loginBanMinutes, 10) || 10),
+  };
+}
+/* 请求级 IP 封禁拦截 */
+const ipBanGuard = (req, res, next) => {
+  const ip = clientIp(req);
+  const until = bans.get(ip);
+  if (until && until > Date.now()) {
+    const remainMin = Math.ceil((until - Date.now()) / 60000);
+    return res.status(403).json({ error: '登录失败次数过多，IP 已被暂时封禁', remainMin, ip });
+  }
+  if (until) bans.delete(ip); // 已过期，解除
+  next();
+};
+/* 触发封禁：清空失败计数并加入封禁 */
+function banIp(ip) {
+  loginFails.delete(ip);
+  const { banMinutes } = secPolicy();
+  bans.set(ip, Date.now() + banMinutes * 60000);
+}
+app.use(ipBanGuard);
+
+
 /* ---- 认证 ---- */
 app.post('/api/login', (req, res) => {
   const { username, password } = req.body || {};
-  if (username === ADMIN_USER && password === ADMIN_PASS) {
+  const ip = clientIp(req);
+  const until = bans.get(ip);
+  if (until && until > Date.now()) {
+    const remainMin = Math.ceil((until - Date.now()) / 60000);
+    return res.status(403).json({ error: '登录失败次数过多，IP 已被暂时封禁', remainMin, ip });
+  }
+  const { user, hash } = adminCredentials();
+  const ok = (username === user && hashPwd(password) === hash);
+  if (ok) {
+    loginFails.delete(ip);
     const t = 'tok_' + Date.now() + Math.random().toString(36).slice(2);
     tokens.add(t);
     res.json({ token: t, ok: true });
-  } else res.status(401).json({ error: '账号或密码错误' });
+  } else {
+    const { maxAttempts } = secPolicy();
+    const n = (loginFails.get(ip) || 0) + 1;
+    loginFails.set(ip, n);
+    if (n >= maxAttempts) banIp(ip);
+    res.status(401).json({ error: '账号或密码错误', attempts: n, maxAttempts });
+  }
 });
 app.get('/api/check', auth, (req, res) => res.json({ valid: true }));
 
@@ -219,8 +288,10 @@ app.delete('/api/categories/:id', auth, (req, res) => {
 });
 
 /* ---- 轮播 ---- */
-app.get('/api/slides', (req, res) => {
-  res.json((req.query.all === '1' ? ST.slidesAll : ST.slidesPub).all());
+app.get('/api/slides', optionalAuth, (req, res) => {
+  // 安全：all=1 只对已登录管理员放开，访客强制仅返回 active 轮播（与 /api/posts 的 full/all 一致）
+  const all = req.authed && req.query.all === '1';
+  res.json((all ? ST.slidesAll : ST.slidesPub).all());
 });
 app.put('/api/slides', auth, (req, res) => {
   const ins = db.prepare('INSERT INTO slides (postId,tag,title,description,bgImage,sortOrder,status) VALUES (?,?,?,?,?,?,?)');
@@ -237,7 +308,7 @@ app.put('/api/slides', auth, (req, res) => {
  * 已登录管理员（带有效 token）可取全部。前端 request() 会自动带 Authorization，
  * 后台 config 页天然拿到完整配置，无需改前端。
  */
-const SENSITIVE_CFG_KEY = /secret|password|token|key|credential|apikey|private/i;
+const SENSITIVE_CFG_KEY = /secret|password|token|key|credential|apikey|private|admin/i;
 app.get('/api/config', optionalAuth, (req, res) => {
   const cfg = {};
   ST.cfgAll.all().forEach(r => cfg[r.key] = r.value);
@@ -250,12 +321,52 @@ app.get('/api/config', optionalAuth, (req, res) => {
 });
 app.put('/api/config', auth, (req, res) => {
   const ins = db.prepare('INSERT OR REPLACE INTO config (key,value) VALUES (?,?)');
-  const tx = db.transaction(cfg => Object.entries(cfg).forEach(([k, v]) => ins.run(k, String(v || ''))));
+  const tx = db.transaction(cfg => {
+    Object.entries(cfg).forEach(([k, v]) => {
+      if (k === 'adminPass') return; // 明文密码不落库，改存哈希
+      ins.run(k, String(v || ''));
+    });
+    if ('adminPass' in cfg) ins.run('adminPassHash', hashPwd(cfg.adminPass));
+  });
   tx(req.body || {});
   res.json({ ok: true });
 });
 
-/* ---- 搜索（复用 queryPosts）---- */
+/* ---- 安全策略 ---- */
+/* GET：返回当前策略 + 封禁列表（含剩余秒数）。 */
+app.get('/api/security', auth, (req, res) => {
+  const { maxAttempts, banMinutes } = secPolicy();
+  const now = Date.now();
+  const list = [];
+  for (const [ip, until] of bans) {
+    if (until > now) {
+      list.push({ ip, until, remainSec: Math.max(1, Math.ceil((until - now) / 1000)) });
+    } else {
+      bans.delete(ip);
+    }
+  }
+  res.json({ maxAttempts, banMinutes, bans: list });
+});
+/* PUT：更新策略（存 config）。 */
+app.put('/api/security', auth, (req, res) => {
+  const b = req.body || {};
+  const max = Math.min(20, Math.max(1, parseInt(b.maxAttempts, 10) || 3));
+  const min = Math.min(1440, Math.max(1, parseInt(b.banMinutes, 10) || 10));
+  const ins = db.prepare('INSERT OR REPLACE INTO config (key,value) VALUES (?,?)');
+  db.transaction(() => {
+    ins.run('loginMaxAttempts', String(max));
+    ins.run('loginBanMinutes', String(min));
+  })();
+  res.json({ ok: true, maxAttempts: max, banMinutes: min });
+});
+/* DELETE：一键解封指定 IP。 */
+app.delete('/api/security/bans/:ip', auth, (req, res) => {
+  const ip = decodeURIComponent(req.params.ip);
+  bans.delete(ip);
+  loginFails.delete(ip);
+  res.json({ ok: true, ip });
+});
+
 app.get('/api/search', (req, res) => {
   const q = (req.query.q || '').trim();
   if (!q) return res.json([]);

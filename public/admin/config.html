@@ -123,6 +123,35 @@
           <textarea id="footerText" rows="2" class="input-field px-4 py-3 rounded-lg text-sm resize-none" placeholder="输入页脚文案"></textarea>
         </div>
       </section>
+
+      <!-- 账号安全 -->
+      <section class="card p-6">
+        <div class="flex items-center gap-2 mb-2">
+          <i data-lucide="shield" class="w-5 h-5" style="color: var(--warm-brand);"></i>
+          <h2 class="text-h3" style="color: var(--warm-ink);">账号安全</h2>
+        </div>
+        <p class="text-body mb-6" style="color: var(--warm-ink-2);">修改后台登录账号与密码，保存后下次登录生效</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-medium" style="color: var(--warm-ink-2);">
+              <span class="flex items-center gap-1.5"><i data-lucide="user" class="w-3.5 h-3.5"></i> 登录用户名</span>
+            </label>
+            <input type="text" id="adminUser" class="input-field px-4 py-2.5 rounded-lg text-sm" placeholder="admin" autocomplete="username">
+          </div>
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-medium" style="color: var(--warm-ink-2);">
+              <span class="flex items-center gap-1.5"><i data-lucide="lock" class="w-3.5 h-3.5"></i> 新密码</span>
+            </label>
+            <input type="password" id="adminPass" class="input-field px-4 py-2.5 rounded-lg text-sm" placeholder="留空则不修改密码" autocomplete="new-password">
+          </div>
+          <div class="flex flex-col gap-2 md:col-span-2">
+            <label class="text-sm font-medium" style="color: var(--warm-ink-2);">
+              <span class="flex items-center gap-1.5"><i data-lucide="shield-check" class="w-3.5 h-3.5"></i> 确认新密码</span>
+            </label>
+            <input type="password" id="adminPassConfirm" class="input-field px-4 py-2.5 rounded-lg text-sm" placeholder="再次输入新密码" autocomplete="new-password">
+          </div>
+        </div>
+      </section>
     </form>
   </main>
 
@@ -140,6 +169,7 @@
       try {
         const cfg = await API.getConfig();
         FIELDS.forEach(f => { if (cfg[f] != null) document.getElementById(f).value = cfg[f]; });
+        if (cfg.adminUser) document.getElementById('adminUser').value = cfg.adminUser;
         const av = document.getElementById('avatarPreview');
         const url = imgUrl(cfg.authorAvatar);
         if (url) av.src = url;
@@ -154,9 +184,24 @@
       e.preventDefault();
       const data = {};
       FIELDS.forEach(f => { data[f] = document.getElementById(f).value.trim(); });
+      // 账号：用户名总是提交；密码仅在输入新密码时提交
+      const user = document.getElementById('adminUser').value.trim();
+      const pass = document.getElementById('adminPass').value;
+      const confirm = document.getElementById('adminPassConfirm').value;
+      if (!user) return Admin.toast('登录用户名不能为空');
+      if (pass) {
+        if (pass !== confirm) return Admin.toast('两次输入的密码不一致');
+        if (pass.length < 6) return Admin.toast('密码至少 6 位');
+        data.adminUser = user;
+        data.adminPass = pass;
+      } else if (user) {
+        data.adminUser = user; // 只改用户名，不改密码
+      }
       try {
         await API.updateConfig(data);
         Admin.toast('配置已保存');
+        document.getElementById('adminPass').value = '';
+        document.getElementById('adminPassConfirm').value = '';
       } catch (err) { Admin.toast('保存失败: ' + err.message); }
     };
 

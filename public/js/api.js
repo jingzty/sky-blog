@@ -60,6 +60,11 @@ window.API = (function () {
     getConfig: () => request('GET', '/api/config'),
     updateConfig: d => request('PUT', '/api/config', d),
 
+    /* 登录安全策略 */
+    getSecurity: () => request('GET', '/api/security'),
+    updateSecurity: d => request('PUT', '/api/security', d),
+    unbanIp: ip => request('DELETE', '/api/security/bans/' + encodeURIComponent(ip)),
+
     /* 搜索 */
     search: q => request('GET', '/api/search?q=' + encodeURIComponent(q)),
   };
