@@ -349,7 +349,7 @@ app.put('/api/slides', auth, (req, res) => {
  * 已登录管理员（带有效 token）可取全部。前端 request() 会自动带 Authorization，
  * 后台 config 页天然拿到完整配置，无需改前端。
  */
-const SENSITIVE_CFG_KEY = /secret|password|token|key|credential|apikey|private|admin/i;
+const SENSITIVE_CFG_KEY = /secret|password|token|key|credential|apikey|private|admin|oss/i;
 app.get('/api/config', optionalAuth, (req, res) => {
   const cfg = {};
   ST.cfgAll.all().forEach(r => cfg[r.key] = r.value);
