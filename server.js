@@ -767,7 +767,31 @@ app.post('/api/ai/generate-image', auth, async (req, res) => {
   const prompt = String(b.prompt || '').trim();
   if (!prompt) return res.status(400).json({ error: '请输入提示词' });
   const r = await callImageModel(m, prompt, { size: b.size });
+  if (r.ok && r.url) {
+    try {
+      db.prepare(
+        'INSERT INTO ai_image_history (prompt, url, modelId, modelName, size, createdAt) VALUES (?,?,?,?,?,?)'
+      ).run(prompt, r.url, m.id, m.displayName || m.provider, b.size || '', Date.now());
+    } catch (e) { /* 历史记录失败不影响主流程 */ }
+  }
   res.json(r);
+});
+
+/* AI 生成图片历史：GET 列表 / DELETE 单条 / DELETE 全部 */
+app.get('/api/ai/image-history', auth, (req, res) => {
+  const limit = Math.min(parseInt(req.query.limit, 10) || 100, 500);
+  const rows = db.prepare(
+    'SELECT id, prompt, url, modelName, size, createdAt FROM ai_image_history ORDER BY createdAt DESC LIMIT ?'
+  ).all(limit);
+  res.json(rows);
+});
+app.delete('/api/ai/image-history/:id', auth, (req, res) => {
+  db.prepare('DELETE FROM ai_image_history WHERE id=?').run(+req.params.id);
+  res.json({ ok: true });
+});
+app.delete('/api/ai/image-history', auth, (req, res) => {
+  db.prepare('DELETE FROM ai_image_history').run();
+  res.json({ ok: true });
 });
 
 /* ============ OSS 文件上传配置 ============ */

@@ -71,6 +71,11 @@ window.API = (function () {
     getVisits: (limit = 20) => request('GET', '/api/visits?limit=' + limit),
     clearVisits: () => request('DELETE', '/api/visits'),
 
+    /* AI 图片历史 */
+    getAiImageHistory: (limit = 100) => request('GET', '/api/ai/image-history?limit=' + limit),
+    deleteAiImageHistory: id => request('DELETE', '/api/ai/image-history/' + id),
+    clearAiImageHistory: () => request('DELETE', '/api/ai/image-history'),
+
     /* AI 模型配置 */
     getAiModels: () => request('GET', '/api/ai-models'),
     createAiModel: d => request('POST', '/api/ai-models', d),

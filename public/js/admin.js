@@ -9,6 +9,7 @@
     { key: 'categories', href: 'categories.html',  icon: 'folder-open',      label: '分类管理' },
     { key: 'carousel',   href: 'slides.html',      icon: 'image',            label: '轮播管理' },
     { key: 'ai',          href: 'ai.html',          icon: 'sparkles',         label: 'AI 配置' },
+    { key: 'ai-images',   href: 'ai-images.html',   icon: 'image-play',       label: 'AI 图片库' },
     { key: 'oss',          href: 'oss.html',          icon: 'cloud-upload',     label: 'OSS 配置' },
     { key: 'security',   href: 'security.html',    icon: 'shield',           label: '安全策略' },
     { key: 'settings',   href: 'config.html',      icon: 'settings',         label: '站点配置' },

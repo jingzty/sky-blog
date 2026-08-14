@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 图片库 — 远远的天空</title>
+  <link rel="stylesheet" href="../css/admin.css">
+  <script src="../js/vendor/tailwind4.js"></script>
+  <script src="../js/vendor/lucide.js"></script>
+  <style type="text/tailwindcss">
+    @theme inline {
+      --color-warm-bg: var(--warm-bg); --color-warm-surface: var(--warm-surface);
+      --color-warm-surface-2: var(--warm-surface-2); --color-warm-surface-3: var(--warm-surface-3);
+      --color-warm-ink: var(--warm-ink); --color-warm-ink-2: var(--warm-ink-2); --color-warm-ink-3: var(--warm-ink-3);
+      --color-warm-brand: var(--warm-brand); --color-warm-brand-50: var(--warm-brand-50);
+      --color-warm-brand-100: var(--warm-brand-100); --color-warm-brand-300: var(--warm-brand-300);
+      --color-warm-brand-500: var(--warm-brand-500); --color-warm-brand-600: var(--warm-brand-600);
+      --color-warm-line: var(--warm-line);
+      --color-warm-state-success: var(--warm-state-success); --color-warm-state-warning: var(--warm-state-warning);
+      --color-warm-state-error: var(--warm-state-error); --color-warm-state-info: var(--warm-state-info);
+      --radius-warm-md: var(--warm-radius-medium); --radius-warm-lg: var(--warm-radius-large);
+    }
+  </style>
+  <style>
+    .img-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .img-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+    .img-card img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px 8px 0 0; }
+    .lightbox-overlay { position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; padding: 40px; cursor: zoom-out; }
+    .lightbox-overlay img { max-width: 90vw; max-height: 90vh; border-radius: 8px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+  </style>
+</head>
+<body class="min-h-screen" data-page="ai-images">
+  <div id="sidebar-slot"></div>
+
+  <main class="admin-main ml-[240px] min-h-screen p-8">
+    <header class="mb-8 flex items-start justify-between">
+      <div>
+        <h1 class="text-h1 mb-1" style="color: var(--warm-ink);">AI 图片库</h1>
+        <p class="text-body" style="color: var(--warm-ink-2);">查看所有通过 AI 文生图生成的图片历史记录</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <span id="totalCount" class="text-caption" style="color: var(--warm-ink-3);"></span>
+        <button id="refreshBtn" class="btn-secondary flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm">
+          <i data-lucide="refresh-cw" class="w-4 h-4"></i><span>刷新</span>
+        </button>
+        <button id="clearBtn" class="btn-secondary flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm" style="color: var(--warm-state-error);">
+          <i data-lucide="trash-2" class="w-4 h-4"></i><span>清空全部</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="max-w-6xl">
+      <div id="loadingHint" class="card p-8 text-center text-sm" style="color: var(--warm-ink-3);">加载中…</div>
+      <div id="emptyHint" class="card p-12 text-center hidden">
+        <i data-lucide="image-off" class="w-12 h-12 mx-auto mb-4" style="color: var(--warm-ink-3);"></i>
+        <p class="text-body" style="color: var(--warm-ink-2);">还没有 AI 生成的图片</p>
+        <p class="text-caption mt-2" style="color: var(--warm-ink-3);">在文章编辑页使用「AI 配图」功能即可生成图片</p>
+      </div>
+      <div id="gallery" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5"></div>
+    </div>
+  </main>
+
+  <script src="../js/api.js"></script>
+  <script src="../js/ui.js"></script>
+  <script src="../js/admin.js"></script>
+  <script>
+    if (!API.isAuthed()) window.location.href = '../login.html';
+    const esc = Admin.esc;
+
+    const fmtTs = ts => {
+      const d = new Date(ts);
+      const pad = n => String(n).padStart(2, '0');
+      return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate())
+           + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    };
+
+    async function loadHistory() {
+      const gallery = document.getElementById('gallery');
+      const loading = document.getElementById('loadingHint');
+      const empty = document.getElementById('emptyHint');
+      loading.classList.remove('hidden');
+      empty.classList.add('hidden');
+      gallery.innerHTML = '';
+      try {
+        const rows = await API.getAiImageHistory(200);
+        loading.classList.add('hidden');
+        document.getElementById('totalCount').textContent = '共 ' + rows.length + ' 张';
+        if (!rows.length) {
+          empty.classList.remove('hidden');
+          lucide.createIcons();
+          return;
+        }
+        gallery.innerHTML = rows.map(r => `
+          <div class="img-card card overflow-hidden" data-id="${r.id}">
+            <img src="${esc(r.url)}" alt="${esc(r.prompt)}" loading="lazy" onclick="openLightbox('${esc(r.url)}')">
+            <div class="p-3">
+              <p class="text-xs leading-relaxed line-clamp-2 mb-2" style="color: var(--warm-ink-2);" title="${esc(r.prompt)}">${esc(r.prompt)}</p>
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex flex-col gap-0.5 min-w-0">
+                  <span class="text-caption truncate" style="color: var(--warm-brand-600);">${esc(r.modelName || '未知模型')}</span>
+                  <span class="text-caption" style="color: var(--warm-ink-3);">${fmtTs(r.createdAt)}</span>
+                </div>
+                <div class="flex items-center gap-1 flex-shrink-0">
+                  <button class="p-1.5 rounded hover:bg-[var(--warm-surface-2)]" title="复制链接" onclick="copyUrl('${esc(r.url)}', this)">
+                    <i data-lucide="link" class="w-3.5 h-3.5" style="color: var(--warm-ink-3);"></i>
+                  </button>
+                  <button class="p-1.5 rounded hover:bg-[var(--warm-surface-2)]" title="删除" onclick="deleteImg(${r.id}, this)">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5" style="color: var(--warm-state-error);"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>`).join('');
+        lucide.createIcons();
+      } catch (e) {
+        loading.classList.add('hidden');
+        Admin.toast('加载失败: ' + e.message);
+      }
+    }
+
+    window.openLightbox = function (url) {
+      const ov = document.createElement('div');
+      ov.className = 'lightbox-overlay';
+      ov.innerHTML = `<img src="${esc(url)}">`;
+      ov.addEventListener('click', () => ov.remove());
+      document.body.appendChild(ov);
+    };
+
+    window.copyUrl = async function (url, btn) {
+      try {
+        if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(url);
+        else { const ta = document.createElement('textarea'); ta.value = url; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); }
+        Admin.toast('已复制图片链接', 'success');
+      } catch { Admin.toast('复制失败'); }
+    };
+
+    window.deleteImg = async function (id, btn) {
+      if (!confirm('确定删除这张图片记录？')) return;
+      try {
+        await API.deleteAiImageHistory(id);
+        const card = btn.closest('.img-card');
+        if (card) card.remove();
+        const cnt = document.querySelectorAll('.img-card').length;
+        document.getElementById('totalCount').textContent = '共 ' + cnt + ' 张';
+        if (cnt === 0) document.getElementById('emptyHint').classList.remove('hidden');
+        Admin.toast('已删除', 'success');
+      } catch (e) { Admin.toast('删除失败: ' + e.message); }
+    };
+
+    document.getElementById('refreshBtn').addEventListener('click', loadHistory);
+    document.getElementById('clearBtn').addEventListener('click', async () => {
+      if (!confirm('确定清空所有 AI 图片历史记录？此操作不可撤销（仅删除记录，不影响已使用的图片）。')) return;
+      try {
+        await API.clearAiImageHistory();
+        Admin.toast('已清空', 'success');
+        loadHistory();
+      } catch (e) { Admin.toast('清空失败: ' + e.message); }
+    });
+
+    loadHistory();
+  </script>
+</body>
+</html>
