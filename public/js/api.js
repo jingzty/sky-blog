@@ -75,6 +75,10 @@ window.API = (function () {
     testAiModel: id => request('POST', '/api/ai-models/' + id + '/test'),
     testAiModelDraft: d => request('POST', '/api/ai-models/test', d),
 
+    /* AI 写作 */
+    getTextModels: () => request('GET', '/api/ai/text-models'),
+    aiGenerate: d => request('POST', '/api/ai/generate', d),
+
 
     /* 搜索 */
     search: q => request('GET', '/api/search?q=' + encodeURIComponent(q)),

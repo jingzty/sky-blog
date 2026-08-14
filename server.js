@@ -565,6 +565,86 @@ app.post('/api/ai-models/test', auth, async (req, res) => {
   res.json(r);
 });
 
+/* ============ AI 写作（编辑器调用）============ */
+/* 仅返回文本模型，供编辑器下拉选择 */
+app.get('/api/ai/text-models', auth, (req, res) => {
+  const rows = db.prepare("SELECT * FROM ai_models WHERE modelType='text' ORDER BY id ASC").all();
+  res.json(rows.map(aiRow));
+});
+
+/* 调用文本模型生成内容。统一返回 { ok, content } 或 { ok:false, error }。
+ * 把 testAiConnection 里的协议差异收敛到这里，复用同一套拼接逻辑。
+ */
+async function callTextModel(m, prompt, { maxTokens = 2048, temperature } = {}) {
+  const base = String(m.baseUrl || '').trim();
+  const key = m.apiKey || '';
+  const modelId = m.modelId;
+  let url, opts;
+  if (m.apiType === 'openai-completions') {
+    url = joinBase(base, '/v1/chat/completions');
+    opts = { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+      body: JSON.stringify({ model: modelId, messages: [{ role: 'user', content: prompt }], max_tokens: maxTokens, temperature }) };
+  } else if (m.apiType === 'openai-responses') {
+    url = joinBase(base, '/v1/responses');
+    opts = { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+      body: JSON.stringify({ model: modelId, input: prompt, max_output_tokens: maxTokens }) };
+  } else if (m.apiType === 'anthropic-messages') {
+    url = joinBase(base, '/v1/messages');
+    opts = { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({ model: modelId, messages: [{ role: 'user', content: prompt }], max_tokens: maxTokens }) };
+  } else if (m.apiType === 'google-generative-ai') {
+    url = joinBase(base, `/v1beta/models/${encodeURIComponent(modelId)}:generateContent?key=${encodeURIComponent(key)}`);
+    opts = { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: maxTokens, temperature } }) };
+  } else {
+    return { ok: false, error: '不支持的 API 类型: ' + m.apiType };
+  }
+  try {
+    const res = await fetchWithTimeout(url, opts, 60000);
+    const txt = await res.text();
+    let j; try { j = JSON.parse(txt); } catch { j = null; }
+    if (!res.ok) {
+      const detail = j && j.error ? (JSON.stringify(j.error).slice(0, 300)) : txt.slice(0, 300);
+      return { ok: false, status: res.status, error: `模型返回 ${res.status}: ${detail}` };
+    }
+    // 按协议提取文本
+    let content = '';
+    if (m.apiType === 'openai-completions') {
+      content = j && j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content || '';
+    } else if (m.apiType === 'openai-responses') {
+      // responses API: output[].content[].text 或 output_text
+      content = (j && j.output_text) || '';
+      if (!content && j && j.output) {
+        for (const o of j.output) {
+          if (o.content) for (const c of o.content) { if (c.text) content += c.text; }
+        }
+      }
+    } else if (m.apiType === 'anthropic-messages') {
+      content = j && j.content && j.content[0] && j.content[0].text || '';
+    } else if (m.apiType === 'google-generative-ai') {
+      content = j && j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts
+        && j.candidates[0].content.parts.map(p => p.text || '').join('') || '';
+    }
+    if (!content) return { ok: false, status: res.status, error: '模型未返回文本内容', raw: txt.slice(0, 300) };
+    return { ok: true, content };
+  } catch (e) {
+    return { ok: false, status: 0, error: e.name === 'AbortError' ? '请求超时' : (e.message || String(e)) };
+  }
+}
+/* 生成文章内容：body { id: 模型ID, prompt, maxTokens?, temperature? } */
+app.post('/api/ai/generate', auth, async (req, res) => {
+  const b = req.body || {};
+  if (!b.id) return res.status(400).json({ error: '请选择模型' });
+  const m = db.prepare('SELECT * FROM ai_models WHERE id = ?').get(+b.id);
+  if (!m) return res.status(404).json({ error: '模型不存在' });
+  if (m.modelType !== 'text') return res.status(400).json({ error: '该模型不是文本模型' });
+  const prompt = String(b.prompt || '').trim();
+  if (!prompt) return res.status(400).json({ error: '请输入提示词' });
+  const r = await callTextModel(m, prompt, { maxTokens: b.maxTokens, temperature: b.temperature });
+  res.json(r);
+});
+
+
 
 app.get('/api/search', (req, res) => {
   const q = (req.query.q || '').trim();

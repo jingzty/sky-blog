@@ -77,6 +77,73 @@
       <div class="space-y-4">
         <input type="text" id="title" placeholder="写一个吸引人的标题……"
           class="input-field w-full font-title font-semibold text-xl px-4 py-3.5 rounded-warm-lg" style="background: var(--warm-surface);">
+
+        <!-- AI 写作面板 -->
+        <section class="card overflow-hidden" id="aiWriterCard">
+          <button type="button" id="aiToggle" class="w-full flex items-center justify-between px-5 py-3.5 text-left" style="background: var(--warm-surface-2);">
+            <span class="flex items-center gap-2 text-sm font-medium" style="color: var(--warm-ink);">
+              <i data-lucide="sparkles" class="w-4 h-4" style="color: var(--warm-brand);"></i>
+              AI 写作
+              <span id="aiModelCount" class="text-caption" style="color: var(--warm-ink-3);"></span>
+            </span>
+            <i data-lucide="chevron-down" class="w-4 h-4 ai-chev" style="color: var(--warm-ink-2); transition: transform .2s;"></i>
+          </button>
+          <div id="aiPanel" class="hidden p-5 space-y-4">
+            <!-- 模型选择 + 快捷动作 -->
+            <div class="flex flex-wrap items-center gap-3">
+              <div class="flex items-center gap-2 flex-1 min-w-[220px]">
+                <label class="text-caption whitespace-nowrap" style="color: var(--warm-ink-2);">模型</label>
+                <select id="aiModelSel" class="input-field flex-1 px-3 py-2 rounded-warm-md text-sm">
+                  <option value="">加载中…</option>
+                </select>
+              </div>
+              <a href="ai.html" class="text-caption flex items-center gap-1" style="color: var(--warm-ink-3);" title="去 AI 配置页">
+                <i data-lucide="settings" class="w-3.5 h-3.5"></i>配置
+              </a>
+            </div>
+
+            <!-- 提示词 -->
+            <div class="flex flex-col gap-2">
+              <label class="text-caption" style="color: var(--warm-ink-2);">提示词</label>
+              <textarea id="aiPrompt" rows="3" class="input-field px-3 py-2.5 rounded-warm-md text-sm resize-none" placeholder="描述你想让 AI 写什么，例如：以《标题》为主题写一篇 800 字的散文，风格温柔治愈"></textarea>
+            </div>
+
+            <!-- 快捷模板 -->
+            <div class="flex flex-wrap gap-2">
+              <button type="button" class="btn-secondary px-3 py-1.5 rounded-lg text-xs font-medium ai-tpl" data-tpl="continue"><i data-lucide="corner-down-right" class="w-3.5 h-3.5"></i>续写正文</button>
+              <button type="button" class="btn-secondary px-3 py-1.5 rounded-lg text-xs font-medium ai-tpl" data-tpl="polish"><i data-lucide="wand-2" class="w-3.5 h-3.5"></i>润色正文</button>
+              <button type="button" class="btn-secondary px-3 py-1.5 rounded-lg text-xs font-medium ai-tpl" data-tpl="outline"><i data-lucide="list" class="w-3.5 h-3.5"></i>生成大纲</button>
+              <button type="button" class="btn-secondary px-3 py-1.5 rounded-lg text-xs font-medium ai-tpl" data-tpl="excerpt"><i data-lucide="align-left" class="w-3.5 h-3.5"></i>生成摘要</button>
+              <button type="button" class="btn-secondary px-3 py-1.5 rounded-lg text-xs font-medium ai-tpl" data-tpl="title"><i data-lucide="type" class="w-3.5 h-3.5"></i>生成标题</button>
+            </div>
+
+            <!-- 生成按钮 -->
+            <div class="flex items-center gap-3">
+              <button type="button" id="aiGenBtn" class="btn-primary flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium">
+                <i data-lucide="sparkles" class="w-4 h-4"></i><span>生成</span>
+              </button>
+              <label class="flex items-center gap-2 text-caption" style="color: var(--warm-ink-2);">
+                <input type="number" id="aiMaxTokens" value="2048" min="64" max="8192" class="input-field px-2 py-1 rounded text-xs w-20">最大 token
+              </label>
+              <span id="aiStatus" class="text-caption" style="color: var(--warm-ink-3);"></span>
+            </div>
+
+            <!-- 结果区 -->
+            <div id="aiResultWrap" class="hidden flex flex-col gap-2">
+              <label class="text-caption" style="color: var(--warm-ink-2);">生成结果</label>
+              <textarea id="aiResult" rows="8" class="input-field px-3 py-2.5 rounded-warm-md text-sm resize-y font-mono" style="min-height: 160px;"></textarea>
+              <div class="flex flex-wrap gap-2">
+                <button type="button" id="aiInsertBtn" class="btn-secondary flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium"><i data-lucide="corner-down-left" class="w-3.5 h-3.5"></i>插入到正文</button>
+                <button type="button" id="aiAppendBtn" class="btn-secondary flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium"><i data-lucide="plus" class="w-3.5 h-3.5"></i>追加到正文</button>
+                <button type="button" id="aiReplaceBtn" class="btn-secondary flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium"><i data-lucide="replace" class="w-3.5 h-3.5"></i>替换正文</button>
+                <button type="button" id="aiToExcerptBtn" class="btn-secondary flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium"><i data-lucide="align-left" class="w-3.5 h-3.5"></i>填入摘要</button>
+                <button type="button" id="aiToTitleBtn" class="btn-secondary flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium"><i data-lucide="type" class="w-3.5 h-3.5"></i>填入标题</button>
+                <button type="button" id="aiCopyBtn" class="btn-secondary flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium"><i data-lucide="copy" class="w-3.5 h-3.5"></i>复制</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <textarea id="content" placeholder="在这里书写 Markdown..."></textarea>
       </div>
 
@@ -198,6 +265,132 @@
       if (url) showCoverPreview(url);
       else document.getElementById('coverPreview').classList.add('hidden');
     });
+
+    /* ============ AI 写作 ============ */
+    const aiPanel = document.getElementById('aiPanel');
+    const aiChev = document.querySelector('.ai-chev');
+    const aiModelSel = document.getElementById('aiModelSel');
+    const aiPrompt = document.getElementById('aiPrompt');
+    const aiResult = document.getElementById('aiResult');
+    const aiResultWrap = document.getElementById('aiResultWrap');
+    const aiStatus = document.getElementById('aiStatus');
+    const aiGenBtn = document.getElementById('aiGenBtn');
+    let aiModels = [];
+
+    document.getElementById('aiToggle').addEventListener('click', () => {
+      const hidden = aiPanel.classList.toggle('hidden');
+      aiChev.style.transform = hidden ? '' : 'rotate(180deg)';
+    });
+
+    (async function loadAiModels() {
+      try {
+        aiModels = await API.getTextModels();
+        const cnt = document.getElementById('aiModelCount');
+        if (!aiModels.length) {
+          aiModelSel.innerHTML = '<option value="">未配置文本模型，请先到 AI 配置页添加</option>';
+          cnt.textContent = '· 0 个模型';
+          return;
+        }
+        cnt.textContent = `· ${aiModels.length} 个模型`;
+        aiModelSel.innerHTML = aiModels.map(m => `<option value="${m.id}">${Admin.esc(m.displayName || m.modelId)} (${Admin.esc(m.provider)})</option>`).join('');
+      } catch (e) {
+        aiModelSel.innerHTML = '<option value="">加载失败</option>';
+        aiStatus.textContent = '加载模型失败: ' + e.message;
+      }
+    })();
+
+    /* 快捷模板：根据当前标题/正文填充提示词 */
+    const TPL = {
+      continue: () => {
+        const t = document.getElementById('title').value.trim();
+        const c = easyMDE.value().trim();
+        return `请根据以下已有内容继续续写一篇 Markdown 格式的文章。标题：${t || '（未定）'}\n已有正文：\n${c || '（空）'}\n\n请自然衔接，续写 400-600 字，保持风格一致。`;
+      },
+      polish: () => {
+        const c = easyMDE.value().trim();
+        return `请润色以下 Markdown 文章，优化语言流畅度与表达，保留原意与 Markdown 格式，不要加多余说明，直接输出润色后的正文：\n\n${c || '（正文为空）'}`;
+      },
+      outline: () => {
+        const t = document.getElementById('title').value.trim();
+        return `请为文章《${t || '（未定标题）'}》生成一份 Markdown 大纲，包含 3-5 个一级小节，每节简述要点。`;
+      },
+      excerpt: () => {
+        const c = easyMDE.value().trim();
+        return `请为以下文章写一句 50-100 字的简短摘要，只输出摘要正文，不要加“摘要：”等前缀：\n\n${c || '（正文为空）'}`;
+      },
+      title: () => {
+        const c = easyMDE.value().trim();
+        return `请根据以下文章内容生成 5 个吸引人的标题候选，每行一个，不加序号：\n\n${c || '（正文为空）'}`;
+      },
+    };
+    document.querySelectorAll('.ai-tpl').forEach(btn => btn.addEventListener('click', () => {
+      const fn = TPL[btn.dataset.tpl];
+      if (fn) { aiPrompt.value = fn(); aiPrompt.focus(); }
+    }));
+
+    async function aiGenerate() {
+      const id = +aiModelSel.value;
+      if (!id) return Admin.toast('请先选择模型');
+      const prompt = aiPrompt.value.trim();
+      if (!prompt) return Admin.toast('请输入提示词');
+      if (!aiModels.length) return Admin.toast('没有可用的文本模型');
+      const old = aiGenBtn.innerHTML;
+      aiGenBtn.disabled = true;
+      aiGenBtn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i><span>生成中…</span>';
+      if (window.lucide) window.lucide.createIcons();
+      aiStatus.textContent = '调用模型中，请稍候…';
+      aiResultWrap.classList.add('hidden');
+      try {
+        const max = parseInt(document.getElementById('aiMaxTokens').value, 10) || 2048;
+        const r = await API.aiGenerate({ id, prompt, maxTokens: max });
+        if (r.ok) {
+          aiResult.value = r.content || '';
+          aiResultWrap.classList.remove('hidden');
+          aiStatus.textContent = '生成完成';
+        } else {
+          aiStatus.textContent = '生成失败';
+          Admin.toast(r.error || '生成失败');
+        }
+      } catch (e) {
+        aiStatus.textContent = '生成失败: ' + e.message;
+        Admin.toast('生成失败: ' + e.message);
+      } finally {
+        aiGenBtn.disabled = false; aiGenBtn.innerHTML = old; if (window.lucide) window.lucide.createIcons();
+      }
+    }
+    aiGenBtn.addEventListener('click', aiGenerate);
+    aiPrompt.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); aiGenerate(); } });
+
+    function insertToContent(text) {
+      if (!text) return;
+      const cm = easyMDE.codemirror;
+      const cur = cm.getCursor();
+      cm.replaceRange(text, cur);
+      cm.focus();
+      cm.setCursor({ line: cur.line + text.split('\n').length - 1, ch: 0 });
+    }
+    document.getElementById('aiInsertBtn').addEventListener('click', () => insertToContent(aiResult.value));
+    document.getElementById('aiAppendBtn').addEventListener('click', () => {
+      const cur = easyMDE.value();
+      easyMDE.value((cur ? cur.replace(/\n*$/, '') + '\n\n' : '') + aiResult.value);
+      easyMDE.codemirror.focus();
+    });
+    document.getElementById('aiReplaceBtn').addEventListener('click', () => {
+      if (easyMDE.value().trim() && !confirm('确定用生成结果替换现有正文？')) return;
+      easyMDE.value(aiResult.value);
+      easyMDE.codemirror.focus();
+    });
+    document.getElementById('aiToExcerptBtn').addEventListener('click', () => { document.getElementById('excerpt').value = aiResult.value.trim(); Admin.toast('已填入摘要'); });
+    document.getElementById('aiToTitleBtn').addEventListener('click', () => {
+      // 取结果首行作为标题候选
+      const first = aiResult.value.split('\n').map(s => s.trim()).filter(Boolean)[0] || aiResult.value.trim();
+      document.getElementById('title').value = first;
+      Admin.toast('已填入标题');
+    });
+    document.getElementById('aiCopyBtn').addEventListener('click', () => {
+      aiResult.select(); document.execCommand('copy'); Admin.toast('已复制');
+    });
+
 
     async function save(status) {
       const data = {
