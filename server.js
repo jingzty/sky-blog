@@ -613,7 +613,7 @@ async function callTextModel(m, prompt, { maxTokens = 2048, temperature } = {}) 
     return { ok: false, error: '不支持的 API 类型: ' + m.apiType };
   }
   try {
-    const res = await fetchWithTimeout(url, opts, 120000);
+    const res = await fetchWithTimeout(url, opts, 600000);
     const txt = await res.text();
     let j; try { j = JSON.parse(txt); } catch { j = null; }
     if (!res.ok) {
@@ -681,7 +681,7 @@ async function callImageModel(m, prompt, { size, n } = {}) {
     const opts = { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
       body: JSON.stringify(body) };
     try {
-      const res = await fetchWithTimeout(url, opts, 120000);
+      const res = await fetchWithTimeout(url, opts, 600000);
       const txt = await res.text();
       let j; try { j = JSON.parse(txt); } catch { j = null; }
       if (!res.ok) {
@@ -700,7 +700,7 @@ async function callImageModel(m, prompt, { size, n } = {}) {
     const body = { instances: [{ prompt }], parameters: { sampleCount: 1 } };
     const opts = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
     try {
-      const res = await fetchWithTimeout(url, opts, 120000);
+      const res = await fetchWithTimeout(url, opts, 600000);
       const txt = await res.text();
       let j; try { j = JSON.parse(txt); } catch { j = null; }
       if (!res.ok) {
