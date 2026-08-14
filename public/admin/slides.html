@@ -65,6 +65,45 @@
               <span class="flex items-center gap-1.5"><i data-lucide="image" class="w-3.5 h-3.5"></i> 图片地址</span>
             </label>
             <input type="text" id="fBgImage" class="input-field px-4 py-2.5 rounded-lg text-sm" placeholder="如 images/hero.jpg 或 https://...">
+
+            <!-- AI 配图 -->
+            <div class="mt-3 p-4 rounded-lg" style="background: var(--warm-surface-2); border: 1px solid var(--warm-line);">
+              <div class="flex items-center gap-2 mb-3">
+                <i data-lucide="sparkles" class="w-4 h-4" style="color: var(--warm-brand);"></i>
+                <span class="text-sm font-medium" style="color: var(--warm-ink);">AI 配图</span>
+                <a href="ai.html" class="text-caption ml-auto" style="color: var(--warm-ink-3);" title="去 AI 配置页">配置</a>
+              </div>
+              <div class="space-y-2.5">
+                <div>
+                  <label class="block text-caption mb-1" style="color: var(--warm-ink-2);">文生图模型</label>
+                  <select id="aiImgModel" class="input-field w-full px-3 py-2 rounded-lg text-sm">
+                    <option value="">加载中…</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-caption mb-1" style="color: var(--warm-ink-2);">提示词</label>
+                  <textarea id="aiImgPrompt" rows="2" class="input-field w-full px-3 py-2 rounded-lg text-sm resize-none" placeholder="描述想要的轮播图，例如：黎明时分的云海，金色阳光，广阔天空"></textarea>
+                </div>
+                <div class="flex items-center gap-2">
+                  <label class="text-caption whitespace-nowrap" style="color: var(--warm-ink-2);">尺寸</label>
+                  <input type="text" id="aiImgSize" class="input-field flex-1 px-2 py-1.5 rounded text-xs" placeholder="留空用默认；火山可填 2K">
+                </div>
+                <button type="button" id="aiImgGenBtn" class="btn-primary w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium">
+                  <i data-lucide="sparkles" class="w-4 h-4"></i><span>生成图片</span>
+                </button>
+                <p id="aiImgStatus" class="text-caption" style="color: var(--warm-ink-3);"></p>
+                <div id="aiImgResult" class="hidden space-y-2">
+                  <div class="rounded-lg overflow-hidden" style="border: 1px solid var(--warm-line); max-height: 160px;">
+                    <img id="aiImgPreview" alt="AI 生成" class="w-full h-full object-cover block" style="max-height: 160px;">
+                  </div>
+                  <div class="flex flex-wrap gap-2">
+                    <button type="button" id="aiImgUseBtn" class="btn-primary flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium"><i data-lucide="check" class="w-3.5 h-3.5"></i>用作轮播图</button>
+                    <button type="button" id="aiImgCopyBtn" class="btn-secondary flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium"><i data-lucide="copy" class="w-3.5 h-3.5"></i>复制链接</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div id="fPreview" class="mt-1 rounded-lg overflow-hidden hidden" style="border: 1px solid var(--warm-line); max-height: 160px;">
               <img id="fPreviewImg" alt="预览" class="w-full h-full object-cover block" style="max-height: 160px;">
             </div>
@@ -186,6 +225,74 @@
     }
     fBgImage.addEventListener('input', syncPreview);
 
+    /* ---- AI 配图 ---- */
+    const aiImgModel = document.getElementById('aiImgModel');
+    const aiImgPrompt = document.getElementById('aiImgPrompt');
+    const aiImgGenBtn = document.getElementById('aiImgGenBtn');
+    const aiImgStatus = document.getElementById('aiImgStatus');
+    const aiImgResult = document.getElementById('aiImgResult');
+    const aiImgPreview = document.getElementById('aiImgPreview');
+    let aiImgUrl = '';
+    let aiImgModels = [];
+
+    (async function loadAiImgModels() {
+      try {
+        aiImgModels = await API.getImageModels();
+        if (!aiImgModels.length) {
+          aiImgModel.innerHTML = '<option value="">未配置文生图模型</option>';
+          return;
+        }
+        aiImgModel.innerHTML = aiImgModels.map(m => `<option value="${m.id}">${esc(m.displayName || m.modelId)} (${esc(m.provider)})</option>`).join('');
+      } catch (e) {
+        aiImgModel.innerHTML = '<option value="">加载失败</option>';
+      }
+    })();
+
+    async function aiImgGenerate() {
+      const id = +aiImgModel.value;
+      if (!id) return Admin.toast('请先选择文生图模型');
+      const prompt = aiImgPrompt.value.trim();
+      if (!prompt) return Admin.toast('请输入提示词');
+      const old = aiImgGenBtn.innerHTML;
+      aiImgGenBtn.disabled = true;
+      aiImgGenBtn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i><span>生成中…</span>';
+      if (window.lucide) window.lucide.createIcons();
+      aiImgStatus.textContent = '调用文生图模型中，可能需要十几秒…';
+      aiImgResult.classList.add('hidden');
+      try {
+        const size = document.getElementById('aiImgSize').value.trim();
+        const r = await API.aiGenerateImage({ id, prompt, size: size || undefined });
+        if (r.ok && r.url) {
+          aiImgPreview.src = r.url;
+          aiImgUrl = r.url;
+          aiImgResult.classList.remove('hidden');
+          aiImgStatus.textContent = '生成完成';
+        } else {
+          aiImgStatus.textContent = '生成失败';
+          Admin.toast(r.error || '生成失败');
+        }
+      } catch (e) {
+        aiImgStatus.textContent = '生成失败: ' + e.message;
+        Admin.toast('生成失败: ' + e.message);
+      } finally {
+        aiImgGenBtn.disabled = false; aiImgGenBtn.innerHTML = old; if (window.lucide) window.lucide.createIcons();
+      }
+    }
+    aiImgGenBtn.addEventListener('click', aiImgGenerate);
+
+    document.getElementById('aiImgUseBtn').addEventListener('click', () => {
+      if (!aiImgUrl) return Admin.toast('没有可用的图片');
+      fBgImage.value = aiImgUrl;
+      syncPreview();
+      Admin.toast('已填入图片地址');
+    });
+    document.getElementById('aiImgCopyBtn').addEventListener('click', () => {
+      if (!aiImgUrl) return Admin.toast('没有可用的图片');
+      const ta = document.createElement('textarea'); ta.value = aiImgUrl; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); Admin.toast('已复制', 'success'); } catch { Admin.toast('复制失败'); }
+      document.body.removeChild(ta);
+    });
+
     function fillPostOptions(selected) {
       document.getElementById('fPostId').innerHTML =
         '<option value="">不关联</option>' + posts.map(p =>
@@ -199,6 +306,12 @@
       fillPostOptions(null);
       document.getElementById('fSortOrder').value = '';
       document.getElementById('fStatus').checked = true;
+      /* 清空 AI 配图状态 */
+      aiImgPrompt.value = '';
+      aiImgUrl = '';
+      aiImgResult.classList.add('hidden');
+      aiImgStatus.textContent = '';
+      document.getElementById('aiImgSize').value = '';
     }
 
     function openAdd() {
