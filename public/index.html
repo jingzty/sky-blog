@@ -85,6 +85,7 @@
     .eyebrow { font-size: 0.7rem; letter-spacing: 0.32em; text-transform: uppercase; font-weight: 500; }
     [data-rv] { opacity: 0; transform: translateY(34px); transition: opacity 0.9s var(--ease-out), transform 0.9s var(--ease-out); }
     [data-rv].rv { opacity: 1; transform: none; }
+    #sign[data-rv] { transform: translateY(70px); transition: opacity 1.4s var(--ease-out), transform 1.4s var(--ease-out); }
     [data-rv-d="1"] { transition-delay: 0.08s; } [data-rv-d="2"] { transition-delay: 0.16s; } [data-rv-d="3"] { transition-delay: 0.24s; } [data-rv-d="4"] { transition-delay: 0.32s; }
 
     /* ==================== 1. 黎明 ==================== */
@@ -94,8 +95,8 @@
       color: var(--dawn-ink);
     }
     .sky-layers { position: absolute; inset: 0; }
-    .sky-layer { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0; transform: scale(1.08); transition: opacity 1.6s var(--ease), transform 8s linear; }
-    .sky-layer.on { opacity: 1; transform: scale(1); }
+    .sky-layer { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0; transform: scale(1); transition: opacity 1.6s var(--ease), transform 8s linear; }
+    .sky-layer.on { opacity: 1; transform: scale(1.12); }
 
     .dawn-inner { position: relative; z-index: 2; min-height: 100vh; display: flex; flex-direction: column; justify-content: center; padding: 120px 40px 90px; max-width: var(--max); margin: 0 auto; }
     .dawn-meta { display: flex; align-items: center; gap: 14px; color: rgba(255,255,255,0.75); margin-bottom: 28px; }
@@ -268,13 +269,17 @@
 
     .night-inner { position: relative; z-index: 2; }
     .sign { display: grid; grid-template-columns: auto 1fr auto; gap: 44px; align-items: center; padding-bottom: 90px; }
-    .sign-avatar { position: relative; width: 150px; height: 150px; border-radius: 50%; overflow: hidden; border: 3px solid rgba(255,255,255,0.15); box-shadow: 0 0 0 8px rgba(217,168,95,0.12), 0 20px 50px rgba(0,0,0,0.4); }
+    .sign-avatar { position: relative; width: 150px; height: 150px; border-radius: 50%; overflow: hidden; border: 3px solid rgba(255,255,255,0.15); box-shadow: 0 0 0 8px rgba(217,168,95,0.12), 0 20px 50px rgba(0,0,0,0.4); opacity: 0; transform: translateY(50px) scale(0.9); transition: opacity 1s var(--ease-out), transform 1s var(--ease-out); }
+    .sign-avatar.in { opacity: 1; transform: none; }
     .sign-avatar img { width: 100%; height: 100%; object-fit: cover; }
     .sign-avatar::after { content: ''; position: absolute; inset: 0; border-radius: 50%; box-shadow: inset 0 0 40px rgba(217,168,95,0.2); }
+    .sign-text { opacity: 0; transform: translateY(50px); transition: opacity 1s var(--ease-out), transform 1s var(--ease-out); transition-delay: 0.15s; }
+    .sign-text.in { opacity: 1; transform: none; }
     .sign-text h3 { font-family: var(--serif); font-size: clamp(2rem, 4vw, 2.8rem); font-weight: 700; color: #fff; margin-bottom: 6px; }
     .sign-role { font-size: 0.8rem; letter-spacing: 0.18em; color: var(--gold-soft); margin-bottom: 18px; }
     .sign-bio { font-size: 0.95rem; line-height: 1.95; color: var(--text-dim); max-width: 460px; }
-    .sign-stats { display: flex; flex-direction: column; gap: 22px; text-align: right; }
+    .sign-stats { display: flex; flex-direction: column; gap: 22px; text-align: right; opacity: 0; transform: translateY(50px); transition: opacity 1s var(--ease-out), transform 1s var(--ease-out); transition-delay: 0.3s; }
+    .sign-stats.in { opacity: 1; transform: none; }
     .sign-stat .n { font-family: var(--serif); font-size: 2rem; font-weight: 700; color: #fff; line-height: 1; }
     .sign-stat .l { font-size: 0.72rem; letter-spacing: 0.15em; color: var(--text-faint); margin-top: 4px; }
 
@@ -327,6 +332,7 @@
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
       [data-rv] { opacity: 1; transform: none; }
+      .sign-avatar, .sign-text, .sign-stats { opacity: 1; transform: none; }
       .cloud { opacity: 1; filter: none; animation: none; }
       .stratum { opacity: 1; transform: none; }
     }
@@ -530,7 +536,7 @@
     function renderSkyLayers(slides){
       const el = document.getElementById('skyLayers');
       el.innerHTML = slides.map((s,i) =>
-        `<div class="sky-layer${i===0?' on':''}" style="background-image:url('${s.bgImage}')"></div>`
+        `<div class="sky-layer" style="background-image:url('${s.bgImage}')"></div>`
       ).join('');
     }
 
@@ -666,20 +672,23 @@
     let carouselTimer, curSlide = 0, slideCount = 0;
     function initCarousel(slides){
       slideCount = slides.length;
-      if(slideCount < 2) return;
       curSlide = 0;
-      startCarousel();
-      const pills = document.querySelectorAll('.moment-pill');
-      pills.forEach(p => p.addEventListener('click', ()=>{
-        goToSlide(+p.dataset.m);
+      /* 首次用 rAF 加 on，保证浏览器先渲染初始态 scale(1)，再过渡到 scale(1.12) */
+      requestAnimationFrame(() => requestAnimationFrame(() => goToSlide(0)));
+      if(slideCount >= 2){
         startCarousel();
-      }));
-      const dawn = document.getElementById('dawn');
-      dawn.addEventListener('mouseenter', stopCarousel);
-      dawn.addEventListener('mouseleave', startCarousel);
+        const pills = document.querySelectorAll('.moment-pill');
+        pills.forEach(p => p.addEventListener('click', ()=>{
+          goToSlide(+p.dataset.m);
+          startCarousel();
+        }));
+        const dawn = document.getElementById('dawn');
+        dawn.addEventListener('mouseenter', stopCarousel);
+        dawn.addEventListener('mouseleave', startCarousel);
 
-      document.getElementById('carouselPrev').addEventListener('click', (e)=>{ e.stopPropagation(); goToSlide((curSlide-1+slideCount)%slideCount); startCarousel(); });
-      document.getElementById('carouselNext').addEventListener('click', (e)=>{ e.stopPropagation(); nextSlide(); startCarousel(); });
+        document.getElementById('carouselPrev').addEventListener('click', (e)=>{ e.stopPropagation(); goToSlide((curSlide-1+slideCount)%slideCount); startCarousel(); });
+        document.getElementById('carouselNext').addEventListener('click', (e)=>{ e.stopPropagation(); nextSlide(); startCarousel(); });
+      }
     }
 
     function goToSlide(i){
@@ -788,6 +797,13 @@
       }, {threshold:0.2, rootMargin:'0px 0px -40px 0px'});
       const horizon = document.getElementById('horizon');
       if(horizon) ios.observe(horizon);
+
+      /* 博主介绍：头像、文字、统计三块分阶段向上淡入 */
+      const signParts = document.querySelectorAll('#sign .sign-avatar, #sign .sign-text, #sign .sign-stats');
+      const iosign = new IntersectionObserver((es)=>{
+        es.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); iosign.unobserve(e.target); } });
+      }, {threshold:0.2, rootMargin:'0px 0px -60px 0px'});
+      signParts.forEach(el=>iosign.observe(el));
 
       /* 时间之河：进入视口并停留 2s 后，从最早时间（右端）缓缓滚动到最新时间（左端），约 2s 完成 */
       const river = document.querySelector('.river');
