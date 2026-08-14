@@ -618,7 +618,7 @@ async function callTextModel(m, prompt, { maxTokens = 2048, temperature } = {}) 
     let j; try { j = JSON.parse(txt); } catch { j = null; }
     if (!res.ok) {
       const detail = j && j.error ? (JSON.stringify(j.error).slice(0, 300)) : txt.slice(0, 300);
-      return { ok: false, status: res.status, error: `模型返回 ${res.status}: ${detail}` };
+      return { ok: false, status: res.status, error: `模型返回 ${res.status}: ${detail}`, raw: txt.slice(0, 500) };
     }
     // 按协议提取文本
     let content = '';

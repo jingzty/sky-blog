@@ -129,6 +129,7 @@
             </div>
 
             <!-- 结果区 -->
+            <div id="aiErrorBox" class="hidden text-sm rounded-lg px-4 py-3" style="color: var(--warm-state-error); background: var(--warm-state-error-bg);"></div>
             <div id="aiResultWrap" class="hidden flex flex-col gap-2">
               <label class="text-caption" style="color: var(--warm-ink-2);">生成结果</label>
               <textarea id="aiResult" rows="8" class="input-field px-3 py-2.5 rounded-warm-md text-sm resize-y font-mono" style="min-height: 160px;"></textarea>
@@ -346,6 +347,7 @@
     const aiPrompt = document.getElementById('aiPrompt');
     const aiResult = document.getElementById('aiResult');
     const aiResultWrap = document.getElementById('aiResultWrap');
+    const aiErrorBox = document.getElementById('aiErrorBox');
     const aiStatus = document.getElementById('aiStatus');
     const aiGenBtn = document.getElementById('aiGenBtn');
     let aiModels = [];
@@ -401,6 +403,20 @@
       if (fn) { aiPrompt.value = fn(); aiPrompt.focus(); }
     }));
 
+    /* 在结果区上方显示详细错误（含 HTTP 状态、原始响应） */
+    function showAiError(r) {
+      const parts = [];
+      if (r && r.status) parts.push(`HTTP ${r.status}`);
+      if (r && r.error) parts.push(String(r.error));
+      else parts.push('未知错误');
+      let html = `<div class="flex items-center gap-2"><i data-lucide="circle-x" class="w-4 h-4 shrink-0"></i><span class="font-medium">生成失败</span></div>`;
+      html += `<div class="mt-1 font-mono text-xs break-all" style="opacity:.9">${Admin.esc(parts.join(' — '))}</div>`;
+      if (r && r.raw) html += `<div class="mt-1 font-mono text-xs break-all" style="opacity:.7">原始响应：${Admin.esc(String(r.raw).slice(0,500))}</div>`;
+      aiErrorBox.innerHTML = html;
+      aiErrorBox.classList.remove('hidden');
+      if (window.lucide) window.lucide.createIcons();
+    }
+
     async function aiGenerate() {
       const id = +aiModelSel.value;
       if (!id) return Admin.toast('请先选择模型');
@@ -413,6 +429,7 @@
       if (window.lucide) window.lucide.createIcons();
       aiStatus.textContent = '调用模型中，请稍候…';
       aiResultWrap.classList.add('hidden');
+      aiErrorBox.classList.add('hidden');
       try {
         const max = parseInt(document.getElementById('aiMaxTokens').value, 10) || 8192;
         const r = await API.aiGenerate({ id, prompt, maxTokens: max });
@@ -422,11 +439,11 @@
           aiStatus.textContent = '生成完成';
         } else {
           aiStatus.textContent = '生成失败';
-          Admin.toast(r.error || '生成失败');
+          showAiError(r);
         }
       } catch (e) {
-        aiStatus.textContent = '生成失败: ' + e.message;
-        Admin.toast('生成失败: ' + e.message);
+        aiStatus.textContent = '生成失败';
+        showAiError({ error: e.message || String(e) });
       } finally {
         aiGenBtn.disabled = false; aiGenBtn.innerHTML = old; if (window.lucide) window.lucide.createIcons();
       }
