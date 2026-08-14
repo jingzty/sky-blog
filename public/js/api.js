@@ -78,6 +78,9 @@ window.API = (function () {
     /* AI 写作 */
     getTextModels: () => request('GET', '/api/ai/text-models'),
     aiGenerate: d => request('POST', '/api/ai/generate', d),
+    /* AI 配图 */
+    getImageModels: () => request('GET', '/api/ai/image-models'),
+    aiGenerateImage: d => request('POST', '/api/ai/generate-image', d),
 
 
     /* 搜索 */

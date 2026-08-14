@@ -487,7 +487,17 @@ app.delete('/api/ai-models/:id', auth, (req, res) => {
 function joinBase(baseUrl, tail) {
   let base = String(baseUrl || '').trim().replace(/\/+$/, '');
   if (!base) return tail;
-  // base 已含 /v1 等前缀时直接拼接，否则补 /v1（OpenAI/Anthropic 约定）
+  /* 智能处理版本段：用户填的 base 可能不含版本（https://api.openai.com），
+   * 也可能已含版本（火山 https://ark.cn-beijing.volces.com/api/v3、
+   * 或有人直接填 https://api.openai.com/v1）。
+   * - base 不含版本段：直接拼 tail（tail 自带 /v1、/v1beta 等前缀）。
+   * - base 已含版本段（/v1、/v2、/v1beta、/api/v3 等）：去掉 tail 开头的版本段，
+   *   避免拼成 .../api/v3/v1/chat/completions 这种双重前缀。
+   */
+  const hasVer = /\/(?:api\/)?v\d+(?:beta)?(?:\/|$)/.test(base);
+  if (hasVer) {
+    tail = tail.replace(/^\/(?:api\/)?v\d+(?:beta)?/, '');
+  }
   return base + tail;
 }
 async function fetchWithTimeout(url, opts = {}, ms = 20000) {
@@ -643,6 +653,80 @@ app.post('/api/ai/generate', auth, async (req, res) => {
   const r = await callTextModel(m, prompt, { maxTokens: b.maxTokens, temperature: b.temperature });
   res.json(r);
 });
+
+/* ============ AI 配图（文生图）============ */
+/* 仅返回文生图模型，供编辑器下拉选择 */
+app.get('/api/ai/image-models', auth, (req, res) => {
+  const rows = db.prepare("SELECT * FROM ai_models WHERE modelType='image' ORDER BY id ASC").all();
+  res.json(rows.map(aiRow));
+});
+
+/* 调用文生图模型。目前支持 OpenAI 兼容协议的 images 端点（/images/generations），
+ * 覆盖火山方舟、OpenAI DALL·E、各类中转。其他协议返回不支持。
+ * 统一返回 { ok, url, markdown } 或 { ok:false, error }。
+ */
+async function callImageModel(m, prompt, { size, n } = {}) {
+  const base = String(m.baseUrl || '').trim();
+  const key = m.apiKey || '';
+  const modelId = m.modelId;
+  if (m.apiType === 'openai-completions' || m.apiType === 'openai-responses') {
+    // OpenAI 兼容：POST /images/generations
+    const url = joinBase(base, '/images/generations');
+    const body = { model: modelId, prompt, response_format: 'url' };
+    if (size) body.size = size;
+    if (n) body.n = n;
+    const opts = { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+      body: JSON.stringify(body) };
+    try {
+      const res = await fetchWithTimeout(url, opts, 120000);
+      const txt = await res.text();
+      let j; try { j = JSON.parse(txt); } catch { j = null; }
+      if (!res.ok) {
+        const detail = j && j.error ? JSON.stringify(j.error).slice(0, 300) : txt.slice(0, 300);
+        return { ok: false, status: res.status, error: `模型返回 ${res.status}: ${detail}` };
+      }
+      const imgUrl = j && j.data && j.data[0] && (j.data[0].url || j.data[0].b64_json && ('data:image/png;base64,' + j.data[0].b64_json)) || '';
+      if (!imgUrl) return { ok: false, status: res.status, error: '模型未返回图片', raw: txt.slice(0, 300) };
+      return { ok: true, url: imgUrl, markdown: `![AI生成图片](${imgUrl})` };
+    } catch (e) {
+      return { ok: false, status: 0, error: e.name === 'AbortError' ? '请求超时（文生图通常较慢，已等 120s）' : (e.message || String(e)) };
+    }
+  } else if (m.apiType === 'google-generative-ai') {
+    // Gemini Imagen：POST /models/{model}:predict?key=...
+    const url = joinBase(base, `/models/${encodeURIComponent(modelId)}:predict?key=${encodeURIComponent(key)}`);
+    const body = { instances: [{ prompt }], parameters: { sampleCount: 1 } };
+    const opts = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
+    try {
+      const res = await fetchWithTimeout(url, opts, 120000);
+      const txt = await res.text();
+      let j; try { j = JSON.parse(txt); } catch { j = null; }
+      if (!res.ok) {
+        const detail = j && j.error ? JSON.stringify(j.error).slice(0, 300) : txt.slice(0, 300);
+        return { ok: false, status: res.status, error: `模型返回 ${res.status}: ${detail}` };
+      }
+      const b64 = j && j.predictions && j.predictions[0] && j.predictions[0].bytesBase64Encoded || '';
+      if (!b64) return { ok: false, status: res.status, error: '模型未返回图片', raw: txt.slice(0, 300) };
+      const imgUrl = 'data:image/png;base64,' + b64;
+      return { ok: true, url: imgUrl, markdown: `![AI生成图片](${imgUrl})` };
+    } catch (e) {
+      return { ok: false, status: 0, error: e.name === 'AbortError' ? '请求超时' : (e.message || String(e)) };
+    }
+  }
+  return { ok: false, error: '该 API 类型暂不支持文生图: ' + m.apiType };
+}
+/* 生成图片：body { id, prompt, size? } */
+app.post('/api/ai/generate-image', auth, async (req, res) => {
+  const b = req.body || {};
+  if (!b.id) return res.status(400).json({ error: '请选择模型' });
+  const m = db.prepare('SELECT * FROM ai_models WHERE id = ?').get(+b.id);
+  if (!m) return res.status(404).json({ error: '模型不存在' });
+  if (m.modelType !== 'image') return res.status(400).json({ error: '该模型不是文生图模型' });
+  const prompt = String(b.prompt || '').trim();
+  if (!prompt) return res.status(400).json({ error: '请输入提示词' });
+  const r = await callImageModel(m, prompt, { size: b.size });
+  res.json(r);
+});
+
 
 
 
