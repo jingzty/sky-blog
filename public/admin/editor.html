@@ -440,7 +440,7 @@
     const imgStatus = document.getElementById('imgStatus');
     const imgResultWrap = document.getElementById('imgResultWrap');
     const imgPreview = document.getElementById('imgPreview');
-    const imgUrl = document.getElementById('imgUrl');
+    const imgUrlInput = document.getElementById('imgUrl');
     let imgModels = [];
 
     (async function loadImgModels() {
@@ -473,7 +473,7 @@
         const r = await API.aiGenerateImage({ id, prompt, size: size || undefined });
         if (r.ok && r.url) {
           imgPreview.src = r.url;
-          imgUrl.value = r.url;
+          imgUrlInput.value = r.url;
           imgResultWrap.classList.remove('hidden');
           imgStatus.textContent = '生成完成';
         } else {
@@ -490,20 +490,20 @@
     imgGenBtn.addEventListener('click', imgGenerate);
 
     document.getElementById('imgToCoverBtn').addEventListener('click', () => {
-      const u = imgUrl.value.trim();
+      const u = imgUrlInput.value.trim();
       if (!u) return Admin.toast('没有可用的图片地址');
       document.getElementById('cover').value = u;
       showCoverPreview(u);
       Admin.toast('已填入封面');
     });
     document.getElementById('imgInsertBtn').addEventListener('click', () => {
-      const u = imgUrl.value.trim();
+      const u = imgUrlInput.value.trim();
       if (!u) return Admin.toast('没有可用的图片地址');
       insertToContent(`\n![AI生成图片](${u})\n`);
       Admin.toast('已插入正文');
     });
     document.getElementById('imgCopyBtn').addEventListener('click', () => {
-      imgUrl.select(); document.execCommand('copy'); Admin.toast('已复制图片地址');
+      imgUrlInput.select(); document.execCommand('copy'); Admin.toast('已复制图片地址');
     });
 
 
