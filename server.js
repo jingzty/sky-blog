@@ -66,6 +66,15 @@ const ST = {
   neighbors:  db.prepare(
     "SELECT id, title, date FROM posts WHERE status = 'pub' AND id <> ? ORDER BY date DESC"
   ),
+  /* 访问 IP 统计：不存在则插入，存在则 count+1 并刷新最近时间/路径 */
+  upsertIpVisit: db.prepare(
+    `INSERT INTO ip_visits (ip, count, firstTs, lastTs, lastPath)
+     VALUES (@ip, 1, @ts, @ts, @path)
+     ON CONFLICT(ip) DO UPDATE SET
+       count = count + 1,
+       lastTs = excluded.lastTs,
+       lastPath = excluded.lastPath`
+  ),
 };
 
 /* ---------- 工具 ---------- */
@@ -198,6 +207,21 @@ function banIp(ip) {
   bans.set(ip, Date.now() + banMinutes * 60000);
 }
 app.use(ipBanGuard);
+
+/* ---- 访问源 IP 记录 ----
+ * 只记录前台页面访问，排除后台(/admin)、接口(/api)和静态资源目录，
+ * 避免一次页面浏览触发多次 fetch 导致计数虚高。 */
+const VISIT_SKIP = /^\/(api|admin|css|js|images|vendor)\//i;
+app.use((req, res, next) => {
+  const p = req.path;
+  if (!VISIT_SKIP.test(p) && p !== '/favicon.ico') {
+    const ip = clientIp(req);
+    if (ip) {
+      try { ST.upsertIpVisit.run({ ip, ts: Date.now(), path: p }); } catch (e) { /* 统计失败不影响请求 */ }
+    }
+  }
+  next();
+});
 
 
 /* ---- 认证 ---- */
@@ -370,6 +394,22 @@ app.put('/api/config', auth, (req, res) => {
     if ('adminPass' in cfg) ins.run('adminPassHash', hashPwd(cfg.adminPass));
   });
   tx(req.body || {});
+  res.json({ ok: true });
+});
+
+/* ---- 访问 IP 统计 ---- */
+/* GET：返回按访问次数倒序的 IP 列表 + 汇总（总访问量、独立 IP 数）。 */
+app.get('/api/visits', auth, (req, res) => {
+  const limit = Math.min(parseInt(req.query.limit, 10) || 20, 200);
+  const rows = db.prepare(
+    'SELECT ip, count, firstTs, lastTs, lastPath FROM ip_visits ORDER BY count DESC, lastTs DESC LIMIT ?'
+  ).all(limit);
+  const agg = db.prepare('SELECT COALESCE(SUM(count),0) AS total, COUNT(*) AS distinctCount FROM ip_visits').get();
+  res.json({ rows, total: agg.total, distinct: agg.distinctCount });
+});
+/* DELETE：清空访问统计。 */
+app.delete('/api/visits', auth, (req, res) => {
+  db.prepare('DELETE FROM ip_visits').run();
   res.json({ ok: true });
 });
 

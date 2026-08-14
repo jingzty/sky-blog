@@ -67,6 +67,10 @@ window.API = (function () {
     updateSecurity: d => request('PUT', '/api/security', d),
     unbanIp: ip => request('DELETE', '/api/security/bans/' + encodeURIComponent(ip)),
 
+    /* 访问 IP 统计 */
+    getVisits: (limit = 20) => request('GET', '/api/visits?limit=' + limit),
+    clearVisits: () => request('DELETE', '/api/visits'),
+
     /* AI 模型配置 */
     getAiModels: () => request('GET', '/api/ai-models'),
     createAiModel: d => request('POST', '/api/ai-models', d),

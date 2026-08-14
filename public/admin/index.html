@@ -85,6 +85,35 @@
           </ul>
         </div>
       </section>
+
+      <!-- 访问来源 IP 统计 -->
+      <section class="card p-5">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-2">
+            <i data-lucide="globe" class="w-5 h-5" style="color: var(--warm-brand-600);"></i>
+            <h2 class="text-h3" style="color: var(--warm-ink);">访问来源</h2>
+            <span class="text-caption" style="color: var(--warm-ink-3);" id="visit-summary"></span>
+          </div>
+          <button id="clear-visits" class="btn-secondary px-3 py-1.5 text-xs flex items-center gap-1" style="color: var(--warm-ink-3);">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>清空
+          </button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm" id="visit-table">
+            <thead>
+              <tr style="border-bottom: 1px solid var(--warm-line);">
+                <th class="text-left py-2 px-3 text-caption font-medium" style="color: var(--warm-ink-3);">IP 地址</th>
+                <th class="text-right py-2 px-3 text-caption font-medium" style="color: var(--warm-ink-3);">访问次数</th>
+                <th class="text-left py-2 px-3 text-caption font-medium" style="color: var(--warm-ink-3);">最近路径</th>
+                <th class="text-right py-2 px-3 text-caption font-medium" style="color: var(--warm-ink-3);">最近访问</th>
+              </tr>
+            </thead>
+            <tbody id="visit-body">
+              <tr><td colspan="4" class="py-4 text-center text-sm" style="color: var(--warm-ink-3);">加载中…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
     </div>
   </main>
 
@@ -139,6 +168,47 @@
             </li>`).join('');
         }
         lucide.createIcons();
+
+        /* 访问来源 IP 统计 */
+        const fmtTs = ts => {
+          const d = new Date(ts);
+          const pad = n => String(n).padStart(2, '0');
+          return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate())
+               + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+        };
+        async function loadVisits() {
+          try {
+            const v = await API.getVisits(15);
+            document.getElementById('visit-summary').textContent =
+              `· 独立 IP ${v.distinct} 个，总访问 ${v.total} 次`;
+            const tb = document.getElementById('visit-body');
+            if (!v.rows.length) {
+              tb.innerHTML = `<tr><td colspan="4" class="py-4 text-center text-sm" style="color: var(--warm-ink-3);">暂无访问记录</td></tr>`;
+              return;
+            }
+            tb.innerHTML = v.rows.map((r, i) => `
+              <tr style="border-bottom: 1px solid var(--warm-line);">
+                <td class="py-2 px-3 font-mono" style="color: var(--warm-ink);">${esc(r.ip)}</td>
+                <td class="py-2 px-3 text-right tabular-nums font-semibold" style="color: var(--warm-brand-600);">${r.count}</td>
+                <td class="py-2 px-3 font-mono text-xs truncate max-w-[200px]" style="color: var(--warm-ink-3);" title="${esc(r.lastPath)}">${esc(r.lastPath)}</td>
+                <td class="py-2 px-3 text-right text-xs" style="color: var(--warm-ink-3);">${fmtTs(r.lastTs)}</td>
+              </tr>`).join('');
+          } catch (e) {
+            document.getElementById('visit-body').innerHTML =
+              `<tr><td colspan="4" class="py-4 text-center text-sm" style="color: var(--warm-state-error);">加载失败</td></tr>`;
+          }
+        }
+        loadVisits();
+        document.getElementById('clear-visits').addEventListener('click', async () => {
+          if (!confirm('确定清空所有访问统计？此操作不可撤销。')) return;
+          try {
+            await API.clearVisits();
+            loadVisits();
+            Admin.toast('已清空访问统计', 'success');
+          } catch (e) {
+            Admin.toast('清空失败: ' + e.message);
+          }
+        });
       } catch (e) {
         Admin.toast('加载失败: ' + e.message);
       }
