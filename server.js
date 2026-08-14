@@ -30,7 +30,11 @@ const DB = path.join(__dirname, 'data', 'app.db');
 fs.mkdirSync(path.dirname(DB), { recursive: true });
 const db = new Database(DB);
 db.pragma('journal_mode = WAL');
-db.exec(fs.readFileSync(path.join(__dirname, 'migrations', '001_init.sql'), 'utf8'));
+// 自动执行 migrations 目录下所有 .sql（按文件名排序），便于增量建表
+const migrationsDir = path.join(__dirname, 'migrations');
+for (const f of fs.readdirSync(migrationsDir).filter(n => n.endsWith('.sql')).sort()) {
+  db.exec(fs.readFileSync(path.join(migrationsDir, f), 'utf8'));
+}
 
 /* ---------- 种子 ---------- */
 if (SEED && db.prepare('SELECT COUNT(*) c FROM posts').get().c === 0) {
@@ -400,6 +404,167 @@ app.delete('/api/security/bans/:ip', auth, (req, res) => {
   loginFails.delete(ip);
   res.json({ ok: true, ip });
 });
+
+/* ============ AI 模型配置 ============ */
+/* 设计说明：
+ * - ai_models 表存多模型配置（供应商/Base URL/Key/协议类型/模型类型/模型ID/显示名）。
+ * - apiKey 仅服务端使用；列表接口对外脱敏（只返末 4 位），避免明文泄漏到前端。
+ * - 新增/更新时 apiKey 为空表示“保留旧值”（便于编辑其他字段而不重输密钥）。
+ * - 测试连接：文本模型发一次极简推理请求验证协议+鉴权；
+ *   文生图模型走 models 列表接口做轻量鉴权校验（不真正生图，避免消耗配额）。
+ */
+const AI_API_TYPES = ['openai-completions', 'openai-responses', 'anthropic-messages', 'google-generative-ai'];
+const AI_MODEL_TYPES = ['text', 'image'];
+
+const aiNow = () => new Date().toISOString();
+/* 脱敏：仅保留末 4 位，前面用 · 填充；空则空串 */
+function maskKey(k) {
+  if (!k) return '';
+  const s = String(k);
+  if (s.length <= 4) return '····';
+  return '·'.repeat(Math.min(12, s.length - 4)) + s.slice(-4);
+}
+function aiRow(r) {
+  return {
+    id: r.id, provider: r.provider, baseUrl: r.baseUrl,
+    apiKeyMasked: maskKey(r.apiKey), hasApiKey: !!r.apiKey,
+    apiType: r.apiType, modelType: r.modelType,
+    modelId: r.modelId, displayName: r.displayName,
+    createdAt: r.createdAt, updatedAt: r.updatedAt,
+  };
+}
+
+app.get('/api/ai-models', auth, (req, res) => {
+  const rows = db.prepare('SELECT * FROM ai_models ORDER BY modelType ASC, id ASC').all();
+  res.json(rows.map(aiRow));
+});
+
+app.post('/api/ai-models', auth, (req, res) => {
+  const b = req.body || {};
+  if (!b.provider) return res.status(400).json({ error: '请填写供应商名称' });
+  if (!b.modelId) return res.status(400).json({ error: '请填写模型 ID' });
+  if (!AI_API_TYPES.includes(b.apiType)) return res.status(400).json({ error: 'API 类型不合法' });
+  const modelType = AI_MODEL_TYPES.includes(b.modelType) ? b.modelType : 'text';
+  const now = aiNow();
+  const r = db.prepare(
+    'INSERT INTO ai_models (provider,baseUrl,apiKey,apiType,modelType,modelId,displayName,createdAt,updatedAt) VALUES (?,?,?,?,?,?,?,?,?)'
+  ).run(String(b.provider).trim(), String(b.baseUrl || '').trim(), String(b.apiKey || '').trim(),
+        b.apiType, modelType, String(b.modelId).trim(), String(b.displayName || '').trim(), now, now);
+  res.json({ id: r.lastInsertRowid });
+});
+
+app.put('/api/ai-models/:id', auth, (req, res) => {
+  const ex = db.prepare('SELECT * FROM ai_models WHERE id = ?').get(+req.params.id);
+  if (!ex) return res.status(404).json({ error: '模型不存在' });
+  const b = req.body || {};
+  if (b.apiType && !AI_API_TYPES.includes(b.apiType)) return res.status(400).json({ error: 'API 类型不合法' });
+  if (b.modelType && !AI_MODEL_TYPES.includes(b.modelType)) return res.status(400).json({ error: '模型类型不合法' });
+  // apiKey 为空表示保留旧值
+  const apiKey = (b.apiKey && String(b.apiKey).trim()) ? String(b.apiKey).trim() : ex.apiKey;
+  db.prepare(
+    'UPDATE ai_models SET provider=?,baseUrl=?,apiKey=?,apiType=?,modelType=?,modelId=?,displayName=?,updatedAt=? WHERE id=?'
+  ).run(
+    b.provider != null ? String(b.provider).trim() : ex.provider,
+    b.baseUrl != null ? String(b.baseUrl).trim() : ex.baseUrl,
+    apiKey,
+    b.apiType || ex.apiType,
+    b.modelType || ex.modelType,
+    b.modelId != null ? String(b.modelId).trim() : ex.modelId,
+    b.displayName != null ? String(b.displayName).trim() : ex.displayName,
+    aiNow(), +req.params.id
+  );
+  res.json({ ok: true });
+});
+
+app.delete('/api/ai-models/:id', auth, (req, res) => {
+  db.prepare('DELETE FROM ai_models WHERE id=?').run(+req.params.id);
+  res.json({ ok: true });
+});
+
+/* 测试连接：依据 apiType + modelType 发一次极简请求验证鉴权与协议是否可用。
+ * 超时 20s；成功返回 {ok:true, detail}，失败返回 {ok:false, detail, status}。
+ */
+function joinBase(baseUrl, tail) {
+  let base = String(baseUrl || '').trim().replace(/\/+$/, '');
+  if (!base) return tail;
+  // base 已含 /v1 等前缀时直接拼接，否则补 /v1（OpenAI/Anthropic 约定）
+  return base + tail;
+}
+async function fetchWithTimeout(url, opts = {}, ms = 20000) {
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), ms);
+  try { return await fetch(url, { ...opts, signal: ctl.signal }); }
+  finally { clearTimeout(t); }
+}
+async function bodySnippet(res) {
+  try { const t = await res.text(); return t.slice(0, 500); }
+  catch { return ''; }
+}
+async function testAiConnection(m) {
+  const base = String(m.baseUrl || '').trim();
+  const key = m.apiKey || '';
+  const modelId = m.modelId;
+  const isText = m.modelType !== 'image';
+  let url, opts = { headers: {}, method: 'GET' };
+  if (isText) {
+    // 文本模型：发一次极简推理
+    if (m.apiType === 'openai-completions') {
+      url = joinBase(base, '/v1/chat/completions');
+      opts = { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+        body: JSON.stringify({ model: modelId, messages: [{ role: 'user', content: 'ping' }], max_tokens: 5 }) };
+    } else if (m.apiType === 'openai-responses') {
+      url = joinBase(base, '/v1/responses');
+      opts = { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+        body: JSON.stringify({ model: modelId, input: 'ping' }) };
+    } else if (m.apiType === 'anthropic-messages') {
+      url = joinBase(base, '/v1/messages');
+      opts = { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+        body: JSON.stringify({ model: modelId, messages: [{ role: 'user', content: 'ping' }], max_tokens: 5 }) };
+    } else { // google-generative-ai
+      url = joinBase(base, `/v1beta/models/${encodeURIComponent(modelId)}:generateContent?key=${encodeURIComponent(key)}`);
+      opts = { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: 'ping' }] }] }) };
+    }
+  } else {
+    // 文生图模型：走 models 列表做轻量鉴权（不真正生图，避免消耗配额/费用）
+    if (m.apiType === 'anthropic-messages') {
+      url = joinBase(base, '/v1/models');
+      opts = { method: 'GET', headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01' } };
+    } else if (m.apiType === 'google-generative-ai') {
+      url = joinBase(base, `/v1beta/models?key=${encodeURIComponent(key)}`);
+      opts = { method: 'GET', headers: {} };
+    } else { // openai-completions / openai-responses
+      url = joinBase(base, '/v1/models');
+      opts = { method: 'GET', headers: { Authorization: `Bearer ${key}` } };
+    }
+  }
+  try {
+    const res = await fetchWithTimeout(url, opts);
+    const detail = await bodySnippet(res);
+    if (res.ok) return { ok: true, status: res.status, detail };
+    return { ok: false, status: res.status, detail };
+  } catch (e) {
+    return { ok: false, status: 0, detail: e.name === 'AbortError' ? '请求超时' : (e.message || String(e)) };
+  }
+}
+app.post('/api/ai-models/:id/test', auth, async (req, res) => {
+  const m = db.prepare('SELECT * FROM ai_models WHERE id = ?').get(+req.params.id);
+  if (!m) return res.status(404).json({ error: '模型不存在' });
+  const r = await testAiConnection(m);
+  res.json(r);
+});
+/* 针对尚未保存的表单数据做即时测试（新增模型前先验证） */
+app.post('/api/ai-models/test', auth, async (req, res) => {
+  const b = req.body || {};
+  if (!b.modelId) return res.status(400).json({ error: '请填写模型 ID' });
+  if (!AI_API_TYPES.includes(b.apiType)) return res.status(400).json({ error: 'API 类型不合法' });
+  const modelType = AI_MODEL_TYPES.includes(b.modelType) ? b.modelType : 'text';
+  const r = await testAiConnection({
+    baseUrl: b.baseUrl, apiKey: b.apiKey, apiType: b.apiType, modelType, modelId: b.modelId,
+  });
+  res.json(r);
+});
+
 
 app.get('/api/search', (req, res) => {
   const q = (req.query.q || '').trim();

@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 配置 — 远远的天空</title>
+  <link rel="stylesheet" href="../css/admin.css">
+  <script src="../js/vendor/tailwind4.js"></script>
+  <script src="../js/vendor/lucide.js"></script>
+  <style type="text/tailwindcss">
+    @theme inline {
+      --color-warm-bg: var(--warm-bg); --color-warm-surface: var(--warm-surface);
+      --color-warm-surface-2: var(--warm-surface-2); --color-warm-surface-3: var(--warm-surface-3);
+      --color-warm-ink: var(--warm-ink); --color-warm-ink-2: var(--warm-ink-2); --color-warm-ink-3: var(--warm-ink-3);
+      --color-warm-brand: var(--warm-brand); --color-warm-brand-50: var(--warm-brand-50);
+      --color-warm-brand-100: var(--warm-brand-100); --color-warm-brand-300: var(--warm-brand-300);
+      --color-warm-brand-500: var(--warm-brand-500); --color-warm-brand-600: var(--warm-brand-600);
+      --color-warm-line: var(--warm-line);
+      --color-warm-state-success: var(--warm-state-success); --color-warm-state-warning: var(--warm-state-warning);
+      --color-warm-state-error: var(--warm-state-error); --color-warm-state-info: var(--warm-state-info);
+      --radius-warm-md: var(--warm-radius-medium); --radius-warm-lg: var(--warm-radius-large);
+    }
+  </style>
+</head>
+<body class="min-h-screen" data-page="ai">
+  <div id="sidebar-slot"></div>
+
+  <main class="admin-main ml-[240px] min-h-screen p-8">
+    <header class="mb-8 flex items-start justify-between">
+      <div>
+        <h1 class="text-h1 mb-1" style="color: var(--warm-ink);">AI 配置</h1>
+        <p class="text-body" style="color: var(--warm-ink-2);">管理大模型供应商与接口凭据，支持文本模型与文生图模型</p>
+      </div>
+      <button id="addBtn" class="btn-primary flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium">
+        <i data-lucide="plus" class="w-4 h-4"></i><span>添加模型</span>
+      </button>
+    </header>
+
+    <div class="space-y-6 max-w-5xl">
+      <!-- 模型表单（新增/编辑共用，默认隐藏） -->
+      <section id="formCard" class="card p-6 hidden">
+        <div class="flex items-center gap-2 mb-2">
+          <i data-lucide="bot" class="w-5 h-5" style="color: var(--warm-brand);"></i>
+          <h2 id="formTitle" class="text-h3" style="color: var(--warm-ink);">添加模型</h2>
+        </div>
+        <p class="text-body mb-6" style="color: var(--warm-ink-2);">填写供应商信息与模型参数；API Key 仅服务端保存，不会明文回显</p>
+
+        <form id="modelForm" class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+          <input type="hidden" id="fId" value="">
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-medium" style="color: var(--warm-ink-2);">
+              <span class="flex items-center gap-1.5"><i data-lucide="server" class="w-3.5 h-3.5"></i> 供应商名称</span>
+            </label>
+            <input type="text" id="fProvider" class="input-field px-4 py-2.5 rounded-lg text-sm" placeholder="如 OpenAI / Anthropic / Google / 自建中转">
+          </div>
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-medium" style="color: var(--warm-ink-2);">
+              <span class="flex items-center gap-1.5"><i data-lucide="tag" class="w-3.5 h-3.5"></i> 显示名称</span>
+            </label>
+            <input type="text" id="fDisplayName" class="input-field px-4 py-2.5 rounded-lg text-sm" placeholder="展示给用户的名字，如 GPT-4o">
+          </div>
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-medium" style="color: var(--warm-ink-2);">
+              <span class="flex items-center gap-1.5"><i data-lucide="boxes" class="w-3.5 h-3.5"></i> 模型类型</span>
+            </label>
+            <select id="fModelType" class="input-field px-4 py-2.5 rounded-lg text-sm">
+              <option value="text">文本模型</option>
+              <option value="image">文生图模型</option>
+            </select>
+          </div>
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-medium" style="color: var(--warm-ink-2);">
+              <span class="flex items-center gap-1.5"><i data-lucide="plug" class="w-3.5 h-3.5"></i> API 类型</span>
+            </label>
+            <select id="fApiType" class="input-field px-4 py-2.5 rounded-lg text-sm">
+              <option value="openai-completions">openai-completions · /v1/chat/completions</option>
+              <option value="openai-responses">openai-responses · /v1/responses</option>
+              <option value="anthropic-messages">anthropic-messages · /v1/messages</option>
+              <option value="google-generative-ai">google-generative-ai · generateContent</option>
+            </select>
+          </div>
+          <div class="flex flex-col gap-2 md:col-span-2">
+            <label class="text-sm font-medium" style="color: var(--warm-ink-2);">
+              <span class="flex items-center gap-1.5"><i data-lucide="link" class="w-3.5 h-3.5"></i> Base URL</span>
+            </label>
+            <input type="text" id="fBaseUrl" class="input-field px-4 py-2.5 rounded-lg text-sm" placeholder="如 https://api.openai.com（不含 /v1 后缀）">
+          </div>
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-medium" style="color: var(--warm-ink-2);">
+              <span class="flex items-center gap-1.5"><i data-lucide="key-round" class="w-3.5 h-3.5"></i> API Key</span>
+            </label>
+            <input type="password" id="fApiKey" class="input-field px-4 py-2.5 rounded-lg text-sm" placeholder="编辑时留空表示不修改">
+          </div>
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-medium" style="color: var(--warm-ink-2);">
+              <span class="flex items-center gap-1.5"><i data-lucide="cpu" class="w-3.5 h-3.5"></i> 模型 ID</span>
+            </label>
+            <input type="text" id="fModelId" class="input-field px-4 py-2.5 rounded-lg text-sm" placeholder="如 gpt-4o / claude-3-5-sonnet / gemini-1.5-pro / dall-e-3">
+          </div>
+
+          <!-- 测试结果回显 -->
+          <div id="testResult" class="md:col-span-2 hidden text-sm rounded-lg px-4 py-3"></div>
+
+          <div class="md:col-span-2 flex flex-wrap items-center gap-3 pt-1">
+            <button type="button" id="saveBtn" class="btn-primary flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium">
+              <i data-lucide="save" class="w-4 h-4"></i><span>保存模型</span>
+            </button>
+            <button type="button" id="testBtn" class="btn-secondary flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium">
+              <i data-lucide="zap" class="w-4 h-4"></i><span>测试连接</span>
+            </button>
+            <button type="button" id="cancelBtn" class="btn-secondary flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium">
+              <i data-lucide="x" class="w-4 h-4"></i><span>取消</span>
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <!-- 模型列表 -->
+      <section class="card p-6">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-2">
+            <i data-lucide="boxes" class="w-5 h-5" style="color: var(--warm-brand);"></i>
+            <h2 class="text-h3" style="color: var(--warm-ink);">已配置模型</h2>
+          </div>
+          <span id="modelCount" class="text-sm" style="color: var(--warm-ink-2);"></span>
+        </div>
+        <div id="modelList" class="flex flex-col gap-3"></div>
+        <div id="modelEmpty" class="text-sm py-6 text-center" style="color: var(--warm-ink-3);">尚未配置任何模型，点击右上角「添加模型」开始</div>
+      </section>
+
+      <!-- 说明 -->
+      <section class="card p-6">
+        <div class="flex items-center gap-2 mb-4">
+          <i data-lucide="circle-alert" class="w-5 h-5" style="color: var(--warm-brand);"></i>
+          <h2 class="text-h3" style="color: var(--warm-ink);">API 类型说明</h2>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm" style="color: var(--warm-ink-2);">
+          <div class="p-3 rounded-lg" style="background: var(--warm-surface-2);">
+            <div class="font-medium mb-1" style="color: var(--warm-ink);">openai-completions</div>
+            <div>端点 <code>/v1/chat/completions</code>，OpenAI 标准对话接口，兼容大多数第三方中转。</div>
+          </div>
+          <div class="p-3 rounded-lg" style="background: var(--warm-surface-2);">
+            <div class="font-medium mb-1" style="color: var(--warm-ink);">openai-responses</div>
+            <div>端点 <code>/v1/responses</code>，OpenAI 全新一代原生接口。</div>
+          </div>
+          <div class="p-3 rounded-lg" style="background: var(--warm-surface-2);">
+            <div class="font-medium mb-1" style="color: var(--warm-ink);">anthropic-messages</div>
+            <div>端点 <code>/v1/messages</code>，Claude 原生协议。</div>
+          </div>
+          <div class="p-3 rounded-lg" style="background: var(--warm-surface-2);">
+            <div class="font-medium mb-1" style="color: var(--warm-ink);">google-generative-ai</div>
+            <div>Gemini 原生接口 <code>generateContent</code>。</div>
+          </div>
+        </div>
+        <p class="text-xs mt-4" style="color: var(--warm-ink-3);">提示：测试连接时，文本模型会发送一次极简推理请求；文生图模型仅校验鉴权（不真正生图，避免消耗配额）。</p>
+      </section>
+    </div>
+  </main>
+
+  <script src="../js/api.js"></script>
+  <script src="../js/ui.js"></script>
+  <script src="../js/admin.js"></script>
+  <script>
+    if (!API.isAuthed()) window.location.href = '../login.html';
+
+    const esc = Admin.esc;
+    const API_TYPES = {
+      'openai-completions': 'openai-completions',
+      'openai-responses': 'openai-responses',
+      'anthropic-messages': 'anthropic-messages',
+      'google-generative-ai': 'google-generative-ai',
+    };
+    const TYPE_LABEL = { text: '文本模型', image: '文生图' };
+    const TYPE_BADGE = { text: 'status-pub', image: 'status-draft' };
+
+    let allModels = [];
+
+    /* ---- 表单 ---- */
+    const formCard = document.getElementById('formCard');
+    const formTitle = document.getElementById('formTitle');
+    const testResult = document.getElementById('testResult');
+
+    function resetForm() {
+      document.getElementById('fId').value = '';
+      ['fProvider','fDisplayName','fBaseUrl','fApiKey','fModelId'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('fModelType').value = 'text';
+      document.getElementById('fApiType').value = 'openai-completions';
+      hideTestResult();
+    }
+    function openAdd() {
+      resetForm();
+      formTitle.textContent = '添加模型';
+      formCard.classList.remove('hidden');
+      formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document.getElementById('fProvider').focus();
+    }
+    function openEdit(m) {
+      resetForm();
+      formTitle.textContent = '编辑模型';
+      document.getElementById('fId').value = m.id;
+      document.getElementById('fProvider').value = m.provider || '';
+      document.getElementById('fDisplayName').value = m.displayName || '';
+      document.getElementById('fModelType').value = m.modelType || 'text';
+      document.getElementById('fApiType').value = m.apiType || 'openai-completions';
+      document.getElementById('fBaseUrl').value = m.baseUrl || '';
+      document.getElementById('fModelId').value = m.modelId || '';
+      // 编辑时 apiKey 留空 = 不改；placeholder 提示已保存
+      const ak = document.getElementById('fApiKey');
+      ak.placeholder = m.hasApiKey ? `已保存 ${m.apiKeyMasked}，留空不修改` : '输入 API Key';
+      formCard.classList.remove('hidden');
+      formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    function closeForm() { formCard.classList.add('hidden'); resetForm(); }
+
+    function formDraft() {
+      return {
+        id: document.getElementById('fId').value || '',
+        provider: document.getElementById('fProvider').value.trim(),
+        displayName: document.getElementById('fDisplayName').value.trim(),
+        modelType: document.getElementById('fModelType').value,
+        apiType: document.getElementById('fApiType').value,
+        baseUrl: document.getElementById('fBaseUrl').value.trim(),
+        apiKey: document.getElementById('fApiKey').value.trim(),
+        modelId: document.getElementById('fModelId').value.trim(),
+      };
+    }
+
+    function showTestResult(ok, detail, status) {
+      testResult.classList.remove('hidden');
+      const color = ok ? 'var(--warm-state-success)' : 'var(--warm-state-error)';
+      const bg = ok ? 'var(--warm-state-success-bg)' : 'var(--warm-state-error-bg)';
+      const icon = ok ? 'circle-check' : 'circle-x';
+      const head = ok ? '连接成功' : `连接失败${status ? '（HTTP ' + status + '）' : ''}`;
+      testResult.style.color = color; testResult.style.background = bg;
+      const det = detail ? `<div class="mt-1 font-mono text-xs break-all" style="opacity:.85">${esc(detail)}</div>` : '';
+      testResult.innerHTML = `<div class="flex items-center gap-2"><i data-lucide="${icon}" class="w-4 h-4"></i><span class="font-medium">${head}</span></div>${det}`;
+      if (window.lucide) window.lucide.createIcons();
+    }
+    function hideTestResult() { testResult.classList.add('hidden'); testResult.innerHTML = ''; }
+
+    document.getElementById('addBtn').onclick = openAdd;
+    document.getElementById('cancelBtn').onclick = closeForm;
+
+    document.getElementById('saveBtn').onclick = async () => {
+      const d = formDraft();
+      if (!d.provider) return Admin.toast('请填写供应商名称');
+      if (!d.modelId) return Admin.toast('请填写模型 ID');
+      if (!d.id && !d.apiKey) return Admin.toast('请填写 API Key');
+      const payload = { provider: d.provider, displayName: d.displayName, modelType: d.modelType, apiType: d.apiType, baseUrl: d.baseUrl, modelId: d.modelId };
+      if (d.apiKey) payload.apiKey = d.apiKey;
+      try {
+        if (d.id) { await API.updateAiModel(d.id, payload); Admin.toast('模型已更新'); }
+        else { await API.createAiModel(payload); Admin.toast('模型已添加'); }
+        closeForm(); load();
+      } catch (e) { Admin.toast('保存失败: ' + e.message); }
+    };
+
+    document.getElementById('testBtn').onclick = async () => {
+      const d = formDraft();
+      if (!d.modelId) return Admin.toast('请填写模型 ID');
+      if (!d.id && !d.apiKey) return Admin.toast('请填写 API Key');
+      hideTestResult();
+      const btn = document.getElementById('testBtn');
+      const old = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i><span>测试中…</span>';
+      if (window.lucide) window.lucide.createIcons();
+      try {
+        // 若有未保存的 apiKey 优先用之；否则用已保存模型测试接口
+        let r;
+        if (d.id && !d.apiKey) {
+          r = await API.testAiModel(d.id);
+        } else {
+          r = await API.testAiModelDraft({ provider: d.provider, displayName: d.displayName, modelType: d.modelType, apiType: d.apiType, baseUrl: d.baseUrl, apiKey: d.apiKey, modelId: d.modelId });
+        }
+        showTestResult(r.ok, r.detail, r.status);
+      } catch (e) {
+        showTestResult(false, e.message || String(e));
+      } finally {
+        btn.disabled = false; btn.innerHTML = old; if (window.lucide) window.lucide.createIcons();
+      }
+    };
+
+    /* ---- 列表 ---- */
+    async function load() {
+      try {
+        allModels = await API.getAiModels();
+        render();
+      } catch (e) { Admin.toast('加载失败: ' + e.message); }
+    }
+
+    function render() {
+      const el = document.getElementById('modelList');
+      const empty = document.getElementById('modelEmpty');
+      document.getElementById('modelCount').textContent = allModels.length ? `共 ${allModels.length} 个` : '';
+      if (!allModels.length) { el.innerHTML = ''; empty.classList.remove('hidden'); return; }
+      empty.classList.add('hidden');
+      el.innerHTML = allModels.map(m => `
+        <div class="p-4 rounded-lg flex flex-col gap-3" style="background: var(--warm-surface-2); border: 1px solid var(--warm-line);" data-id="${m.id}">
+          <div class="flex items-start justify-between gap-3 flex-wrap">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style="background: var(--warm-brand-50);">
+                <i data-lucide="${m.modelType === 'image' ? 'image' : 'bot'}" class="w-5 h-5" style="color: var(--warm-brand);"></i>
+              </div>
+              <div class="min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="font-medium" style="color: var(--warm-ink);">${esc(m.displayName || m.modelId)}</span>
+                  <span class="status-badge ${TYPE_BADGE[m.modelType] || 'status-pub'}">${TYPE_LABEL[m.modelType] || m.modelType}</span>
+                </div>
+                <div class="text-xs mt-0.5" style="color: var(--warm-ink-3);">
+                  <span class="font-mono">${esc(m.modelId)}</span> · ${esc(m.provider)}
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <button class="btn-secondary inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium act-test">
+                <i data-lucide="zap" class="w-3.5 h-3.5"></i>测试
+              </button>
+              <button class="btn-secondary inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium act-edit">
+                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>编辑
+              </button>
+              <button class="btn-danger inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium act-del">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>删除
+              </button>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs" style="color: var(--warm-ink-2);">
+            <div class="flex items-center gap-1.5 min-w-0"><i data-lucide="plug" class="w-3.5 h-3.5 shrink-0"></i><span class="truncate" title="${esc(m.apiType)}">${esc(API_TYPES[m.apiType] || m.apiType)}</span></div>
+            <div class="flex items-center gap-1.5 min-w-0"><i data-lucide="link" class="w-3.5 h-3.5 shrink-0"></i><span class="truncate" title="${esc(m.baseUrl)}">${esc(m.baseUrl || '—')}</span></div>
+            <div class="flex items-center gap-1.5 min-w-0"><i data-lucide="key-round" class="w-3.5 h-3.5 shrink-0"></i><span class="font-mono truncate">${m.hasApiKey ? esc(m.apiKeyMasked) : '未设置'}</span></div>
+          </div>
+          <div class="row-test text-sm rounded-lg px-3 py-2 hidden"></div>
+        </div>`).join('');
+      if (window.lucide) window.lucide.createIcons();
+      bindRowEvents();
+    }
+
+    function bindRowEvents() {
+      document.querySelectorAll('#modelList .act-edit').forEach(b => b.onclick = () => {
+        const id = +b.closest('[data-id]').dataset.id;
+        const m = allModels.find(x => x.id === id);
+        if (m) openEdit(m);
+      });
+      document.querySelectorAll('#modelList .act-del').forEach(b => b.onclick = async () => {
+        const id = +b.closest('[data-id]').dataset.id;
+        if (!await UI.confirm('确定删除这个模型配置？')) return;
+        try { await API.deleteAiModel(id); Admin.toast('已删除'); load(); }
+        catch (e) { Admin.toast('删除失败: ' + e.message); }
+      });
+      document.querySelectorAll('#modelList .act-test').forEach(b => b.onclick = async () => {
+        const row = b.closest('[data-id]');
+        const id = +row.dataset.id;
+        const slot = row.querySelector('.row-test');
+        const btn = b;
+        const old = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i data-lucide="loader" class="w-3.5 h-3.5 animate-spin"></i>测试中';
+        if (window.lucide) window.lucide.createIcons();
+        slot.classList.add('hidden'); slot.innerHTML = '';
+        try {
+          const r = await API.testAiModel(id);
+          slot.classList.remove('hidden');
+          const color = r.ok ? 'var(--warm-state-success)' : 'var(--warm-state-error)';
+          const bg = r.ok ? 'var(--warm-state-success-bg)' : 'var(--warm-state-error-bg)';
+          const icon = r.ok ? 'circle-check' : 'circle-x';
+          const head = r.ok ? '连接成功' : `连接失败${r.status ? '（HTTP ' + r.status + '）' : ''}`;
+          slot.style.color = color; slot.style.background = bg;
+          const det = r.detail ? `<div class="mt-1 font-mono text-xs break-all" style="opacity:.85">${esc(r.detail)}</div>` : '';
+          slot.innerHTML = `<div class="flex items-center gap-2"><i data-lucide="${icon}" class="w-4 h-4"></i><span class="font-medium">${head}</span></div>${det}`;
+          if (window.lucide) window.lucide.createIcons();
+        } catch (e) {
+          slot.classList.remove('hidden');
+          slot.style.color = 'var(--warm-state-error)'; slot.style.background = 'var(--warm-state-error-bg)';
+          slot.textContent = '测试失败: ' + (e.message || String(e));
+        } finally {
+          btn.disabled = false; btn.innerHTML = old; if (window.lucide) window.lucide.createIcons();
+        }
+      });
+    }
+
+    load();
+  </script>
+</body>
+</html>

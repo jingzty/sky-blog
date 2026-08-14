@@ -67,6 +67,15 @@ window.API = (function () {
     updateSecurity: d => request('PUT', '/api/security', d),
     unbanIp: ip => request('DELETE', '/api/security/bans/' + encodeURIComponent(ip)),
 
+    /* AI 模型配置 */
+    getAiModels: () => request('GET', '/api/ai-models'),
+    createAiModel: d => request('POST', '/api/ai-models', d),
+    updateAiModel: (id, d) => request('PUT', '/api/ai-models/' + id, d),
+    deleteAiModel: id => request('DELETE', '/api/ai-models/' + id),
+    testAiModel: id => request('POST', '/api/ai-models/' + id + '/test'),
+    testAiModelDraft: d => request('POST', '/api/ai-models/test', d),
+
+
     /* 搜索 */
     search: q => request('GET', '/api/search?q=' + encodeURIComponent(q)),
   };
