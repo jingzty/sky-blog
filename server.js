@@ -613,7 +613,7 @@ async function callTextModel(m, prompt, { maxTokens = 2048, temperature } = {}) 
     return { ok: false, error: '不支持的 API 类型: ' + m.apiType };
   }
   try {
-    const res = await fetchWithTimeout(url, opts, 60000);
+    const res = await fetchWithTimeout(url, opts, 120000);
     const txt = await res.text();
     let j; try { j = JSON.parse(txt); } catch { j = null; }
     if (!res.ok) {
