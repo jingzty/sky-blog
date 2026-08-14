@@ -67,7 +67,17 @@
       box.appendChild(frag);
     })();
 
-    if (API.isAuthed()) window.location.href = 'admin/index.html';
+    // 已登录才跳后台；但必须先验证 token 真有效，否则会与后台服务端守卫
+    // （看 cookie）形成死循环：login→admin→302→login。验证失败就清掉本地 token 留在登录页。
+    (async () => {
+      if (!API.isAuthed()) return;
+      try {
+        await API.check();
+        window.location.href = 'admin/index.html';
+      } catch (_) {
+        API.clearToken();
+      }
+    })();
 
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();

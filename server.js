@@ -614,6 +614,8 @@ app.use('/admin', (req, res, next) => {
   if (!isPage) return next();
   const t = parseCookies(req).admin_token || '';
   if (!t || !tokens.has(t)) {
+    // 顺手清掉失效 cookie，避免浏览器持续带无效 cookie 撞守卫
+    res.setHeader('Set-Cookie', 'admin_token=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0');
     return res.redirect(302, '/login.html');
   }
   next();
