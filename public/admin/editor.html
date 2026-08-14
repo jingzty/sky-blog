@@ -105,7 +105,7 @@
             <!-- 提示词 -->
             <div class="flex flex-col gap-2">
               <label class="text-caption" style="color: var(--warm-ink-2);">提示词</label>
-              <textarea id="aiPrompt" rows="3" class="input-field px-3 py-2.5 rounded-warm-md text-sm resize-none" placeholder="描述你想让 AI 写什么，例如：以《标题》为主题写一篇 800 字的散文，风格温柔治愈"></textarea>
+              <textarea id="aiPrompt" rows="3" class="input-field px-3 py-2.5 rounded-warm-md text-sm resize-none" placeholder="描述你想让 AI 写什么，例如：以《标题》为主题写一篇 800 字的散文，风格温柔治愈">以《标题》为主题写一篇800字的散文，风格温柔治愈</textarea>
             </div>
 
             <!-- 快捷模板 -->
@@ -123,7 +123,7 @@
                 <i data-lucide="sparkles" class="w-4 h-4"></i><span>生成</span>
               </button>
               <label class="flex items-center gap-2 text-caption" style="color: var(--warm-ink-2);">
-                <input type="number" id="aiMaxTokens" value="2048" min="64" max="8192" class="input-field px-2 py-1 rounded text-xs w-20">最大 token
+                <input type="number" id="aiMaxTokens" value="8192" min="64" max="8192" class="input-field px-2 py-1 rounded text-xs w-20">最大 token
               </label>
               <span id="aiStatus" class="text-caption" style="color: var(--warm-ink-3);"></span>
             </div>
@@ -414,7 +414,7 @@
       aiStatus.textContent = '调用模型中，请稍候…';
       aiResultWrap.classList.add('hidden');
       try {
-        const max = parseInt(document.getElementById('aiMaxTokens').value, 10) || 2048;
+        const max = parseInt(document.getElementById('aiMaxTokens').value, 10) || 8192;
         const r = await API.aiGenerate({ id, prompt, maxTokens: max });
         if (r.ok) {
           aiResult.value = r.content || '';
