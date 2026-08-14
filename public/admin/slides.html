@@ -40,18 +40,125 @@
         <p class="text-body" style="color: var(--warm-ink-2);">首页黎明区天空轮播，按排序展示</p>
       </div>
       <div class="flex items-center gap-3">
-        <button id="addBtn" class="btn-secondary flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium">
+        <button id="addBtn" class="btn-primary flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium">
           <i data-lucide="plus" class="w-4 h-4"></i><span>添加轮播图</span>
         </button>
-        <button id="saveBtn" class="btn-primary flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium">
+        <button id="saveBtn" class="btn-secondary flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium">
           <i data-lucide="save" class="w-4 h-4"></i><span>保存设置</span>
         </button>
       </div>
     </header>
 
-    <section id="slideList" class="space-y-3">
-      <div class="card p-6 text-center" style="color: var(--warm-ink-3);">加载中…</div>
-    </section>
+    <div class="space-y-6 max-w-5xl">
+      <!-- 表单（新增/编辑共用，默认隐藏） -->
+      <section id="formCard" class="card p-6 hidden">
+        <div class="flex items-center gap-2 mb-2">
+          <i data-lucide="image" class="w-5 h-5" style="color: var(--warm-brand);"></i>
+          <h2 id="formTitle" class="text-h3" style="color: var(--warm-ink);">添加轮播图</h2>
+        </div>
+        <p class="text-body mb-6" style="color: var(--warm-ink-2);">填写轮播图信息；图片地址可填相对路径或完整 URL</p>
+
+        <form id="slideForm" class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+          <input type="hidden" id="fIdx" value="-1">
+          <div class="flex flex-col gap-2 md:col-span-2">
+            <label class="text-sm font-medium" style="color: var(--warm-ink-2);">
+              <span class="flex items-center gap-1.5"><i data-lucide="image" class="w-3.5 h-3.5"></i> 图片地址</span>
+            </label>
+            <input type="text" id="fBgImage" class="input-field px-4 py-2.5 rounded-lg text-sm" placeholder="如 images/hero.jpg 或 https://...">
+            <div id="fPreview" class="mt-1 rounded-lg overflow-hidden hidden" style="border: 1px solid var(--warm-line); max-height: 160px;">
+              <img id="fPreviewImg" alt="预览" class="w-full h-full object-cover block" style="max-height: 160px;">
+            </div>
+          </div>
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-medium" style="color: var(--warm-ink-2);">
+              <span class="flex items-center gap-1.5"><i data-lucide="tag" class="w-3.5 h-3.5"></i> 小标题</span>
+            </label>
+            <input type="text" id="fTag" class="input-field px-4 py-2.5 rounded-lg text-sm" placeholder="小标题">
+          </div>
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-medium" style="color: var(--warm-ink-2);">
+              <span class="flex items-center gap-1.5"><i data-lucide="heading" class="w-3.5 h-3.5"></i> 标题</span>
+            </label>
+            <input type="text" id="fTitle" class="input-field px-4 py-2.5 rounded-lg text-sm" placeholder="标题">
+          </div>
+          <div class="flex flex-col gap-2 md:col-span-2">
+            <label class="text-sm font-medium" style="color: var(--warm-ink-2);">
+              <span class="flex items-center gap-1.5"><i data-lucide="align-left" class="w-3.5 h-3.5"></i> 摘要</span>
+            </label>
+            <input type="text" id="fDescription" class="input-field px-4 py-2.5 rounded-lg text-sm" placeholder="一句话概括">
+          </div>
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-medium" style="color: var(--warm-ink-2);">
+              <span class="flex items-center gap-1.5"><i data-lucide="link" class="w-3.5 h-3.5"></i> 关联文章</span>
+            </label>
+            <select id="fPostId" class="input-field px-4 py-2.5 rounded-lg text-sm"></select>
+          </div>
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-medium" style="color: var(--warm-ink-2);">
+              <span class="flex items-center gap-1.5"><i data-lucide="list-ordered" class="w-3.5 h-3.5"></i> 排序</span>
+            </label>
+            <input type="number" min="0" id="fSortOrder" class="input-field px-4 py-2.5 rounded-lg text-sm tabular-nums" placeholder="数字越小越靠前">
+          </div>
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-medium" style="color: var(--warm-ink-2);">
+              <span class="flex items-center gap-1.5"><i data-lucide="circle-check" class="w-3.5 h-3.5"></i> 启用</span>
+            </label>
+            <label class="toggle mt-1">
+              <input type="checkbox" id="fStatus">
+              <span class="track"></span><span class="thumb"></span>
+            </label>
+          </div>
+
+          <div class="md:col-span-2 flex flex-wrap items-center gap-3 pt-1">
+            <button type="button" id="formSaveBtn" class="btn-primary flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium">
+              <i data-lucide="check" class="w-4 h-4"></i><span>保存轮播图</span>
+            </button>
+            <button type="button" id="cancelBtn" class="btn-secondary flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium">
+              <i data-lucide="x" class="w-4 h-4"></i><span>取消</span>
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <!-- 轮播图列表 -->
+      <section class="card p-6">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-2">
+            <i data-lucide="images" class="w-5 h-5" style="color: var(--warm-brand);"></i>
+            <h2 class="text-h3" style="color: var(--warm-ink);">轮播图列表</h2>
+          </div>
+          <span id="slideCount" class="text-sm" style="color: var(--warm-ink-2);"></span>
+        </div>
+        <div id="slideList" class="flex flex-col gap-3"></div>
+        <div id="slideEmpty" class="text-sm py-6 text-center" style="color: var(--warm-ink-3);">暂无轮播图，点击右上角「添加轮播图」</div>
+      </section>
+
+      <!-- 说明 -->
+      <section class="card p-6">
+        <div class="flex items-center gap-2 mb-4">
+          <i data-lucide="circle-alert" class="w-5 h-5" style="color: var(--warm-brand);"></i>
+          <h2 class="text-h3" style="color: var(--warm-ink);">使用说明</h2>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm" style="color: var(--warm-ink-2);">
+          <div class="p-3 rounded-lg" style="background: var(--warm-surface-2);">
+            <div class="font-medium mb-1" style="color: var(--warm-ink);">排序</div>
+            <div>按「排序」字段升序展示，数字越小越靠前；同号时按列表顺序。</div>
+          </div>
+          <div class="p-3 rounded-lg" style="background: var(--warm-surface-2);">
+            <div class="font-medium mb-1" style="color: var(--warm-ink);">启用开关</div>
+            <div>关闭「启用」的轮播图不会出现在首页，但配置保留。</div>
+          </div>
+          <div class="p-3 rounded-lg" style="background: var(--warm-surface-2);">
+            <div class="font-medium mb-1" style="color: var(--warm-ink);">关联文章</div>
+            <div>点击轮播图可跳转到关联的文章详情页；不关联则不跳转。</div>
+          </div>
+          <div class="p-3 rounded-lg" style="background: var(--warm-surface-2);">
+            <div class="font-medium mb-1" style="color: var(--warm-ink);">保存设置</div>
+            <div>所有改动需点击右上角「保存设置」才会生效；「保存轮播图」仅写入列表。</div>
+          </div>
+        </div>
+      </section>
+    </div>
   </main>
 
   <script src="../js/api.js"></script>
@@ -61,10 +168,90 @@
     if (!API.isAuthed()) window.location.href = '../login.html';
 
     let slides = [], posts = [];
-
     const esc = Admin.esc;
     const imgUrl = Admin.imgUrl;
 
+    /* ---- 表单 ---- */
+    const formCard = document.getElementById('formCard');
+    const formTitle = document.getElementById('formTitle');
+    const fIdx = document.getElementById('fIdx');
+    const fBgImage = document.getElementById('fBgImage');
+    const fPreview = document.getElementById('fPreview');
+    const fPreviewImg = document.getElementById('fPreviewImg');
+
+    function syncPreview() {
+      const url = imgUrl(fBgImage.value.trim());
+      if (url) { fPreviewImg.src = url; fPreview.classList.remove('hidden'); }
+      else fPreview.classList.add('hidden');
+    }
+    fBgImage.addEventListener('input', syncPreview);
+
+    function fillPostOptions(selected) {
+      document.getElementById('fPostId').innerHTML =
+        '<option value="">不关联</option>' + posts.map(p =>
+          `<option value="${p.id}" ${p.id == selected ? 'selected' : ''}>${esc(p.title)}</option>`).join('');
+    }
+
+    function resetForm() {
+      fIdx.value = '-1';
+      fBgImage.value = ''; fPreview.classList.add('hidden'); fPreviewImg.src = '';
+      ['fTag','fTitle','fDescription'].forEach(id => document.getElementById(id).value = '');
+      fillPostOptions(null);
+      document.getElementById('fSortOrder').value = '';
+      document.getElementById('fStatus').checked = true;
+    }
+
+    function openAdd() {
+      resetForm();
+      formTitle.textContent = '添加轮播图';
+      document.getElementById('fSortOrder').value = slides.length + 1;
+      formCard.classList.remove('hidden');
+      formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      fBgImage.focus();
+    }
+
+    function openEdit(idx) {
+      const s = slides[idx];
+      if (!s) return;
+      resetForm();
+      fIdx.value = idx;
+      fBgImage.value = s.bgImage || ''; syncPreview();
+      document.getElementById('fTag').value = s.tag || '';
+      document.getElementById('fTitle').value = s.title || '';
+      document.getElementById('fDescription').value = s.description || '';
+      fillPostOptions(s.postId);
+      document.getElementById('fSortOrder').value = s.sortOrder ?? (idx + 1);
+      document.getElementById('fStatus').checked = s.status !== 'inactive';
+      formTitle.textContent = '编辑轮播图';
+      formCard.classList.remove('hidden');
+      formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function closeForm() { formCard.classList.add('hidden'); resetForm(); }
+
+    document.getElementById('addBtn').onclick = openAdd;
+    document.getElementById('cancelBtn').onclick = closeForm;
+
+    document.getElementById('formSaveBtn').onclick = () => {
+      const draft = {
+        id: Date.now(),
+        bgImage: fBgImage.value.trim(),
+        tag: document.getElementById('fTag').value.trim(),
+        title: document.getElementById('fTitle').value.trim(),
+        description: document.getElementById('fDescription').value.trim(),
+        postId: document.getElementById('fPostId').value ? +document.getElementById('fPostId').value : null,
+        sortOrder: +document.getElementById('fSortOrder').value || 0,
+        status: document.getElementById('fStatus').checked ? 'active' : 'inactive',
+      };
+      if (!draft.title) return Admin.toast('请填写标题');
+      const idx = +fIdx.value;
+      if (idx >= 0) { slides[idx] = draft; Admin.toast('已更新，记得保存设置'); }
+      else { slides.push(draft); Admin.toast('已添加，记得保存设置'); }
+      closeForm();
+      render();
+    };
+
+    /* ---- 列表 ---- */
     async function load() {
       try {
         [slides, posts] = await Promise.all([API.getSlides({ all: 1 }), API.getPosts({ all: 1 })]);
@@ -73,110 +260,63 @@
       } catch (e) { Admin.toast('加载失败: ' + e.message); }
     }
 
-    function postOptions(selected) {
-      return '<option value="">不关联</option>' + posts.map(p =>
-        `<option value="${p.id}" ${p.id == selected ? 'selected' : ''}>${esc(p.title)}</option>`).join('');
-    }
-
     function render() {
       const el = document.getElementById('slideList');
-      if (slides.length === 0) {
-        el.innerHTML = `<div class="card p-6 text-center" style="color: var(--warm-ink-3);">暂无轮播图，点击右上角「添加轮播图」</div>`;
-        return;
-      }
+      const empty = document.getElementById('slideEmpty');
+      document.getElementById('slideCount').textContent = slides.length ? `共 ${slides.length} 张` : '';
+      if (!slides.length) { el.innerHTML = ''; empty.classList.remove('hidden'); return; }
+      empty.classList.add('hidden');
       el.innerHTML = slides.map((s, i) => {
         const img = imgUrl(s.bgImage);
+        const post = posts.find(p => p.id == s.postId);
+        const active = s.status !== 'inactive';
         return `
-        <article class="card p-5" data-idx="${i}">
-          <div class="flex items-end gap-4 flex-wrap mb-4">
-            <div class="w-40 flex-shrink-0">
-              <label class="text-caption block mb-1" style="color: var(--warm-ink-3);">图片预览</label>
-              <div class="aspect-video rounded-lg overflow-hidden" style="background: var(--warm-surface-2);">
-                ${img ? `<img src="${img}" alt="${esc(s.title)}" class="w-full h-full object-cover" data-preview>` : `<div class="w-full h-full flex items-center justify-center" style="color: var(--warm-ink-3);"><i data-lucide="image" class="w-6 h-6"></i></div>`}
+        <div class="p-4 rounded-lg flex flex-col gap-3" style="background: var(--warm-surface-2); border: 1px solid var(--warm-line);" data-idx="${i}">
+          <div class="flex items-start justify-between gap-3 flex-wrap">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-16 h-16 rounded-lg flex items-center justify-center overflow-hidden shrink-0" style="background: var(--warm-surface-3);">
+                ${img ? `<img src="${img}" alt="${esc(s.title)}" class="w-full h-full object-cover">` : `<i data-lucide="image" class="w-6 h-6" style="color: var(--warm-ink-3);"></i>`}
+              </div>
+              <div class="min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="font-medium" style="color: var(--warm-ink);">${esc(s.title || '未命名')}</span>
+                  <span class="status-badge ${active ? 'status-pub' : 'status-draft'}">${active ? '启用' : '停用'}</span>
+                  <span class="text-xs" style="color: var(--warm-ink-3);">排序 ${s.sortOrder ?? i + 1}</span>
+                </div>
+                <div class="text-xs mt-0.5" style="color: var(--warm-ink-3);">${esc(s.tag || '—')}</div>
               </div>
             </div>
-            <div class="flex-1 min-w-[200px]">
-              <label class="text-caption block mb-1" style="color: var(--warm-ink-3);">图片地址</label>
-              <input type="text" value="${esc(s.bgImage)}" data-field="bgImage" class="input-field w-full rounded-lg px-2.5 py-1.5 text-sm" placeholder="图片地址，如 images/hero.jpg">
-            </div>
-            <div class="flex flex-col">
-              <label class="text-caption block mb-1 invisible">.</label>
-              <button type="button" class="btn-danger inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-sm font-medium act-del">
+            <div class="flex items-center gap-2 shrink-0">
+              <button class="btn-secondary inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium act-edit">
+                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>编辑
+              </button>
+              <button class="btn-danger inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium act-del">
                 <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>删除
               </button>
             </div>
           </div>
-          <div class="flex items-end gap-3 flex-wrap pt-4" style="border-top: 1px solid var(--warm-line);">
-            <div class="w-32">
-              <label class="text-caption block mb-1" style="color: var(--warm-ink-3);">小标题</label>
-              <input type="text" value="${esc(s.tag)}" data-field="tag" class="input-field w-full rounded-lg px-2.5 py-1.5 text-sm" placeholder="小标题">
-            </div>
-            <div class="w-40">
-              <label class="text-caption block mb-1" style="color: var(--warm-ink-3);">标题</label>
-              <input type="text" value="${esc(s.title)}" data-field="title" class="input-field w-full rounded-lg px-2.5 py-1.5 text-sm" placeholder="标题">
-            </div>
-            <div class="flex-1 min-w-[200px]">
-              <label class="text-caption block mb-1" style="color: var(--warm-ink-3);">摘要</label>
-              <input type="text" value="${esc(s.description)}" data-field="description" class="input-field w-full rounded-lg px-2.5 py-1.5 text-sm" placeholder="一句话概括">
-            </div>
-            <div class="w-44">
-              <label class="text-caption block mb-1" style="color: var(--warm-ink-3);">关联文章</label>
-              <select data-field="postId" class="input-field w-full rounded-lg px-2.5 py-1.5 text-sm">${postOptions(s.postId)}</select>
-            </div>
-            <div class="w-20">
-              <label class="text-caption block mb-1" style="color: var(--warm-ink-3);">排序</label>
-              <input type="number" min="0" value="${s.sortOrder ?? i + 1}" data-field="sortOrder" class="input-field w-full rounded-lg px-2.5 py-1.5 text-sm tabular-nums text-center">
-            </div>
-            <div class="flex flex-col items-center">
-              <label class="text-caption block mb-1" style="color: var(--warm-ink-3);">启用</label>
-              <label class="toggle">
-                <input type="checkbox" data-field="status" ${s.status !== 'inactive' ? 'checked' : ''}>
-                <span class="track"></span><span class="thumb"></span>
-              </label>
-            </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs" style="color: var(--warm-ink-2);">
+            <div class="flex items-center gap-1.5 min-w-0"><i data-lucide="align-left" class="w-3.5 h-3.5 shrink-0"></i><span class="truncate" title="${esc(s.description)}">${esc(s.description || '—')}</span></div>
+            <div class="flex items-center gap-1.5 min-w-0"><i data-lucide="link" class="w-3.5 h-3.5 shrink-0"></i><span class="truncate" title="${esc(post ? post.title : '')}">${esc(post ? post.title : '不关联')}</span></div>
+            <div class="flex items-center gap-1.5 min-w-0"><i data-lucide="image" class="w-3.5 h-3.5 shrink-0"></i><span class="font-mono truncate" title="${esc(s.bgImage)}">${esc(s.bgImage || '—')}</span></div>
           </div>
-        </article>`;
+        </div>`;
       }).join('');
       lucide.createIcons();
-      bindEvents();
+      bindRowEvents();
     }
 
-    function bindEvents() {
-      document.querySelectorAll('#slideList [data-idx]').forEach(art => {
-        const idx = +art.dataset.idx;
-        art.querySelectorAll('[data-field]').forEach(inp => {
-          inp.oninput = () => {
-            const f = inp.dataset.field;
-            if (f === 'sortOrder') slides[idx].sortOrder = +inp.value || 0;
-            else if (f === 'postId') slides[idx].postId = inp.value ? +inp.value : null;
-            else if (f === 'status') slides[idx].status = inp.checked ? 'active' : 'inactive';
-            else slides[idx][f] = inp.value;
-            if (f === 'bgImage') {
-              const img = art.querySelector('[data-preview]');
-              const url = imgUrl(inp.value);
-              if (img && url) img.src = url;
-            }
-          };
-        });
-        art.querySelector('.act-del').onclick = () => {
-          if (!confirm('删除这张轮播图？')) return;
-          slides.splice(idx, 1);
-          render();
-        };
+    function bindRowEvents() {
+      document.querySelectorAll('#slideList .act-edit').forEach(b => b.onclick = () => openEdit(+b.closest('[data-idx]').dataset.idx));
+      document.querySelectorAll('#slideList .act-del').forEach(b => b.onclick = async () => {
+        const idx = +b.closest('[data-idx]').dataset.idx;
+        if (!await UI.confirm('删除这张轮播图？')) return;
+        slides.splice(idx, 1);
+        render();
       });
     }
-
-    document.getElementById('addBtn').onclick = () => {
-      slides.push({
-        id: Date.now(), postId: null, tag: '', title: '新轮播图',
-        description: '', bgImage: '', sortOrder: slides.length + 1, status: 'active'
-      });
-      render();
-      Admin.toast('已添加，记得保存');
-    };
 
     document.getElementById('saveBtn').onclick = async () => {
-      // 清理临时 id（后端会重新分配）
       const payload = slides.map(({ id, ...rest }) => rest);
       try {
         await API.saveSlides(payload);
