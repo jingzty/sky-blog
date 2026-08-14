@@ -48,14 +48,36 @@
     else document.body.insertAdjacentHTML('afterbegin', sidebarHTML());
 
     const lo = document.getElementById('logoutBtn');
-    if (lo) lo.addEventListener('click', e => {
+    if (lo) lo.addEventListener('click', async e => {
       e.preventDefault();
+      try { await API.logout(); } catch (_) { /* 忽略：本地 token 仍要清 */ }
       if (window.API) API.clearToken();
       window.location.href = '../login.html';
     });
 
     if (window.lucide && lucide.createIcons) lucide.createIcons();
   });
+
+  /* ---- 客户端登录守卫（服务端守卫的二次保险）----
+   * 服务端已用 cookie 拦住未登录的页面请求；这里再校验一次 token 有效性，
+   * 覆盖 cookie 仍有效但 token 集合已失效（服务重启/token 过期）等边界情况，
+   * 避免页面空转半天到点击修改才报错。登录页本身不引此脚本，不会误跳。
+   */
+  (async function guard() {
+    if (!window.API || !API.isAuthed) return;
+    // 登录页不引 admin.js，但保险起见：当前在 login 上下文则不拦
+    if (location.pathname.endsWith('/login.html')) return;
+    if (!API.isAuthed()) {
+      window.location.href = '../login.html';
+      return;
+    }
+    try {
+      await API.check();
+    } catch (_) {
+      API.clearToken();
+      window.location.href = '../login.html';
+    }
+  })();
 
   /* ---- 共用工具：供各后台页面直接使用 ---- */
   const esc = s => String(s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));

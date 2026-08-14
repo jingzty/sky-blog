@@ -36,6 +36,8 @@ window.API = (function () {
     /* 认证 */
     login: (u, p) => request('POST', '/api/login', { username: u, password: p }).then(r => { if (r && r.token) setToken(r.token); return r; }),
     check: () => request('GET', '/api/check'),
+    logout: () => request('POST', '/api/logout').catch(() => null),
+    isAuthedFresh: async () => { try { await request('GET', '/api/check'); return true; } catch (_) { return false; } },
 
     /* 文章 */
     getPosts: (params = {}) => request('GET', '/api/posts' + qs(params)),

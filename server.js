@@ -91,6 +91,29 @@ app.disable('x-powered-by');
 app.set('trust proxy', ['loopback', '192.168.3.213', '101.133.145.147']);
 app.use(express.json({ limit: '1mb' }));
 
+/* ---- cookie 解析（轻量自实现，免装 cookie-parser）---- */
+function parseCookies(req) {
+  const h = req.headers.cookie;
+  const out = {};
+  if (!h) return out;
+  for (const part of h.split(';')) {
+    const i = part.indexOf('=');
+    if (i < 0) continue;
+    const k = part.slice(0, i).trim();
+    const v = part.slice(i + 1).trim();
+    if (k) out[k] = decodeURIComponent(v);
+  }
+  return out;
+}
+/* 从请求里取出登录 token：优先 Authorization 头，回退到 admin_token cookie。
+ * 这样页面级导航（浏览器只带 cookie，不带 Authorization）与 fetch 调用（带 Authorization）
+ * 都能被同一套 token 集合校验。 */
+function reqToken(req) {
+  const a = (req.headers.authorization || '').replace('Bearer ', '');
+  if (a) return a;
+  return (parseCookies(req).admin_token || '');
+}
+
 /* ---------- 安全响应头 ---------- */
 /* CSP 说明：本站页面含 inline <script>/<style>（Tailwind 浏览器版亦需 inline style），
  * 故 script-src/style-src 暂用 'unsafe-inline'；仍可阻止外域脚本注入（最大风险面）。
@@ -185,6 +208,10 @@ app.post('/api/login', (req, res) => {
     loginFails.delete(ip);
     const t = 'tok_' + Date.now() + Math.random().toString(36).slice(2);
     tokens.add(t);
+    /* 下发 httpOnly cookie：浏览器对 /admin/* 的页面级导航会自动带上，
+     * 从而让后台页面守卫能校验登录态；XSS 读不到，仅服务端可读。
+     * SameSite=Lax 防跨站带 cookie；path=/ 覆盖整站。 */
+    res.setHeader('Set-Cookie', `admin_token=${encodeURIComponent(t)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000`);
     res.json({ token: t, ok: true });
   } else {
     const { maxAttempts } = secPolicy();
@@ -195,6 +222,13 @@ app.post('/api/login', (req, res) => {
   }
 });
 app.get('/api/check', auth, (req, res) => res.json({ valid: true }));
+/* 退出登录：从 token 集合移除并清除 cookie。httpOnly cookie 客户端无法自己清，必须走这里。 */
+app.post('/api/logout', (req, res) => {
+  const t = reqToken(req);
+  if (t) tokens.delete(t);
+  res.setHeader('Set-Cookie', 'admin_token=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0');
+  res.json({ ok: true });
+});
 
 /* ---- 文章 ---- */
 app.get('/api/posts', optionalAuth, (req, res) => {
@@ -401,6 +435,23 @@ ${items}
   </channel>
 </rss>`;
   res.type('application/rss+xml').send(xml);
+});
+
+/* ---- 后台页面守卫：未登录一律跳登录页，不再直接返回后台静态页 ----
+ * 守卫只拦“页面导航”类请求（浏览器直接打开 /admin/*.html）。
+ * 校验依据：cookie admin_token 必须命中内存 token 集合。
+ * 静态资源（css/js/图片）不拦，否则后台页加载时子资源会因顺序问题被误拦。
+ */
+app.use('/admin', (req, res, next) => {
+  const p = req.path;
+  // 仅对 HTML 页面（无扩展名或 .html）做登录校验；其余资源放行
+  const isPage = /^\/?$/.test(p) || /\.html$/i.test(p);
+  if (!isPage) return next();
+  const t = parseCookies(req).admin_token || '';
+  if (!t || !tokens.has(t)) {
+    return res.redirect(302, '/login.html');
+  }
+  next();
 });
 
 /* ---- 静态 + 404 ---- */
