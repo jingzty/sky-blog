@@ -82,6 +82,20 @@ window.API = (function () {
     getImageModels: () => request('GET', '/api/ai/image-models'),
     aiGenerateImage: d => request('POST', '/api/ai/generate-image', d),
 
+    /* OSS 文件上传 */
+    getOssConfig: () => request('GET', '/api/oss-config'),
+    updateOssConfig: d => request('PUT', '/api/oss-config', d),
+    testOss: () => request('POST', '/api/oss/test'),
+    uploadOss: (file) => {
+      const fd = new FormData();
+      fd.append('file', file);
+      return fetch('/api/oss/upload', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + (localStorage.getItem('app_token') || '') },
+        body: fd,
+      }).then(async r => { const j = await r.json().catch(() => null); if (!r.ok) throw new Error((j && j.error) || `上传失败 (${r.status})`); return j; });
+    },
+
 
     /* 搜索 */
     search: q => request('GET', '/api/search?q=' + encodeURIComponent(q)),

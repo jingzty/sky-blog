@@ -237,6 +237,37 @@
             </div>
           </div>
         </section>
+
+        <!-- 图片上传（OSS） -->
+        <section class="card p-5">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-2">
+              <i data-lucide="cloud-upload" class="w-4 h-4" style="color: var(--warm-brand);"></i>
+              <h2 class="text-h3" style="color: var(--warm-ink);">图片上传</h2>
+            </div>
+            <a href="oss.html" class="text-caption" style="color: var(--warm-ink-3);" title="去 OSS 配置页">配置</a>
+          </div>
+          <div class="space-y-3">
+            <div id="upDrop" class="rounded-lg border-2 border-dashed text-center py-6 px-4 cursor-pointer transition" style="border-color: var(--warm-line); color: var(--warm-ink-3);">
+              <i data-lucide="upload" class="w-6 h-6 mx-auto mb-2"></i>
+              <div class="text-sm" style="color: var(--warm-ink-2);">点击或拖拽图片到此处上传</div>
+              <div class="text-caption mt-1">单文件 ≤ 20MB，上传至 OSS</div>
+              <input type="file" id="upFile" accept="image/*" class="hidden">
+            </div>
+            <p id="upStatus" class="text-caption" style="color: var(--warm-ink-3);"></p>
+            <div id="upResultWrap" class="hidden space-y-2">
+              <div class="rounded-warm-md overflow-hidden" style="border: 1px solid var(--warm-line); max-height: 200px;">
+                <img id="upPreview" alt="上传图片" class="w-full h-full object-cover block" style="max-height: 200px;">
+              </div>
+              <input type="text" id="upUrl" class="input-field w-full px-2 py-1.5 rounded text-xs font-mono" readonly>
+              <div class="flex flex-wrap gap-2">
+                <button type="button" id="upToCoverBtn" class="btn-secondary flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium"><i data-lucide="image" class="w-3.5 h-3.5"></i>填入封面</button>
+                <button type="button" id="upInsertBtn" class="btn-secondary flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium"><i data-lucide="corner-down-left" class="w-3.5 h-3.5"></i>插入正文</button>
+                <button type="button" id="upCopyBtn" class="btn-secondary flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium"><i data-lucide="copy" class="w-3.5 h-3.5"></i>复制</button>
+              </div>
+            </div>
+          </div>
+        </section>
       </aside>
     </div>
   </main>
@@ -504,6 +535,60 @@
     });
     document.getElementById('imgCopyBtn').addEventListener('click', () => {
       imgUrlInput.select(); document.execCommand('copy'); Admin.toast('已复制图片地址');
+    });
+
+    /* ============ 图片上传（OSS） ============ */
+    const upDrop = document.getElementById('upDrop');
+    const upFile = document.getElementById('upFile');
+    const upStatus = document.getElementById('upStatus');
+    const upResultWrap = document.getElementById('upResultWrap');
+    const upPreview = document.getElementById('upPreview');
+    const upUrl = document.getElementById('upUrl');
+    let upBusy = false;
+
+    function upShowResult(url, name) {
+      upPreview.src = url;
+      upUrl.value = url;
+      upResultWrap.classList.remove('hidden');
+      upStatus.textContent = `已上传：${name}`;
+    }
+    async function doUpload(file) {
+      if (upBusy) return;
+      if (!file) return;
+      if (!/^image\//.test(file.type)) { Admin.toast('请选择图片文件'); return; }
+      if (file.size > 20 * 1024 * 1024) { Admin.toast('文件超过 20MB'); return; }
+      upBusy = true;
+      upStatus.textContent = '上传中…';
+      upDrop.style.opacity = '.6';
+      try {
+        const r = await API.uploadOss(file);
+        upShowResult(r.url, r.name || file.name);
+        Admin.toast('上传成功');
+      } catch (e) {
+        upStatus.textContent = '';
+        Admin.toast('上传失败: ' + e.message);
+      } finally {
+        upBusy = false; upDrop.style.opacity = '1'; upFile.value = '';
+      }
+    }
+    upDrop.addEventListener('click', () => upFile.click());
+    upFile.addEventListener('change', () => doUpload(upFile.files[0]));
+    ['dragenter', 'dragover'].forEach(ev => upDrop.addEventListener(ev, e => { e.preventDefault(); upDrop.style.borderColor = 'var(--warm-brand)'; }));
+    ['dragleave', 'drop'].forEach(ev => upDrop.addEventListener(ev, e => { e.preventDefault(); upDrop.style.borderColor = 'var(--warm-line)'; }));
+    upDrop.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) doUpload(f); });
+    document.getElementById('upToCoverBtn').addEventListener('click', () => {
+      const u = upUrl.value.trim(); if (!u) return Admin.toast('没有可填入的图片');
+      document.getElementById('cover').value = u;
+      showCoverPreview(u); Admin.toast('已填入封面');
+    });
+    document.getElementById('upInsertBtn').addEventListener('click', () => {
+      const u = upUrl.value.trim(); if (!u) return Admin.toast('没有可插入的图片');
+      const alt = (upStatus.textContent.match(/已上传：(.*?)$/) || [])[1] || '图片';
+      insertToContent(`![${alt}](${u})\n`);
+      Admin.toast('已插入正文');
+    });
+    document.getElementById('upCopyBtn').addEventListener('click', () => {
+      upUrl.select(); document.execCommand('copy'); Admin.toast('已复制图片地址');
     });
 
 

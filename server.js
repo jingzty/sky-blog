@@ -8,6 +8,9 @@ const crypto = require('crypto');
 const express = require('express');
 const Database = require('better-sqlite3');
 const seed = require('./scripts/seed-data');
+// OSS 文件上传：ali-oss 走服务端代理上传，AccessKey 只存服务端，不下发浏览器
+let OSS, multer;
+try { OSS = require('ali-oss'); multer = require('multer'); } catch (_) { /*未安装时相关接口会报错提示*/ }
 
 const PORT = process.env.PORT || 8322;
 const SEED = process.env.SEED === '1';
@@ -727,7 +730,102 @@ app.post('/api/ai/generate-image', auth, async (req, res) => {
   res.json(r);
 });
 
+/* ============ OSS 文件上传配置 ============ */
+/* 配置存 config 表（oss* 前缀）；AccessKeySecret 仅服务端保存，GET 脱敏返回。
+ * 上传走服务端代理（ali-oss），AccessKey 不下发浏览器，安全。
+ * 测试连接：client.list 列几个文件验证鉴权与配置是否可用。
+ */
+function ossCfg() {
+  const map = {};
+  ST.cfgAll.all().forEach(r => map[r.key] = r.value);
+  return {
+    region: map.ossRegion || '',
+    bucket: map.ossBucket || '',
+    accessKeyId: map.ossAccessKeyId || '',
+    accessKeySecret: map.ossAccessKeySecret || '',
+    endpoint: map.ossEndpoint || '',
+    pathPrefix: (map.ossPathPrefix || '').replace(/^\/+|\/+$/g, ''),
+    secure: map.ossSecure !== 'false' && map.ossSecure !== '0',
+    customDomain: (map.ossCustomDomain || '').replace(/\/+$/, ''),
+  };
+}
+function maskOssSecret(s) {
+  if (!s) return '';
+  const v = String(s);
+  return v.length <= 4 ? '····' : '····' + v.slice(-4);
+}
+/* 构造 OSS 客户端；endpoint 优先于 region（自定义域名/endpoint 场景） */
+function ossClient() {
+  if (!OSS) return { __err: '服务器未安装 ali-oss 依赖' };
+  const c = ossCfg();
+  if (!c.bucket || !c.accessKeyId || !c.accessKeySecret) return { __err: '请先完整填写 Bucket/AccessKeyId/AccessKeySecret' };
+  if (!c.region && !c.endpoint) return { __err: '请填写 Region 或 Endpoint' };
+  const opts = { accessKeyId: c.accessKeyId, accessKeySecret: c.accessKeySecret, bucket: c.bucket, secure: c.secure, authorizationV4: true };
+  if (c.endpoint) opts.endpoint = c.endpoint; else opts.region = c.region;
+  try { return new OSS(opts); } catch (e) { return { __err: '初始化 OSS 客户端失败: ' + e.message }; }
+}
 
+app.get('/api/oss-config', auth, (req, res) => {
+  const c = ossCfg();
+  res.json({
+    region: c.region, bucket: c.bucket, accessKeyId: c.accessKeyId,
+    accessKeySecretMasked: maskOssSecret(c.accessKeySecret), hasSecret: !!c.accessKeySecret,
+    endpoint: c.endpoint, pathPrefix: c.pathPrefix, secure: c.secure, customDomain: c.customDomain,
+  });
+});
+app.put('/api/oss-config', auth, (req, res) => {
+  const b = req.body || {};
+  const ins = db.prepare('INSERT OR REPLACE INTO config (key,value) VALUES (?,?)');
+  const set = (k, v) => { if (v !== undefined && v !== null) ins.run(k, String(v)); };
+  set('ossRegion', (b.region || '').trim());
+  set('ossBucket', (b.bucket || '').trim());
+  set('ossAccessKeyId', (b.accessKeyId || '').trim());
+  if (b.accessKeySecret && String(b.accessKeySecret).trim()) set('ossAccessKeySecret', String(b.accessKeySecret).trim());
+  set('ossEndpoint', (b.endpoint || '').trim());
+  set('ossPathPrefix', (b.pathPrefix || '').trim());
+  set('ossSecure', (b.secure === false || b.secure === 'false' || b.secure === '0') ? 'false' : 'true');
+  set('ossCustomDomain', (b.customDomain || '').trim());
+  res.json({ ok: true });
+});
+/* 测试连接：列举最多 5 个文件验证鉴权 */
+app.post('/api/oss/test', auth, async (req, res) => {
+  const client = ossClient();
+  if (client.__err) return res.status(400).json({ ok: false, error: client.__err });
+  try {
+    const r = await client.list({ 'max-keys': 5 }, {});
+    const objs = r.objects || [];
+    res.json({ ok: true, count: objs.length, sample: objs.slice(0, 5).map(o => o.name) });
+  } catch (e) {
+    res.json({ ok: false, error: e.message || String(e), code: e.code || e.status });
+  }
+});
+/* 上传文件：multipart single('file')，内存模式，限 20MB。服务端代理 put 到 OSS。 */
+const ossUpload = multer ? multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } }) : null;
+app.post('/api/oss/upload', auth, (req, res, next) => {
+  if (!ossUpload) return res.status(500).json({ error: '服务器未安装 multer 依赖' });
+  ossUpload.single('file')(req, res, err => { if (err) return res.status(400).json({ error: err.message || '文件处理失败' }); next(); });
+}, async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: '未收到文件' });
+  const client = ossClient();
+  if (client.__err) return res.status(400).json({ error: client.__err });
+  const c = ossCfg();
+  const ext = (req.file.originalname.match(/\.[A-Za-z0-9]+$/) || [''])[0];
+  const base = req.file.originalname.replace(/\.[A-Za-z0-9]+$/, '').replace(/[^\w\u4e00-\u9fa5.-]/g, '_');
+  const date = new Date().toISOString().slice(0, 10);
+  const key = [c.pathPrefix, date, `${Date.now()}-${base}${ext}`].filter(Boolean).join('/');
+  try {
+    const result = await client.put(key, req.file.buffer, {
+      mime: req.file.mimetype,
+      headers: { 'Content-Type': req.file.mimetype },
+    });
+    let url = result.url || '';
+    if (c.customDomain) url = c.customDomain + '/' + encodeURI(key);
+    if (c.secure && url.startsWith('http://')) url = url.replace('http://', 'https://');
+    res.json({ ok: true, url, key, name: req.file.originalname, size: req.file.size });
+  } catch (e) {
+    res.json({ ok: false, error: e.message || String(e), code: e.code || e.status });
+  }
+});
 
 
 app.get('/api/search', (req, res) => {
