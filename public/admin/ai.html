@@ -128,6 +128,46 @@
         <div id="modelEmpty" class="text-sm py-6 text-center" style="color: var(--warm-ink-3);">尚未配置任何模型，点击右上角「添加模型」开始</div>
       </section>
 
+      <!-- AI 生图测试 -->
+      <section class="card p-6">
+        <div class="flex items-center gap-2 mb-4">
+          <i data-lucide="image-play" class="w-5 h-5" style="color: var(--warm-brand);"></i>
+          <h2 class="text-h3" style="color: var(--warm-ink);">AI 生图测试</h2>
+        </div>
+        <p class="text-body mb-6" style="color: var(--warm-ink-2);">选择已配置的文生图模型，输入提示词真正生成一张图片验证效果</p>
+        <div class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="flex flex-col gap-2">
+              <label class="text-sm font-medium" style="color: var(--warm-ink-2);">文生图模型</label>
+              <select id="testImgModel" class="input-field px-4 py-2.5 rounded-lg text-sm">
+                <option value="">加载中…</option>
+              </select>
+            </div>
+            <div class="flex flex-col gap-2">
+              <label class="text-sm font-medium" style="color: var(--warm-ink-2);">尺寸（可选）</label>
+              <input type="text" id="testImgSize" class="input-field px-4 py-2.5 rounded-lg text-sm" placeholder="留空用默认；火山可填 2K，DALL·E 填 1024x1024">
+            </div>
+          </div>
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-medium" style="color: var(--warm-ink-2);">提示词</label>
+            <textarea id="testImgPrompt" rows="3" class="input-field px-4 py-2.5 rounded-lg text-sm resize-none" placeholder="描述想要的图片，例如：星空下的云海，温暖色调，电影感"></textarea>
+          </div>
+          <button type="button" id="testImgBtn" class="btn-primary flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium">
+            <i data-lucide="sparkles" class="w-4 h-4"></i><span>生成图片</span>
+          </button>
+          <p id="testImgStatus" class="text-caption" style="color: var(--warm-ink-3);"></p>
+          <div id="testImgResult" class="hidden space-y-3">
+            <div class="rounded-lg overflow-hidden" style="border: 1px solid var(--warm-line); max-height: 400px;">
+              <img id="testImgPreview" alt="AI 生成" class="w-full h-full object-contain block" style="max-height: 400px;">
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <input type="text" id="testImgUrl" class="input-field flex-1 px-3 py-2 rounded-lg text-xs font-mono" readonly>
+              <button type="button" id="testImgCopyBtn" class="btn-secondary flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium"><i data-lucide="copy" class="w-3.5 h-3.5"></i>复制</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- 说明 -->
       <section class="card p-6">
         <div class="flex items-center gap-2 mb-4">
@@ -377,6 +417,65 @@
         }
       });
     }
+
+    /* ---- AI 生图测试 ---- */
+    const testImgModel = document.getElementById('testImgModel');
+    const testImgPrompt = document.getElementById('testImgPrompt');
+    const testImgBtn = document.getElementById('testImgBtn');
+    const testImgStatus = document.getElementById('testImgStatus');
+    const testImgResult = document.getElementById('testImgResult');
+    const testImgPreview = document.getElementById('testImgPreview');
+    const testImgUrl = document.getElementById('testImgUrl');
+
+    async function loadTestImgModels() {
+      try {
+        const models = await API.getImageModels();
+        if (!models.length) {
+          testImgModel.innerHTML = '<option value="">未配置文生图模型</option>';
+          return;
+        }
+        testImgModel.innerHTML = models.map(m => `<option value="${m.id}">${esc(m.displayName || m.modelId)} (${esc(m.provider)})</option>`).join('');
+      } catch (e) {
+        testImgModel.innerHTML = '<option value="">加载失败</option>';
+      }
+    }
+    loadTestImgModels();
+
+    testImgBtn.onclick = async () => {
+      const id = +testImgModel.value;
+      if (!id) return Admin.toast('请先选择文生图模型');
+      const prompt = testImgPrompt.value.trim();
+      if (!prompt) return Admin.toast('请输入提示词');
+      const old = testImgBtn.innerHTML;
+      testImgBtn.disabled = true;
+      testImgBtn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i><span>生成中…</span>';
+      if (window.lucide) window.lucide.createIcons();
+      testImgStatus.textContent = '调用文生图模型中，可能需要十几秒…';
+      testImgResult.classList.add('hidden');
+      try {
+        const size = document.getElementById('testImgSize').value.trim();
+        const r = await API.testAiImage({ id, prompt, size: size || undefined });
+        if (r.ok && r.url) {
+          testImgPreview.src = r.url;
+          testImgUrl.value = r.url;
+          testImgResult.classList.remove('hidden');
+          testImgStatus.textContent = '生成完成';
+        } else {
+          testImgStatus.textContent = '生成失败';
+          Admin.toast(r.error || '生成失败');
+        }
+      } catch (e) {
+        testImgStatus.textContent = '生成失败: ' + e.message;
+        Admin.toast('生成失败: ' + e.message);
+      } finally {
+        testImgBtn.disabled = false; testImgBtn.innerHTML = old; if (window.lucide) window.lucide.createIcons();
+      }
+    };
+
+    document.getElementById('testImgCopyBtn').onclick = () => {
+      if (!testImgUrl.value) return Admin.toast('没有可用的图片地址');
+      testImgUrl.select(); document.execCommand('copy'); Admin.toast('已复制', 'success');
+    };
 
     load();
   </script>

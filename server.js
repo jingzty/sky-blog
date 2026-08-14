@@ -11,6 +11,8 @@ const seed = require('./scripts/seed-data');
 // OSS 文件上传：ali-oss 走服务端代理上传，AccessKey 只存服务端，不下发浏览器
 let OSS, multer;
 try { OSS = require('ali-oss'); multer = require('multer'); } catch (_) { /*未安装时相关接口会报错提示*/ }
+let sharp;
+try { sharp = require('sharp'); } catch (_) { /*未安装时图片转码降级 */ }
 
 const PORT = process.env.PORT || 8322;
 const SEED = process.env.SEED === '1';
@@ -704,6 +706,26 @@ app.get('/api/ai/image-models', auth, (req, res) => {
   res.json(rows.map(aiRow));
 });
 
+/* 测试生图：真正调用文生图模型生成一张图片，返回 { ok, url } 或 { ok:false, error } */
+app.post('/api/ai/test-image', auth, async (req, res) => {
+  const b = req.body || {};
+  if (!b.id) return res.status(400).json({ error: '请选择模型' });
+  const m = db.prepare('SELECT * FROM ai_models WHERE id = ?').get(+b.id);
+  if (!m) return res.status(404).json({ error: '模型不存在' });
+  if (m.modelType !== 'image') return res.status(400).json({ error: '该模型不是文生图模型' });
+  const prompt = String(b.prompt || '').trim();
+  if (!prompt) return res.status(400).json({ error: '请输入提示词' });
+  const r = await callImageModel(m, prompt, { size: b.size });
+  if (r.ok && r.url) {
+    try {
+      db.prepare(
+        'INSERT INTO ai_image_history (prompt, url, modelId, modelName, size, createdAt) VALUES (?,?,?,?,?,?)'
+      ).run(prompt, r.url, m.id, m.displayName || m.provider, b.size || '', Date.now());
+    } catch (e) { /* 历史记录失败不影响主流程 */ }
+  }
+  res.json(r);
+});
+
 /* 调用文生图模型。目前支持 OpenAI 兼容协议的 images 端点（/images/generations），
  * 覆盖火山方舟、OpenAI DALL·E、各类中转。其他协议返回不支持。
  * 统一返回 { ok, url, markdown } 或 { ok:false, error }。
@@ -715,7 +737,7 @@ async function callImageModel(m, prompt, { size, n } = {}) {
   if (m.apiType === 'openai-completions' || m.apiType === 'openai-responses') {
     // OpenAI 兼容：POST /images/generations
     const url = joinBase(base, '/images/generations');
-    const body = { model: modelId, prompt, response_format: 'url' };
+    const body = { model: modelId, prompt, response_format: 'url', watermark: false };
     if (size) body.size = size;
     if (n) body.n = n;
     const opts = { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
@@ -730,7 +752,10 @@ async function callImageModel(m, prompt, { size, n } = {}) {
       }
       const imgUrl = j && j.data && j.data[0] && (j.data[0].url || j.data[0].b64_json && ('data:image/png;base64,' + j.data[0].b64_json)) || '';
       if (!imgUrl) return { ok: false, status: res.status, error: '模型未返回图片', raw: txt.slice(0, 300) };
-      return { ok: true, url: imgUrl, markdown: `![AI生成图片](${imgUrl})` };
+      /* 原图转 WebP 并上传 OSS，返回 WebP 的 OSS URL */
+      const up = await processAndUploadAiImage(imgUrl, prompt);
+      if (!up.ok) return { ok: false, status: 0, error: '图片生成成功但上传 OSS 失败：' + up.error };
+      return { ok: true, url: up.url, markdown: `![AI生成图片](${up.url})` };
     } catch (e) {
       return { ok: false, status: 0, error: e.name === 'AbortError' ? '请求超时（文生图通常较慢，已等 120s）' : (e.message || String(e)) };
     }
@@ -750,7 +775,10 @@ async function callImageModel(m, prompt, { size, n } = {}) {
       const b64 = j && j.predictions && j.predictions[0] && j.predictions[0].bytesBase64Encoded || '';
       if (!b64) return { ok: false, status: res.status, error: '模型未返回图片', raw: txt.slice(0, 300) };
       const imgUrl = 'data:image/png;base64,' + b64;
-      return { ok: true, url: imgUrl, markdown: `![AI生成图片](${imgUrl})` };
+      /* 原图转 WebP 并上传 OSS，返回 WebP 的 OSS URL */
+      const up = await processAndUploadAiImage(imgUrl, prompt);
+      if (!up.ok) return { ok: false, status: 0, error: '图片生成成功但上传 OSS 失败：' + up.error };
+      return { ok: true, url: up.url, markdown: `![AI生成图片](${up.url})` };
     } catch (e) {
       return { ok: false, status: 0, error: e.name === 'AbortError' ? '请求超时' : (e.message || String(e)) };
     }
@@ -827,6 +855,72 @@ function ossClient() {
   const opts = { accessKeyId: c.accessKeyId, accessKeySecret: c.accessKeySecret, bucket: c.bucket, secure: c.secure, authorizationV4: true };
   if (c.endpoint) opts.endpoint = c.endpoint; else opts.region = c.region;
   try { return new OSS(opts); } catch (e) { return { __err: '初始化 OSS 客户端失败: ' + e.message }; }
+}
+
+/* OSS 上传 URL 构造（复用） */
+function ossUrl(c, key) {
+  let url = c.customDomain ? c.customDomain + '/' + encodeURI(key) : '';
+  if (!url) {
+    /* OSS 默认 url: https://bucket.region.aliyuncs.com/key 或 endpoint 拼出 */
+    const proto = c.secure ? 'https' : 'http';
+    if (c.endpoint) url = `${proto}://${c.bucket}.${c.endpoint.replace(/^https?:\/\//,'')}/${encodeURI(key)}`;
+    else url = `${proto}://${c.bucket}.${c.region}.aliyuncs.com/${encodeURI(key)}`;
+  }
+  if (c.secure && url.startsWith('http://')) url = url.replace('http://', 'https://');
+  return url;
+}
+
+/* AI 生成图片后处理：下载原图 → 转 WebP(最高质量) → 原图和 WebP 都上传 OSS
+ * 返回 { ok, url } url 为 WebP 的 OSS 地址；失败返回 { ok:false, error } */
+async function processAndUploadAiImage(sourceUrl, promptHint) {
+  if (!sharp) return { ok: false, error: '服务器未安装 sharp 依赖，无法转码' };
+  const client = ossClient();
+  if (client.__err) return { ok: false, error: '需先配置 OSS：' + client.__err };
+  const c = ossCfg();
+  /* 1. 获取原图数据 */
+  let origBuf;
+  if (sourceUrl.startsWith('data:')) {
+    const m = sourceUrl.match(/^data:[^;]+;base64,(.*)$/);
+    if (!m) return { ok: false, error: 'data URL 格式异常' };
+    origBuf = Buffer.from(m[1], 'base64');
+  } else {
+    try {
+      const r = await fetchWithTimeout(sourceUrl, {}, 600000);
+      if (!r.ok) return { ok: false, error: `下载原图失败 HTTP ${r.status}` };
+      origBuf = Buffer.from(await r.arrayBuffer());
+    } catch (e) {
+      return { ok: false, error: '下载原图失败: ' + (e.name === 'AbortError' ? '请求超时' : e.message) };
+    }
+  }
+  /* 2. 转 WebP（视觉无损 quality:90，体积比原图更小） */
+  let webpBuf;
+  try {
+    webpBuf = await sharp(origBuf).webp({ quality: 90 }).toBuffer();
+  } catch (e) {
+    return { ok: false, error: '转 WebP 失败: ' + e.message };
+  }
+  /* 3. 检测原图格式，保留原始扩展名上传 */
+  let origExt = '.png', origMime = 'image/png';
+  try {
+    const meta = await sharp(origBuf).metadata();
+    if (meta.format === 'jpeg') { origExt = '.jpg'; origMime = 'image/jpeg'; }
+    else if (meta.format === 'png') { origExt = '.png'; origMime = 'image/png'; }
+    else if (meta.format === 'webp') { origExt = '.webp'; origMime = 'image/webp'; }
+    else if (meta.format === 'gif') { origExt = '.gif'; origMime = 'image/gif'; }
+  } catch (_) { /* 默认 png */ }
+  /* 4. 上传原图和 WebP 到 OSS */
+  const date = new Date().toISOString().slice(0, 10);
+  const ts = Date.now();
+  const slug = (promptHint || 'ai-image').replace(/[^\w\u4e00-\u9fa5.-]/g, '_').slice(0, 30) || 'ai-image';
+  const origKey = [c.pathPrefix, 'ai-images', date, `${ts}-${slug}${origExt}`].filter(Boolean).join('/');
+  const webpKey = [c.pathPrefix, 'ai-images', date, `${ts}-${slug}.webp`].filter(Boolean).join('/');
+  try {
+    await client.put(origKey, origBuf, { mime: origMime, headers: { 'Content-Type': origMime } });
+    await client.put(webpKey, webpBuf, { mime: 'image/webp', headers: { 'Content-Type': 'image/webp' } });
+  } catch (e) {
+    return { ok: false, error: '上传 OSS 失败: ' + (e.message || String(e)) };
+  }
+  return { ok: true, url: ossUrl(c, webpKey) };
 }
 
 app.get('/api/oss-config', auth, (req, res) => {

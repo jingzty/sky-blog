@@ -594,6 +594,8 @@
         const [y,mo] = m.split('-');
         return `<a href="posts.html?month=${m}" class="river-node"><div class="river-y">${y}</div><div class="river-m">${parseInt(mo)}<small>月</small></div><div class="river-c"><b>${months[m]}</b> 篇</div></a>`;
       }).join('');
+      /* 初始定位到最右端（最早时间），用户第一眼看到的就是最早的时间 */
+      el.scrollLeft = el.scrollWidth;
     }
 
     function renderSign(config, postCount, catCount){
@@ -786,6 +788,34 @@
       }, {threshold:0.2, rootMargin:'0px 0px -40px 0px'});
       const horizon = document.getElementById('horizon');
       if(horizon) ios.observe(horizon);
+
+      /* 时间之河：进入视口并停留 2s 后，从最早时间（右端）缓缓滚动到最新时间（左端），约 2s 完成 */
+      const river = document.querySelector('.river');
+      const riverTrack = document.getElementById('riverTrack');
+      if(river && riverTrack && riverTrack.scrollWidth > riverTrack.clientWidth){
+        const ior = new IntersectionObserver((es)=>{
+          es.forEach(e=>{
+            if(e.isIntersecting){
+              ior.unobserve(e.target);
+              setTimeout(()=>{
+                /* 从当前最右端（最早时间）用 easeOutCubic 在 2s 内缓缓滚到最左端（最新时间） */
+                const start = riverTrack.scrollLeft;
+                const end = 0;
+                const duration = 2000;
+                const t0 = performance.now();
+                const ease = t => 1 - Math.pow(1 - t, 3); /* easeOutCubic */
+                function step(now){
+                  const p = Math.min((now - t0) / duration, 1);
+                  riverTrack.scrollLeft = start + (end - start) * ease(p);
+                  if(p < 1) requestAnimationFrame(step);
+                }
+                requestAnimationFrame(step);
+              }, 1000);
+            }
+          });
+        }, {threshold:0.3, rootMargin:'0px 0px -80px 0px'});
+        ior.observe(river);
+      }
     }
   </script>
 </body>

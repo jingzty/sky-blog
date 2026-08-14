@@ -90,6 +90,7 @@ window.API = (function () {
     /* AI 配图 */
     getImageModels: () => request('GET', '/api/ai/image-models'),
     aiGenerateImage: d => request('POST', '/api/ai/generate-image', d),
+    testAiImage: d => request('POST', '/api/ai/test-image', d),
 
     /* OSS 文件上传 */
     getOssConfig: () => request('GET', '/api/oss-config'),
