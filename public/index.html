@@ -542,6 +542,11 @@
       el.innerHTML = slides.map((s,i) =>
         `<div class="sky-layer" style="background-image:url('${cssUrl(s.bgImage)}')"></div>`
       ).join('');
+      /* 预加载后续轮播图：background-image 只有轮到那张才发起请求，
+       * 预先把 2nd/3rd 拉进缓存，切换时直接命中，避免白闪 */
+      slides.slice(1, 3).forEach(s => {
+        if (s && s.bgImage) { const im = new Image(); im.src = s.bgImage; }
+      });
     }
 
     function renderMoments(slides){

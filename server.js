@@ -6,6 +6,7 @@
 const fs = require('fs'), path = require('path');
 const crypto = require('crypto');
 const express = require('express');
+const compression = require('compression');
 const Database = require('better-sqlite3');
 const seed = require('./scripts/seed-data');
 // OSS 文件上传：ali-oss 走服务端代理上传，AccessKey 只存服务端，不下发浏览器
@@ -84,8 +85,9 @@ const slugify = s => (s || '').replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '-')
   .replace(/-+/g, '-').replace(/^-|-$/g, '').toLowerCase() || ('post-' + Date.now());
 const nowISO = () => new Date().toISOString();
 
-/* 列表查询：lite 模式不取 content（列表/归档/计数都用它） */
-function queryPosts({ all, categoryId, tag, month, q, lite }) {
+/* 列表查询：lite 模式不取 content（列表/归档/计数都用它）
+ * limit/offset：可选分页；不传则返回全量（首页/后台统计依赖全量，保持兼容） */
+function queryPosts({ all, categoryId, tag, month, q, lite, limit, offset }) {
   const cols = lite
     ? 'id,title,slug,excerpt,cover,date,tag,status,categoryId,createdAt,updatedAt'
     : '*';
@@ -97,6 +99,8 @@ function queryPosts({ all, categoryId, tag, month, q, lite }) {
   if (q)          { where.push('(title LIKE ? OR excerpt LIKE ? OR content LIKE ?)'); const w = '%' + q + '%'; params.push(w, w, w); }
   if (where.length) sql += ' WHERE ' + where.join(' AND ');
   sql += ' ORDER BY date DESC';
+  if (limit)  sql += ' LIMIT ' + Math.min(+limit, 200);   // 上限 200 防滥用
+  if (offset) sql += ' OFFSET ' + +offset;
   return db.prepare(sql).all(...params);
 }
 
@@ -108,6 +112,9 @@ app.disable('x-powered-by');
  * 若代理链新增跳数/IP，需在此追加；不要把不可信的直连来源加入信任列表。 */
 app.set('trust proxy', ['loopback', '192.168.3.213', '101.133.145.147']);
 app.use(express.json({ limit: '1mb' }));
+/* HTTP 压缩：文本类资源（html/css/js/json/xml/svg）gzip 传输，实测首页 53KB->13KB（-74%）。
+ * 图片等二进制不压缩（默认 threshold 1kb + 类型过滤）。放在路由与静态之前。 */
+app.use(compression());
 
 /* ---- cookie 解析（轻量自实现，免装 cookie-parser）---- */
 function parseCookies(req) {
@@ -270,6 +277,7 @@ app.get('/api/posts', optionalAuth, (req, res) => {
   const authed = req.authed;
   const lite = authed ? (req.query.full !== '1') : true;
   const all = authed && !!req.query.all;
+  const posInt = v => { const n = parseInt(v, 10); return Number.isInteger(n) && n > 0 ? n : 0; };
   res.json(queryPosts({
     all,
     categoryId: req.query.categoryId,
@@ -277,6 +285,8 @@ app.get('/api/posts', optionalAuth, (req, res) => {
     month: req.query.month,
     q: req.query.q,
     lite,
+    limit: posInt(req.query.limit),
+    offset: posInt(req.query.offset),
   }));
 });
 
@@ -1050,8 +1060,17 @@ app.use((req, res, next) => {
   next();
 });
 
-/* ---- 静态 + 404 ---- */
-app.use(express.static(path.join(__dirname, 'public'), { etag: true, maxAge: 0 }));
+/* ---- 静态 + 404 ----
+ * 缓存策略：图片 7 天强缓存（内容不变，省 4.5MB 目录的重复协商）；
+ * css/js 1 小时（无文件名 hash，不敢长缓存）；html no-cache 每次协商保更新及时。 */
+app.use(express.static(path.join(__dirname, 'public'), {
+  etag: true,
+  setHeaders: (res, filePath) => {
+    if (/\.(jpe?g|png|gif|webp|avif|svg|ico)$/i.test(filePath)) res.setHeader('Cache-Control', 'public, max-age=604800');
+    else if (/\.(css|js|woff2?)$/i.test(filePath)) res.setHeader('Cache-Control', 'public, max-age=3600');
+    else if (/\.html$/i.test(filePath)) res.setHeader('Cache-Control', 'no-cache');
+  },
+}));
 app.use((req, res) => res.status(404).sendFile(path.join(__dirname, 'public', '404.html')));
 
 app.listen(PORT, () => console.log(`✓ http://localhost:${PORT}  (SEED=${SEED ? 1 : 0})`));

@@ -51,6 +51,11 @@
     .empty h3{font-family:var(--serif);font-size:1.4rem;margin-bottom:8px;color:var(--day-ink)}
     .empty a{color:var(--dawn-deep);border-bottom:1px solid var(--dawn-deep)}
 
+    .load-more-wrap{display:flex;justify-content:center;margin-top:36px}
+    .load-more{padding:12px 38px;border-radius:100px;border:1.5px solid rgba(20,48,73,0.3);background:transparent;color:var(--day-ink);font-family:var(--sans);font-size:0.88rem;cursor:pointer;transition:all 0.3s}
+    .load-more:hover:not(:disabled){background:var(--day-ink);color:var(--day-1);border-color:var(--day-ink)}
+    .load-more:disabled{opacity:0.5;cursor:wait}
+
     .info-bar{font-size:0.82rem;color:rgba(20,48,73,0.5);margin-bottom:24px}
 
     @media(max-width:640px){
@@ -79,6 +84,7 @@
   <div class="posts-wrap">
     <div class="info-bar" id="infoBar"></div>
     <div class="posts-grid" id="postsGrid"></div>
+    <div class="load-more-wrap" id="loadMoreWrap" style="display:none"><button class="load-more" id="loadMoreBtn">加载更多</button></div>
   </div>
 
   <script src="js/md.js"></script>
@@ -94,42 +100,23 @@
       const month = params.get('month') || '';
 
       const grid = document.getElementById('postsGrid');
+      const moreWrap = document.getElementById('loadMoreWrap');
+      const moreBtn = document.getElementById('loadMoreBtn');
       try {
-        // 并行：分类（筛选用）+ 文章（服务端筛选，lite 不带 content）
+        // 分类（筛选用）单独拉；文章改为分页加载（首屏 12 篇，按需追加），
+        // 多取 1 条判断是否还有下一页，服务端 API 不用改响应结构
+        const PAGE = 12;
         const fetchParams = {};
         if (q) fetchParams.q = q;
         if (categoryId) fetchParams.categoryId = categoryId;
         if (tag) fetchParams.tag = tag;
         if (month) fetchParams.month = month;
 
-        const [posts, categories] = await Promise.all([
-          API.getPosts(fetchParams),
-          API.getCategories()
-        ]);
-
+        const categories = await API.getCategories();
         if (q) document.getElementById('searchInput').value = q;
 
-        // 信息栏
-        let info = `共 ${posts.length} 篇文章`;
-        if (categoryId) { const cat = categories.find(c => c.id == categoryId); if (cat) info = `分类「${cat.name}」· ${posts.length} 篇`; }
-        if (tag) info = `标签「${tag}」· ${posts.length} 篇`;
-        if (month) info = `归档 ${month.replace('-', '年')}月 · ${posts.length} 篇`;
-        if (q) info = `搜索「${q}」· ${posts.length} 篇`;
-        document.getElementById('infoBar').textContent = info;
-
-        // 筛选标签
-        const hasFilter = !!(categoryId || tag || month || q);
-        document.getElementById('filters').innerHTML = `
-          <span>筛选：</span>
-          <a href="posts.html" class="filter-tag${!hasFilter ? ' on' : ''}">全部</a>
-          ${categories.filter(c => c.name !== '全部').map(c => `<a href="posts.html?categoryId=${c.id}" class="filter-tag${categoryId == c.id ? ' on' : ''}">${esc(c.name)}</a>`).join('')}
-          ${hasFilter ? `<a href="posts.html" class="filter-clear">清除筛选</a>` : ''}`;
-
-        if (posts.length === 0) {
-          grid.innerHTML = `<div class="empty"><h3>没有找到文章</h3><p>试试其他关键词，或回到<a href="index.html">首页</a></p></div>`;
-          return;
-        }
-        grid.innerHTML = posts.map(p => `
+        let loaded = 0, hasMore = false, loading = false;
+        const cardHtml = p => `
           <a href="post.html?id=${p.id}" class="post-card">
             <div class="post-card-img">${p.cover ? `<img src="${esc(p.cover)}" alt="${esc(p.title)}" loading="lazy">` : `<div style="height:100%;background:linear-gradient(135deg,var(--day-2),var(--day-3))"></div>`}</div>
             <div class="post-card-body">
@@ -138,7 +125,48 @@
               <p class="post-card-ex">${esc(p.excerpt || '')}</p>
               <div class="post-card-meta"><span>${esc(p.date)}</span></div>
             </div>
-          </a>`).join('');
+          </a>`;
+
+        const updateInfo = () => {
+          let info = `已加载 ${loaded} 篇${hasMore ? '' : ' · 已全部加载'}`;
+          if (categoryId) { const cat = categories.find(c => c.id == categoryId); if (cat) info = `分类「${cat.name}」· ` + info; }
+          if (tag) info = `标签「${tag}」· ` + info;
+          if (month) info = `归档 ${month.replace('-', '年')}月 · ` + info;
+          if (q) info = `搜索「${q}」· ` + info;
+          document.getElementById('infoBar').textContent = info;
+        };
+
+        async function loadPage(){
+          if (loading) return;
+          loading = true; moreBtn.disabled = true;
+          try {
+            const batch = await API.getPosts({ ...fetchParams, limit: PAGE + 1, offset: loaded });
+            hasMore = batch.length > PAGE;
+            const items = batch.slice(0, PAGE);
+            loaded += items.length;
+            if (loaded === 0) {
+              grid.innerHTML = `<div class="empty"><h3>没有找到文章</h3><p>试试其他关键词，或回到<a href="index.html">首页</a></p></div>`;
+              moreWrap.style.display = 'none';
+            } else {
+              if (loaded === items.length) grid.innerHTML = ''; // 首屏清空占位
+              grid.insertAdjacentHTML('beforeend', items.map(cardHtml).join(''));
+              moreWrap.style.display = hasMore ? 'flex' : 'none';
+            }
+            updateInfo();
+          } finally {
+            loading = false; moreBtn.disabled = false;
+          }
+        }
+        moreBtn.addEventListener('click', loadPage);
+        await loadPage();
+
+        // 筛选标签
+        const hasFilter = !!(categoryId || tag || month || q);
+        document.getElementById('filters').innerHTML = `
+          <span>筛选：</span>
+          <a href="posts.html" class="filter-tag${!hasFilter ? ' on' : ''}">全部</a>
+          ${categories.filter(c => c.name !== '全部').map(c => `<a href="posts.html?categoryId=${c.id}" class="filter-tag${categoryId == c.id ? ' on' : ''}">${esc(c.name)}</a>`).join('')}
+          ${hasFilter ? `<a href="posts.html" class="filter-clear">清除筛选</a>` : ''}`;
 
       } catch (e) {
         grid.innerHTML = `<div class="empty"><h3>加载失败</h3><p>${esc(e.message)}</p></div>`;
