@@ -94,10 +94,23 @@ window.MD = (function(){
     // 行内代码
     s = s.replace(/`(.+?)`/g,'<code>$1</code>');
     // 图片（必须放在链接前面）
-    s = s.replace(/!\[([^\]]*)\]\(([^)]+)\)/g,'<img src="$2" alt="$1" loading="lazy">');
+    s = s.replace(/!\[([^\]]*)\]\(([^)]+)\)/g,(m,alt,url)=>`<img src="${safeUrl(url)}" alt="${alt}" loading="lazy">`);
     // 链接
-    s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
+    s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g,(m,txt,url)=>`<a href="${safeUrl(url)}" target="_blank" rel="noopener">${txt}</a>`);
     return s;
+  }
+
+  /* URL 协议白名单：无 scheme 的相对路径/锚点一律放行（站内链接如 post.html?id=3）；
+   * 带 scheme 的只放行 http(s)、mailto，data: 仅放行 data:image/（AI 配图的 base64）。
+   * javascript: / vbscript: 等危险协议一律替换为 '#'，防存储型 XSS。 */
+  function safeUrl(u){
+    const s = String(u || '').trim();
+    const m = s.match(/^([a-z][a-z0-9+.\-]*):/i);
+    if (!m) return s;
+    const scheme = m[1].toLowerCase();
+    if (scheme === 'https' || scheme === 'http' || scheme === 'mailto') return s;
+    if (scheme === 'data') return /^data:image\//i.test(s) ? s : '#';
+    return '#';
   }
 
   function renderTable(rows){

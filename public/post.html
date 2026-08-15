@@ -199,6 +199,7 @@
       const params = new URLSearchParams(location.search);
       const idOrSlug = params.get('id') || params.get('slug');
       const el = document.getElementById('postContent');
+      const esc = MD.esc; // 输出转义：所有后台数据渲染进 HTML 前统一转义，防存储型 XSS
 
       if(!idOrSlug){
         el.innerHTML = `<div class="empty-state"><h2>文章未找到</h2><p>没有指定文章 ID。</p><a href="index.html">回到首页</a></div>`;
@@ -217,13 +218,13 @@
         // 分类标签
         let catHtml = '';
         if(post.tag){
-          catHtml = '<div class="post-cats">'+post.tag.split(',').map(t=>`<span class="post-cat">${t.trim()}</span>`).join('')+'</div>';
+          catHtml = '<div class="post-cats">'+post.tag.split(',').map(t=>`<span class="post-cat">${esc(t.trim())}</span>`).join('')+'</div>';
         }
 
         // 摘要区块
         let summaryHtml = '';
         if(post.excerpt){
-          summaryHtml = `<div class="post-summary">${post.excerpt}</div>`;
+          summaryHtml = `<div class="post-summary">${esc(post.excerpt)}</div>`;
         }
 
         // 正文 HTML（代码复制按钮在真实 DOM 注入后再绑定，避免 innerHTML 序列化丢失事件）
@@ -240,14 +241,14 @@
         const editBtnHtml = API.isAuthed() ? `<a href="admin/editor.html?id=${post.id}" class="post-meta-edit" title="修改本文"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>修改本文</a>` : '';
 
         el.innerHTML = `
-          ${post.cover ? `<div class="post-cover-wrap" style="margin-bottom:44px"><img src="${post.cover}" alt="${post.title}" class="post-cover"></div>` : ''}
+          ${post.cover ? `<div class="post-cover-wrap" style="margin-bottom:44px"><img src="${esc(post.cover)}" alt="${esc(post.title)}" class="post-cover"></div>` : ''}
           <div class="post-wrap">
           <article>
             <header class="post-header">
               ${catHtml}
-              <h1 class="post-title">${post.title}</h1>
+              <h1 class="post-title">${esc(post.title)}</h1>
               <div class="post-meta">
-                <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${post.date}</span>
+                <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${esc(post.date)}</span>
                 <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>${readingMin} 分钟</span>
                 <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>${wordCount} 字</span>
                 ${editBtnHtml}
@@ -260,16 +261,16 @@
             <div class="post-footer-row">
               <div class="post-tags">
                 <span class="post-tags-label">标签：</span>
-                ${post.tag ? post.tag.split(',').map(t=>`<a href="posts.html?tag=${encodeURIComponent(t.trim())}" class="post-tag">${t.trim()}</a>`).join('') : '<span style="color:var(--taupe);font-size:0.82rem">无</span>'}
+                ${post.tag ? post.tag.split(',').map(t=>`<a href="posts.html?tag=${encodeURIComponent(t.trim())}" class="post-tag">${esc(t.trim())}</a>`).join('') : '<span style="color:var(--taupe);font-size:0.82rem">无</span>'}
               </div>
               <button class="share-btn" id="copyLinkBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>复制链接</button>
             </div>
           </footer>
           <div class="author-card">
-            <img src="${config.authorAvatar||'images/avatar.jpg'}" alt="作者" class="author-avatar">
+            <img src="${esc(config.authorAvatar||'images/avatar.jpg')}" alt="作者" class="author-avatar">
             <div class="author-info">
-              <h3>${config.authorName||'远远'}</h3>
-              <p>${config.authorBio||''}</p>
+              <h3>${esc(config.authorName||'远远')}</h3>
+              <p>${esc(config.authorBio||'')}</p>
             </div>
           </div>
           </div>`;

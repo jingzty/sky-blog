@@ -81,10 +81,12 @@
     <div class="posts-grid" id="postsGrid"></div>
   </div>
 
+  <script src="js/md.js"></script>
   <script src="js/api.js"></script>
   <script src="js/ui.js"></script>
   <script>
     (async function init() {
+      const esc = MD.esc; // 输出转义：后台数据渲染进 HTML 前统一转义，防存储型 XSS
       const params = new URLSearchParams(location.search);
       const q = params.get('q') || '';
       const categoryId = params.get('categoryId') || '';
@@ -120,7 +122,7 @@
         document.getElementById('filters').innerHTML = `
           <span>筛选：</span>
           <a href="posts.html" class="filter-tag${!hasFilter ? ' on' : ''}">全部</a>
-          ${categories.filter(c => c.name !== '全部').map(c => `<a href="posts.html?categoryId=${c.id}" class="filter-tag${categoryId == c.id ? ' on' : ''}">${c.name}</a>`).join('')}
+          ${categories.filter(c => c.name !== '全部').map(c => `<a href="posts.html?categoryId=${c.id}" class="filter-tag${categoryId == c.id ? ' on' : ''}">${esc(c.name)}</a>`).join('')}
           ${hasFilter ? `<a href="posts.html" class="filter-clear">清除筛选</a>` : ''}`;
 
         if (posts.length === 0) {
@@ -129,17 +131,17 @@
         }
         grid.innerHTML = posts.map(p => `
           <a href="post.html?id=${p.id}" class="post-card">
-            <div class="post-card-img">${p.cover ? `<img src="${p.cover}" alt="${p.title}" loading="lazy">` : `<div style="height:100%;background:linear-gradient(135deg,var(--day-2),var(--day-3))"></div>`}</div>
+            <div class="post-card-img">${p.cover ? `<img src="${esc(p.cover)}" alt="${esc(p.title)}" loading="lazy">` : `<div style="height:100%;background:linear-gradient(135deg,var(--day-2),var(--day-3))"></div>`}</div>
             <div class="post-card-body">
-              <div class="post-card-tag">${p.tag ? p.tag.split(',')[0].trim() : '随笔'}</div>
-              <h3 class="post-card-title">${p.title}</h3>
-              <p class="post-card-ex">${p.excerpt || ''}</p>
-              <div class="post-card-meta"><span>${p.date}</span></div>
+              <div class="post-card-tag">${p.tag ? esc(p.tag.split(',')[0].trim()) : '随笔'}</div>
+              <h3 class="post-card-title">${esc(p.title)}</h3>
+              <p class="post-card-ex">${esc(p.excerpt || '')}</p>
+              <div class="post-card-meta"><span>${esc(p.date)}</span></div>
             </div>
           </a>`).join('');
 
       } catch (e) {
-        grid.innerHTML = `<div class="empty"><h3>加载失败</h3><p>${e.message}</p></div>`;
+        grid.innerHTML = `<div class="empty"><h3>加载失败</h3><p>${esc(e.message)}</p></div>`;
       }
 
       // 搜索跳转（无需等待数据）

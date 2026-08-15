@@ -1026,11 +1026,20 @@ ${items}
  * 守卫只拦“页面导航”类请求（浏览器直接打开 /admin/*.html）。
  * 校验依据：cookie admin_token 必须命中内存 token 集合。
  * 静态资源（css/js/图片）不拦，否则后台页加载时子资源会因顺序问题被误拦。
+ * 安全：不挂在 app.use('/admin') 上——mount 前缀按“原始 URL”匹配，而 express.static
+ * 会先解码再取文件，两套解析不一致会让 /%61dmin、/admin%2F、//admin 等编码变体
+ * 绕过守卫直接拿到后台页面。这里改为全局中间件：先 decodeURIComponent 再归一化
+ * 多斜杠，然后才匹配 /admin 前缀，与 static 的解析结果保持一致。
  */
-app.use('/admin', (req, res, next) => {
-  const p = req.path;
+app.use((req, res, next) => {
+  let p;
+  try { p = decodeURIComponent(req.path); } catch (_) { return next(); /* 非法编码交给 static 兜底 400，不会 serve 任何文件 */ }
+  p = p.replace(/\/{2,}/g, '/');
+  const inAdmin = p === '/admin' || p.startsWith('/admin/');
+  if (!inAdmin) return next();
   // 仅对 HTML 页面（无扩展名或 .html）做登录校验；其余资源放行
-  const isPage = /^\/?$/.test(p) || /\.html$/i.test(p);
+  const rest = p.slice('/admin'.length);
+  const isPage = /^\/?$/.test(rest) || /\.html$/i.test(rest);
   if (!isPage) return next();
   const t = parseCookies(req).admin_token || '';
   if (!t || !tokens.has(t)) {
