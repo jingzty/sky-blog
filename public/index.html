@@ -314,7 +314,10 @@
     .foot-links { display: flex; gap: 26px; }
     .foot-links a { font-size: 0.8rem; color: var(--text-faint); transition: color 0.3s; }
     .foot-links a:hover { color: var(--gold-soft); }
-    .foot-copy { font-size: 0.74rem; color: rgba(255,255,255,0.28); margin-top: 26px; text-align: center; }
+    .foot-copy { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap; font-size: 0.74rem; color: rgba(255,255,255,0.28); margin-top: 26px; }
+    .foot-copy a { color: rgba(255,255,255,0.28); transition: color 0.3s; }
+    .foot-copy a:hover { color: var(--gold-soft); }
+    .foot-beian { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; text-align: right; }
 
     @media (max-width: 860px) {
       .sign { grid-template-columns: 1fr; gap: 28px; text-align: center; justify-items: center; }
@@ -322,6 +325,8 @@
       .sign-stats { flex-direction: row; text-align: center; gap: 32px; }
       .scope-grid { grid-template-columns: 1fr; gap: 30px; }
       .foot-row { flex-direction: column; text-align: center; }
+      .foot-copy { flex-direction: column; align-items: center; text-align: center; }
+      .foot-beian { align-items: center; text-align: center; }
     }
 
     /* ==================== 回到黎明 ==================== */
@@ -652,7 +657,13 @@
           </div>
           <div class="foot-links">${links.join('')}</div>
         </div>
-        <div class="foot-copy">${esc(config.footerText||'© 2026 远远的天空')}</div>`;
+        <div class="foot-copy">
+          <div class="foot-copyright">${esc(config.footerText||'© 2026 远远的天空')}</div>
+          ${(config.icpNumber || config.policeNumber) ? `<div class="foot-beian">
+            ${config.icpNumber ? `<a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">${esc(config.icpNumber)}</a>` : ''}
+            ${config.policeNumber ? `<a href="https://beian.mps.gov.cn/" target="_blank" rel="noopener">${esc(config.policeNumber)}</a>` : ''}
+          </div>` : ''}
+        </div>`;
     }
 
     function renderStars(){

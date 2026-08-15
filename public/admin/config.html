@@ -118,10 +118,21 @@
           <i data-lucide="align-left" class="w-5 h-5" style="color: var(--warm-brand);"></i>
           <h2 class="text-h3" style="color: var(--warm-ink);">页脚文案</h2>
         </div>
-        <div class="flex flex-col gap-2">
-          <label class="text-sm font-medium" style="color: var(--warm-ink-2);">页脚展示文案</label>
-          <textarea id="footerText" rows="2" class="input-field px-4 py-3 rounded-lg text-sm resize-none" placeholder="输入页脚文案"></textarea>
+        <div class="flex flex-col gap-2 mb-5">
+          <label class="text-sm font-medium" style="color: var(--warm-ink-2);">版权文案（页脚左侧）</label>
+          <textarea id="footerText" rows="2" class="input-field px-4 py-3 rounded-lg text-sm resize-none" placeholder="© 2026 远远的天窃"></textarea>
         </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-medium" style="color: var(--warm-ink-2);">ICP 备案号（页脚右侧第一行）</label>
+            <input type="text" id="icpNumber" class="input-field px-4 py-2.5 rounded-lg text-sm" placeholder="京ICP备2021234567号-1">
+          </div>
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-medium" style="color: var(--warm-ink-2);">公安备案号（页脚右侧第二行）</label>
+            <input type="text" id="policeNumber" class="input-field px-4 py-2.5 rounded-lg text-sm" placeholder="京公网安备 11010802012345号">
+          </div>
+        </div>
+        <p class="text-xs mt-4" style="color: var(--warm-ink-3);">备案号在前台页脚右下角分两行展示，可点击跳转工信部/公安部备案系统；留空则不显示</p>
       </section>
 
       <!-- 账号安全 -->
@@ -161,7 +172,7 @@
   <script>
     if (!API.isAuthed()) window.location.href = '../login.html';
 
-    const FIELDS = ['blogName', 'blogSubtitle', 'authorName', 'authorRole', 'authorBio', 'authorAvatar', 'githubUrl', 'weiboUrl', 'contactEmail', 'footerText'];
+    const FIELDS = ['blogName', 'blogSubtitle', 'authorName', 'authorRole', 'authorBio', 'authorAvatar', 'githubUrl', 'weiboUrl', 'contactEmail', 'footerText', 'icpNumber', 'policeNumber'];
 
     const imgUrl = Admin.imgUrl;
 
