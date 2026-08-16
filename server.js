@@ -1067,13 +1067,15 @@ app.use((req, res, next) => {
 });
 
 /* ---- 静态 + 404 ----
- * 缓存策略：图片 7 天强缓存（内容不变，省 4.5MB 目录的重复协商）；
- * css/js 1 小时（无文件名 hash，不敢长缓存）；html no-cache 每次协商保更新及时。 */
+ * 缓存策略：图片/字体 7 天强缓存（内容不变，省 4.5MB 目录的重复协商）；
+ * css/js 用 no-cache 协商缓存（文件名无 hash，若设 max-age 会导致发布更新后
+ * 存量会话在缓存期内拿旧 JS，新功能报错--实测踩过，改回协商）；
+ * html no-cache 每次协商保更新及时。 */
 app.use(express.static(path.join(__dirname, 'public'), {
   etag: true,
   setHeaders: (res, filePath) => {
-    if (/\.(jpe?g|png|gif|webp|avif|svg|ico)$/i.test(filePath)) res.setHeader('Cache-Control', 'public, max-age=604800');
-    else if (/\.(css|js|woff2?)$/i.test(filePath)) res.setHeader('Cache-Control', 'public, max-age=3600');
+    if (/\.(jpe?g|png|gif|webp|avif|svg|ico|woff2?)$/i.test(filePath)) res.setHeader('Cache-Control', 'public, max-age=604800');
+    else if (/\.(css|js)$/i.test(filePath)) res.setHeader('Cache-Control', 'no-cache');
     else if (/\.html$/i.test(filePath)) res.setHeader('Cache-Control', 'no-cache');
   },
 }));
