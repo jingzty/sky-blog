@@ -379,6 +379,12 @@ app.put('/api/slides', auth, (req, res) => {
   tx(req.body || []);
   res.json({ ok: true });
 });
+/* 单条启用/停用：列表页快捷开关直接落库，免进编辑表单（与 posts 的 PATCH 模式一致） */
+app.patch('/api/slides/:id/status', auth, (req, res) => {
+  const status = req.body.status === 'inactive' ? 'inactive' : 'active';
+  db.prepare('UPDATE slides SET status=? WHERE id=?').run(status, +req.params.id);
+  res.json({ ok: true });
+});
 
 /* ---- 配置 ---- */
 /* 安全：GET /api/config 对访客过滤名称含敏感词的 key（防未来加入密钥类配置泄露）；

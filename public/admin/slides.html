@@ -400,6 +400,9 @@
               </div>
             </div>
             <div class="flex items-center gap-2 shrink-0">
+              <button class="btn-secondary inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium act-toggle">
+                <i data-lucide="${active ? 'power-off' : 'power'}" class="w-3.5 h-3.5"></i>${active ? '禁用' : '开启'}
+              </button>
               <button class="btn-secondary inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium act-edit">
                 <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>编辑
               </button>
@@ -420,6 +423,18 @@
     }
 
     function bindRowEvents() {
+      document.querySelectorAll('#slideList .act-toggle').forEach(b => b.onclick = async () => {
+        const idx = +b.closest('[data-idx]').dataset.idx;
+        const s = slides[idx];
+        if (!s || !s.id) return Admin.toast('该条尚未保存，请先点顶部「保存」');
+        const target = s.status === 'inactive' ? 'active' : 'inactive';
+        try {
+          await API.setSlideStatus(s.id, target);
+          s.status = target;
+          render();
+          Admin.toast(target === 'active' ? '已开启' : '已禁用');
+        } catch (e) { Admin.toast('操作失败: ' + e.message); }
+      });
       document.querySelectorAll('#slideList .act-edit').forEach(b => b.onclick = () => openEdit(+b.closest('[data-idx]').dataset.idx));
       document.querySelectorAll('#slideList .act-del').forEach(b => b.onclick = async () => {
         const idx = +b.closest('[data-idx]').dataset.idx;

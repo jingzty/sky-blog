@@ -57,6 +57,7 @@ window.API = (function () {
     /* 轮播 */
     getSlides: (params = {}) => request('GET', '/api/slides' + qs(params)),
     saveSlides: l => request('PUT', '/api/slides', l),
+    setSlideStatus: (id, s) => request('PATCH', '/api/slides/' + id + '/status', { status: s }),
 
     /* 配置 */
     getConfig: () => request('GET', '/api/config'),
