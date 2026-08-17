@@ -26,7 +26,13 @@
     .img-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
     .img-card img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px 8px 0 0; }
     .lightbox-overlay { position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; padding: 40px; cursor: zoom-out; }
-    .lightbox-overlay img { max-width: 90vw; max-height: 90vh; border-radius: 8px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+    .lightbox-box { display: flex; flex-direction: column; align-items: center; cursor: default; }
+    .lightbox-overlay img { max-width: 90vw; border-radius: 8px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+    .lightbox-box img { max-height: 66vh; }
+    .lightbox-prompt { display: flex; align-items: flex-end; gap: 10px; margin-top: 14px; width: 100%; max-width: 90vw; }
+    .lightbox-prompt-text { flex: 1; min-width: 0; color: rgba(255,255,255,0.85); font-size: 13px; line-height: 1.65; max-height: 96px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; text-align: left; }
+    .lightbox-copy-btn { flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 8px; background: rgba(255,255,255,0.12); color: #fff; border: 1px solid rgba(255,255,255,0.22); font-size: 12px; cursor: pointer; transition: all 0.2s; }
+    .lightbox-copy-btn:hover { background: rgba(255,255,255,0.22); }
     .variants-overlay { position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; padding: 24px; cursor: zoom-out; }
     .variants-panel { background: var(--warm-surface); border: 1px solid var(--warm-line); border-radius: var(--warm-radius-large); box-shadow: 0 20px 60px rgba(0,0,0,0.3); padding: 20px; width: min(680px, 94vw); max-height: 88vh; overflow-y: auto; cursor: default; }
   </style>
@@ -101,7 +107,7 @@
         historyRows = rows;
         gallery.innerHTML = rows.map(r => `
           <div class="img-card card overflow-hidden" data-id="${r.id}">
-            <img src="${esc(r.url)}" alt="${esc(r.prompt)}" loading="lazy" onclick="openLightbox('${esc(r.url)}')">
+            <img src="${esc(r.url)}" alt="${esc(r.prompt)}" loading="lazy" onclick="openLightbox(${r.id})">
             <div class="p-3">
               <p class="text-xs leading-relaxed line-clamp-2 mb-2" style="color: var(--warm-ink-2);" title="${esc(r.prompt)}">${esc(r.prompt)}</p>
               <div class="flex items-center justify-between gap-2">
@@ -130,12 +136,30 @@
       }
     }
 
-    window.openLightbox = function (url) {
+    /* 大图 + 完整提示词查阅：点图打开，图片下方展示全文 prompt，可一键复制 */
+    window.openLightbox = function (id) {
+      const r = historyRows.find(x => x.id === id);
+      if (!r) return Admin.toast('记录不存在，请刷新后重试');
       const ov = document.createElement('div');
       ov.className = 'lightbox-overlay';
-      ov.innerHTML = `<img src="${esc(url)}">`;
-      ov.addEventListener('click', () => ov.remove());
+      ov.innerHTML = `
+        <div class="lightbox-box">
+          <img src="${esc(r.url)}" alt="${esc(r.prompt)}">
+          <div class="lightbox-prompt">
+            <div class="lightbox-prompt-text">${esc(r.prompt)}</div>
+            <button type="button" class="lightbox-copy-btn" data-copy-prompt><i data-lucide="copy" class="w-3.5 h-3.5"></i>复制提示词</button>
+          </div>
+        </div>`;
+      ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
+      ov.querySelector('[data-copy-prompt]').onclick = async () => {
+        try {
+          if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(r.prompt);
+          else { const ta = document.createElement('textarea'); ta.value = r.prompt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); }
+          Admin.toast('已复制提示词', 'success');
+        } catch { Admin.toast('复制失败'); }
+      };
       document.body.appendChild(ov);
+      lucide.createIcons();
     };
 
     /* 各分辨率链接浮层：原图 + 4 档变体，每行可复制 */
