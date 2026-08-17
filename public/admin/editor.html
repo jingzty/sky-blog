@@ -74,7 +74,7 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start">
       <!-- 编辑器 -->
-      <div class="space-y-4">
+      <div class="space-y-4 min-w-0">
         <input type="text" id="title" placeholder="写一个吸引人的标题……"
           class="input-field w-full font-title font-semibold text-xl px-4 py-3.5 rounded-warm-lg" style="background: var(--warm-surface);">
 
@@ -283,6 +283,7 @@
       spellChecker: false,
       autosave: { enabled: false },
       renderingConfig: { singleLineBreaks: false },
+      lineWrapping: true, // 软换行：超长行折行显示，避免撑破布局
       placeholder: '在这里书写 Markdown...\n\n支持 # 标题、> 引用、- 列表、```代码块、表格等',
       toolbar: ['bold', 'italic', 'heading', '|', 'link', 'image', 'quote', 'code', '|', 'unordered-list', 'ordered-list', 'table', 'horizontal-rule', '|', 'preview', 'side-by-side', 'fullscreen'],
       status: false,
