@@ -229,13 +229,7 @@
               <div class="rounded-warm-md overflow-hidden" style="border: 1px solid var(--warm-line); max-height: 200px;">
                 <img id="imgPreview" alt="AI 生成" class="w-full h-full object-cover block" style="max-height: 200px;">
               </div>
-              <input type="text" id="imgUrl" class="input-field w-full px-2 py-1.5 rounded text-xs font-mono" readonly>
               <div id="imgVariantsBox" class="space-y-1"></div>
-              <div class="flex flex-wrap gap-2">
-                <button type="button" id="imgToCoverBtn" class="btn-secondary flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium"><i data-lucide="image" class="w-3.5 h-3.5"></i>填入封面</button>
-                <button type="button" id="imgInsertBtn" class="btn-secondary flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium"><i data-lucide="corner-down-left" class="w-3.5 h-3.5"></i>插入正文</button>
-                <button type="button" id="imgCopyBtn" class="btn-secondary flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium"><i data-lucide="copy" class="w-3.5 h-3.5"></i>复制</button>
-              </div>
             </div>
           </div>
         </section>
@@ -261,13 +255,7 @@
               <div class="rounded-warm-md overflow-hidden" style="border: 1px solid var(--warm-line); max-height: 200px;">
                 <img id="upPreview" alt="上传图片" class="w-full h-full object-cover block" style="max-height: 200px;">
               </div>
-              <input type="text" id="upUrl" class="input-field w-full px-2 py-1.5 rounded text-xs font-mono" readonly>
               <div id="upVariantsBox" class="space-y-1"></div>
-              <div class="flex flex-wrap gap-2">
-                <button type="button" id="upToCoverBtn" class="btn-secondary flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium"><i data-lucide="image" class="w-3.5 h-3.5"></i>填入封面</button>
-                <button type="button" id="upInsertBtn" class="btn-secondary flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium"><i data-lucide="corner-down-left" class="w-3.5 h-3.5"></i>插入正文</button>
-                <button type="button" id="upCopyBtn" class="btn-secondary flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium"><i data-lucide="copy" class="w-3.5 h-3.5"></i>复制</button>
-              </div>
             </div>
           </div>
         </section>
@@ -490,7 +478,6 @@
     const imgStatus = document.getElementById('imgStatus');
     const imgResultWrap = document.getElementById('imgResultWrap');
     const imgPreview = document.getElementById('imgPreview');
-    const imgUrlInput = document.getElementById('imgUrl');
     let imgModels = [];
 
     (async function loadImgModels() {
@@ -523,10 +510,9 @@
         const r = await API.aiGenerateImage({ id, prompt, size: size || undefined });
         if (r.ok && r.url) {
           imgPreview.src = r.url;
-          imgUrlInput.value = r.url;
           imgResultWrap.classList.remove('hidden');
           imgStatus.textContent = '生成完成';
-          renderVariants('imgVariantsBox', r.variants, 'AI生成图片');
+          renderUrlRows('imgVariantsBox', r.url, r.variants, 'AI生成图片');
         } else {
           imgStatus.textContent = '生成失败';
           Admin.toast(r.error || '生成失败');
@@ -540,54 +526,45 @@
     }
     imgGenBtn.addEventListener('click', imgGenerate);
 
-    document.getElementById('imgToCoverBtn').addEventListener('click', () => {
-      const u = imgUrlInput.value.trim();
-      if (!u) return Admin.toast('没有可用的图片地址');
-      document.getElementById('cover').value = u;
-      showCoverPreview(u);
-      Admin.toast('已填入封面');
-    });
-    document.getElementById('imgInsertBtn').addEventListener('click', () => {
-      const u = imgUrlInput.value.trim();
-      if (!u) return Admin.toast('没有可用的图片地址');
-      insertToContent(`\n![AI生成图片](${u})\n`);
-      Admin.toast('已插入正文');
-    });
-    document.getElementById('imgCopyBtn').addEventListener('click', () => {
-      imgUrlInput.select(); document.execCommand('copy'); Admin.toast('已复制图片地址');
-    });
-
     /* ============ 图片上传（OSS） ============ */
     const upDrop = document.getElementById('upDrop');
     const upFile = document.getElementById('upFile');
     const upStatus = document.getElementById('upStatus');
     const upResultWrap = document.getElementById('upResultWrap');
     const upPreview = document.getElementById('upPreview');
-    const upUrl = document.getElementById('upUrl');
     let upBusy = false;
 
-    /* 变体 URL 列表渲染（AI 生图与直接上传共用）：每行 尺寸标签 + URL + 插入/复制 */
-    function renderVariants(boxId, variants, altText) {
+    /* URL 行列表渲染（AI 生图与直接上传共用）：原图行 + 各分辨率变体行，
+     * 每行 [尺寸标签 + URL + 填入封面/插入正文/复制 三个图标按钮（title 悬停提示）] */
+    function renderUrlRows(boxId, mainUrl, variants, altText) {
       const box = document.getElementById(boxId);
       if (!box) return;
-      if (!variants || !variants.length) { box.innerHTML = ''; return; }
-      const E = Admin.esc || String; // 转义：变体 URL/标签渲染进 HTML 前
-      box.innerHTML = variants.map((v, i) => `
+      const E = Admin.esc || String; // 转义：URL/标签渲染进 HTML 前
+      const rows = [{ label: '原图', url: mainUrl }].concat(variants || []);
+      if (!mainUrl) { box.innerHTML = ''; return; }
+      const rowHtml = (v, i) => `
         <div class="flex items-center gap-2">
           <span class="text-xs font-medium shrink-0" style="color: var(--warm-ink-2); width: 40px;">${E(String(v.label))}</span>
           <input type="text" class="input-field flex-1 min-w-0 px-2 py-1 rounded text-xs font-mono" readonly value="${E(v.url)}">
-          <button type="button" class="btn-secondary shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium" data-vi="${i}"><i data-lucide="corner-down-left" class="w-3 h-3"></i>插入</button>
-          <button type="button" class="btn-secondary shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium" data-vc="${i}"><i data-lucide="copy" class="w-3 h-3"></i>复制</button>
-        </div>`).join('');
+          <button type="button" title="填入封面" class="btn-secondary shrink-0 inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium" data-cov="${i}"><i data-lucide="image" class="w-3.5 h-3.5"></i></button>
+          <button type="button" title="插入正文" class="btn-secondary shrink-0 inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium" data-ins="${i}"><i data-lucide="corner-down-left" class="w-3.5 h-3.5"></i></button>
+          <button type="button" title="复制" class="btn-secondary shrink-0 inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium" data-cpy="${i}"><i data-lucide="copy" class="w-3.5 h-3.5"></i></button>
+        </div>`;
+      box.innerHTML = rows.map(rowHtml).join('');
       if (window.lucide) window.lucide.createIcons();
-      box.querySelectorAll('[data-vi]').forEach(b => b.onclick = () => {
-        const v = variants[+b.dataset.vi];
-        insertToContent(`![${altText}](${v.url})\n`);
+      box.querySelectorAll('[data-cov]').forEach(b => b.onclick = () => {
+        const u = rows[+b.dataset.cov].url;
+        document.getElementById('cover').value = u;
+        showCoverPreview(u);
+        Admin.toast('已填入封面');
+      });
+      box.querySelectorAll('[data-ins]').forEach(b => b.onclick = () => {
+        insertToContent(`![${altText}](${rows[+b.dataset.ins].url})\n`);
         Admin.toast('已插入正文');
       });
-      box.querySelectorAll('[data-vc]').forEach(b => b.onclick = () => {
-        const v = variants[+b.dataset.vc];
-        navigator.clipboard.writeText(v.url).then(() => Admin.toast('已复制'), () => {
+      box.querySelectorAll('[data-cpy]').forEach(b => b.onclick = () => {
+        const u = rows[+b.dataset.cpy].url;
+        navigator.clipboard.writeText(u).then(() => Admin.toast('已复制'), () => {
           const inp = b.parentElement.querySelector('input'); inp.select(); document.execCommand('copy'); Admin.toast('已复制');
         });
       });
@@ -595,10 +572,9 @@
 
     function upShowResult(r) {
       upPreview.src = r.url;
-      upUrl.value = r.url;
       upResultWrap.classList.remove('hidden');
       upStatus.textContent = `已上传：${r.name || ''}${r.degraded ? '（保留原格式）' : ''}`;
-      renderVariants('upVariantsBox', r.variants, r.name || '图片');
+      renderUrlRows('upVariantsBox', r.url, r.variants, (r.name || '图片').replace(/\.[A-Za-z0-9]+$/, ''));
     }
     async function doUpload(file) {
       if (upBusy) return;
@@ -624,20 +600,6 @@
     ['dragenter', 'dragover'].forEach(ev => upDrop.addEventListener(ev, e => { e.preventDefault(); upDrop.style.borderColor = 'var(--warm-brand)'; }));
     ['dragleave', 'drop'].forEach(ev => upDrop.addEventListener(ev, e => { e.preventDefault(); upDrop.style.borderColor = 'var(--warm-line)'; }));
     upDrop.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) doUpload(f); });
-    document.getElementById('upToCoverBtn').addEventListener('click', () => {
-      const u = upUrl.value.trim(); if (!u) return Admin.toast('没有可填入的图片');
-      document.getElementById('cover').value = u;
-      showCoverPreview(u); Admin.toast('已填入封面');
-    });
-    document.getElementById('upInsertBtn').addEventListener('click', () => {
-      const u = upUrl.value.trim(); if (!u) return Admin.toast('没有可插入的图片');
-      const alt = (upStatus.textContent.match(/已上传：(.*?)$/) || [])[1] || '图片';
-      insertToContent(`![${alt}](${u})\n`);
-      Admin.toast('已插入正文');
-    });
-    document.getElementById('upCopyBtn').addEventListener('click', () => {
-      upUrl.select(); document.execCommand('copy'); Admin.toast('已复制图片地址');
-    });
 
 
     async function save(status) {
