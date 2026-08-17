@@ -112,6 +112,11 @@ window.API = (function () {
     /* 编辑器媒体恢复：最近一次 AI 生图 / 手动上传记录 */
     getEditorMedia: postId => request('GET', '/api/editor/media?postId=' + (postId || 0)),
 
+    /* 通用图片库：kind 可选 'ai'/'upload'/空(全部) */
+    getImageLibrary: (kind, limit = 200) => request('GET', '/api/image-library?kind=' + (kind || '') + '&limit=' + limit),
+    deleteImageLibrary: id => request('DELETE', '/api/image-library/' + id),
+    clearImageLibrary: kind => request('DELETE', '/api/image-library' + (kind ? '?kind=' + kind : '')),
+
     /* 搜索 */
     search: q => request('GET', '/api/search?q=' + encodeURIComponent(q)),
   };

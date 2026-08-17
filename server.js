@@ -818,6 +818,7 @@ app.post('/api/ai/generate-image', auth, async (req, res) => {
         'INSERT INTO ai_image_history (prompt, url, modelId, modelName, size, createdAt) VALUES (?,?,?,?,?,?)'
       ).run(prompt, r.url, m.id, m.displayName || m.provider, b.size || '', Date.now());
       saveEditorMedia(+b.postId || 0, 'ai', r.url, prompt, 0);
+      saveImageLibrary('ai', r.url, { prompt, modelName: m.displayName || m.provider, size: b.size || '' });
     } catch (e) { /* 历史记录失败不影响主流程 */ }
   }
   res.json(r);
@@ -830,6 +831,26 @@ app.get('/api/editor/media', auth, (req, res) => {
     'SELECT kind, url, name, degraded, createdAt FROM editor_media_history WHERE postId=? AND kind=? ORDER BY createdAt DESC LIMIT 1'
   ).get(postId, kind) || null;
   res.json({ ai: last('ai'), upload: last('upload') });
+});
+
+/* 通用图片库：GET 列表（可按 kind 筛选）/ DELETE 单条 / DELETE 批量（可按 kind） */
+app.get('/api/image-library', auth, (req, res) => {
+  const limit = Math.min(parseInt(req.query.limit, 10) || 200, 500);
+  const kind = req.query.kind;
+  const rows = kind === 'ai' || kind === 'upload'
+    ? db.prepare('SELECT id, kind, url, name, prompt, modelName, size, degraded, createdAt FROM image_library WHERE kind=? ORDER BY createdAt DESC LIMIT ?').all(kind, limit)
+    : db.prepare('SELECT id, kind, url, name, prompt, modelName, size, degraded, createdAt FROM image_library ORDER BY createdAt DESC LIMIT ?').all(limit);
+  res.json(rows);
+});
+app.delete('/api/image-library/:id', auth, (req, res) => {
+  db.prepare('DELETE FROM image_library WHERE id=?').run(+req.params.id);
+  res.json({ ok: true });
+});
+app.delete('/api/image-library', auth, (req, res) => {
+  const kind = req.query.kind;
+  if (kind === 'ai' || kind === 'upload') db.prepare('DELETE FROM image_library WHERE kind=?').run(kind);
+  else db.prepare('DELETE FROM image_library').run();
+  res.json({ ok: true });
 });
 
 /* AI 生成图片历史：GET 列表 / DELETE 单条 / DELETE 全部 */
@@ -916,6 +937,16 @@ function saveEditorMedia(postId, kind, url, name, degraded) {
   try {
     db.prepare('INSERT INTO editor_media_history (postId, kind, url, name, degraded, createdAt) VALUES (?,?,?,?,?,?)')
       .run(postId || 0, kind, url, String(name || '').slice(0, 100), degraded ? 1 : 0, Date.now());
+  } catch (_) {}
+}
+
+/* 通用图片库：AI 生图 + 手动上传统一记录，供图片库页面展示（跨文章永久公共库）。
+ * 记录失败不影响主流程 */
+function saveImageLibrary(kind, url, meta) {
+  meta = meta || {};
+  try {
+    db.prepare('INSERT INTO image_library (kind, url, name, prompt, modelName, size, degraded, createdAt) VALUES (?,?,?,?,?,?,?,?)')
+      .run(kind, url, meta.name || null, meta.prompt || null, meta.modelName || null, meta.size || null, meta.degraded ? 1 : 0, Date.now());
   } catch (_) {}
 }
 
@@ -1041,6 +1072,7 @@ app.post('/api/oss/upload', auth, (req, res, next) => {
       const key = [c.pathPrefix, date, `${ts}-${base}${origExt}`].filter(Boolean).join('/');
       const url = await put(key, req.file.buffer, origMime);
       saveEditorMedia(+req.body.postId || 0, 'upload', url, req.file.originalname, 1);
+      saveImageLibrary('upload', url, { name: req.file.originalname, degraded: 1 });
       return res.json({ ok: true, url, variants: imgVariants(url), key, name: req.file.originalname, size: req.file.size, degraded: true });
     }
     /* 正常路径：原图 + WebP 双份上传，只返回 WebP */
@@ -1049,6 +1081,7 @@ app.post('/api/oss/upload', auth, (req, res, next) => {
     await put(origKey, req.file.buffer, origMime);
     const url = await put(webpKey, webpBuf, 'image/webp');
     saveEditorMedia(+req.body.postId || 0, 'upload', url, base, 0);
+    saveImageLibrary('upload', url, { name: base, degraded: 0 });
     res.json({ ok: true, url, variants: imgVariants(url), key: webpKey, name: `${base}.webp`, size: webpBuf.length });
   } catch (e) {
     res.json({ ok: false, error: e.message || String(e), code: e.code || e.status });

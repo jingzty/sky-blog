@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI 图片库 — 远远的天空</title>
+  <title>图片库 — 远远的天空</title>
   <link rel="stylesheet" href="../css/admin.css">
   <script src="../js/vendor/tailwind4.js"></script>
   <script src="../js/vendor/lucide.js"></script>
@@ -22,9 +22,12 @@
     }
   </style>
   <style>
-    .img-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .img-card { transition: transform 0.2s ease, box-shadow 0.2s ease; position: relative; }
     .img-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
     .img-card img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px 8px 0 0; }
+    .img-card .kind-badge { position: absolute; top: 8px; left: 8px; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 500; backdrop-filter: blur(4px); }
+    .kind-badge.ai { background: rgba(232,198,173,0.92); color: #6b4a2e; }
+    .kind-badge.upload { background: rgba(255,255,255,0.88); color: var(--warm-ink-2); }
     .lightbox-overlay { position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; padding: 40px; cursor: zoom-out; }
     .lightbox-box { display: flex; flex-direction: column; align-items: center; cursor: default; }
     .lightbox-overlay img { max-width: 90vw; border-radius: 8px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
@@ -35,16 +38,21 @@
     .lightbox-copy-btn:hover { background: rgba(255,255,255,0.22); }
     .variants-overlay { position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; padding: 24px; cursor: zoom-out; }
     .variants-panel { background: var(--warm-surface); border: 1px solid var(--warm-line); border-radius: var(--warm-radius-large); box-shadow: 0 20px 60px rgba(0,0,0,0.3); padding: 20px; width: min(680px, 94vw); max-height: 88vh; overflow-y: auto; cursor: default; }
+    .filter-tab { padding: 6px 14px; border-radius: 8px; font-size: 13px; cursor: pointer; transition: all 0.2s; border: 1px solid var(--warm-line); background: var(--warm-surface); color: var(--warm-ink-2); }
+    .filter-tab.active { background: var(--warm-brand); color: #fff; border-color: var(--warm-brand); }
+    .up-drop { border: 2px dashed var(--warm-line); border-radius: var(--warm-radius-medium); padding: 20px; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; }
+    .up-drop:hover { border-color: var(--warm-brand-300); background: var(--warm-brand-50); }
+    .up-drop.dragover { border-color: var(--warm-brand); background: var(--warm-brand-50); }
   </style>
 </head>
-<body class="min-h-screen" data-page="ai-images">
+<body class="min-h-screen" data-page="images">
   <div id="sidebar-slot"></div>
 
   <main class="admin-main ml-[240px] min-h-screen p-8">
-    <header class="mb-8 flex items-start justify-between">
+    <header class="mb-6 flex items-start justify-between">
       <div>
-        <h1 class="text-h1 mb-1" style="color: var(--warm-ink);">AI 图片库</h1>
-        <p class="text-body" style="color: var(--warm-ink-2);">查看所有通过 AI 文生图生成的图片历史记录</p>
+        <h1 class="text-h1 mb-1" style="color: var(--warm-ink);">图片库</h1>
+        <p class="text-body" style="color: var(--warm-ink-2);">AI 生图与手动上传的图片统一存放于此</p>
       </div>
       <div class="flex items-center gap-3">
         <span id="totalCount" class="text-caption" style="color: var(--warm-ink-3);"></span>
@@ -52,17 +60,39 @@
           <i data-lucide="refresh-cw" class="w-4 h-4"></i><span>刷新</span>
         </button>
         <button id="clearBtn" class="btn-secondary flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm" style="color: var(--warm-state-error);">
-          <i data-lucide="trash-2" class="w-4 h-4"></i><span>清空全部</span>
+          <i data-lucide="trash-2" class="w-4 h-4"></i><span>清空当前分类</span>
         </button>
       </div>
     </header>
 
     <div class="max-w-6xl">
+      <!-- 手动上传区（与编辑器手动传图逻辑一致：转 WebP、双传、返回变体） -->
+      <section class="card p-5 mb-6">
+        <div class="flex items-center gap-2 mb-3">
+          <i data-lucide="upload-cloud" class="w-4 h-4" style="color: var(--warm-brand);"></i>
+          <h2 class="text-h3" style="color: var(--warm-ink);">上传图片</h2>
+          <span class="text-caption" style="color: var(--warm-ink-3);">自动转 WebP，支持 PNG / JPG / GIF（GIF 保留动画）</span>
+        </div>
+        <div id="upDrop" class="up-drop">
+          <i data-lucide="image-plus" class="w-6 h-6 mx-auto mb-2" style="color: var(--warm-ink-3);"></i>
+          <p class="text-sm" style="color: var(--warm-ink-2);">拖拽图片到此处，或 <span style="color: var(--warm-brand-600);">点击选择文件</span></p>
+          <input type="file" id="upFile" accept="image/*" class="hidden">
+        </div>
+        <p id="upStatus" class="text-caption mt-2" style="color: var(--warm-ink-3);"></p>
+      </section>
+
+      <!-- 筛选 tab -->
+      <div class="flex items-center gap-2 mb-5">
+        <button class="filter-tab active" data-kind="">全部</button>
+        <button class="filter-tab" data-kind="ai">AI 生成</button>
+        <button class="filter-tab" data-kind="upload">手动上传</button>
+      </div>
+
       <div id="loadingHint" class="card p-8 text-center text-sm" style="color: var(--warm-ink-3);">加载中…</div>
       <div id="emptyHint" class="card p-12 text-center hidden">
         <i data-lucide="image-off" class="w-12 h-12 mx-auto mb-4" style="color: var(--warm-ink-3);"></i>
-        <p class="text-body" style="color: var(--warm-ink-2);">还没有 AI 生成的图片</p>
-        <p class="text-caption mt-2" style="color: var(--warm-ink-3);">在文章编辑页使用「AI 配图」功能即可生成图片</p>
+        <p class="text-body" style="color: var(--warm-ink-2);">还没有图片</p>
+        <p class="text-caption mt-2" style="color: var(--warm-ink-3);">在文章编辑页使用 AI 配图，或在此处手动上传</p>
       </div>
       <div id="gallery" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5"></div>
     </div>
@@ -75,11 +105,11 @@
     if (!API.isAuthed()) window.location.href = '../login.html';
     const esc = Admin.esc;
 
-    /* 分辨率变体推导（与服务端 IMG_VARIANTS 一致：OSS 图片处理参数，lfit 等比）
-     * 图片库 URL 均为 OSS WebP 地址，无需存库即可拼出各档链接 */
+    /* 分辨率变体推导（与服务端 IMG_VARIANTS 一致：OSS 图片处理参数，lfit 等比） */
     const VARIANTS = [[1920, 1080], [1280, 720], [800, 600], [400, 300]];
     const variantUrl = (u, w, h) => `${u}${u.includes('?') ? '&' : '?'}x-oss-process=image/resize,w_${w},h_${h}`;
     let historyRows = [];
+    let currentKind = '';
 
     const fmtTs = ts => {
       const d = new Date(ts);
@@ -88,7 +118,7 @@
            + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
     };
 
-    async function loadHistory() {
+    async function loadLibrary() {
       const gallery = document.getElementById('gallery');
       const loading = document.getElementById('loadingHint');
       const empty = document.getElementById('emptyHint');
@@ -96,7 +126,7 @@
       empty.classList.add('hidden');
       gallery.innerHTML = '';
       try {
-        const rows = await API.getAiImageHistory(200);
+        const rows = await API.getImageLibrary(currentKind, 200);
         loading.classList.add('hidden');
         document.getElementById('totalCount').textContent = '共 ' + rows.length + ' 张';
         if (!rows.length) {
@@ -105,14 +135,19 @@
           return;
         }
         historyRows = rows;
-        gallery.innerHTML = rows.map(r => `
+        gallery.innerHTML = rows.map(r => {
+          const isAi = r.kind === 'ai';
+          const subtitle = isAi ? (r.modelName || '未知模型') : (r.name || '手动上传');
+          const desc = isAi ? r.prompt : (r.name || '');
+          return `
           <div class="img-card card overflow-hidden" data-id="${r.id}">
-            <img src="${esc(r.url)}" alt="${esc(r.prompt)}" loading="lazy" onclick="openLightbox(${r.id})">
+            <span class="kind-badge ${r.kind}">${isAi ? 'AI' : '上传'}</span>
+            <img src="${esc(r.url)}" alt="${esc(desc)}" loading="lazy" onclick="openLightbox(${r.id})">
             <div class="p-3">
-              <p class="text-xs leading-relaxed line-clamp-2 mb-2" style="color: var(--warm-ink-2);" title="${esc(r.prompt)}">${esc(r.prompt)}</p>
+              ${isAi && r.prompt ? `<p class="text-xs leading-relaxed line-clamp-2 mb-2" style="color: var(--warm-ink-2);" title="${esc(r.prompt)}">${esc(r.prompt)}</p>` : ''}
               <div class="flex items-center justify-between gap-2">
                 <div class="flex flex-col gap-0.5 min-w-0">
-                  <span class="text-caption truncate" style="color: var(--warm-brand-600);">${esc(r.modelName || '未知模型')}</span>
+                  <span class="text-caption truncate" style="color: var(--warm-brand-600);">${esc(subtitle)}</span>
                   <span class="text-caption" style="color: var(--warm-ink-3);">${fmtTs(r.createdAt)}</span>
                 </div>
                 <div class="flex items-center gap-1 flex-shrink-0">
@@ -128,7 +163,8 @@
                 </div>
               </div>
             </div>
-          </div>`).join('');
+          </div>`;
+        }).join('');
         lucide.createIcons();
       } catch (e) {
         loading.classList.add('hidden');
@@ -136,28 +172,34 @@
       }
     }
 
-    /* 大图 + 完整提示词查阅：点图打开，图片下方展示全文 prompt，可一键复制 */
+    /* 大图查阅：AI 图显示完整提示词 + 复制提示词；上传图仅显示文件名 */
     window.openLightbox = function (id) {
       const r = historyRows.find(x => x.id === id);
       if (!r) return Admin.toast('记录不存在，请刷新后重试');
+      const isAi = r.kind === 'ai';
+      const promptArea = isAi && r.prompt
+        ? `<div class="lightbox-prompt">
+             <div class="lightbox-prompt-text">${esc(r.prompt)}</div>
+             <button type="button" class="lightbox-copy-btn" data-copy-prompt><i data-lucide="copy" class="w-3.5 h-3.5"></i>复制提示词</button>
+           </div>`
+        : `<div class="lightbox-prompt"><div class="lightbox-prompt-text" style="color: rgba(255,255,255,0.55);">${esc(r.name || '手动上传')}</div></div>`;
       const ov = document.createElement('div');
       ov.className = 'lightbox-overlay';
       ov.innerHTML = `
         <div class="lightbox-box">
-          <img src="${esc(r.url)}" alt="${esc(r.prompt)}">
-          <div class="lightbox-prompt">
-            <div class="lightbox-prompt-text">${esc(r.prompt)}</div>
-            <button type="button" class="lightbox-copy-btn" data-copy-prompt><i data-lucide="copy" class="w-3.5 h-3.5"></i>复制提示词</button>
-          </div>
+          <img src="${esc(r.url)}" alt="${esc(r.prompt || r.name || '')}">
+          ${promptArea}
         </div>`;
       ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
-      ov.querySelector('[data-copy-prompt]').onclick = async () => {
-        try {
-          if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(r.prompt);
-          else { const ta = document.createElement('textarea'); ta.value = r.prompt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); }
-          Admin.toast('已复制提示词', 'success');
-        } catch { Admin.toast('复制失败'); }
-      };
+      if (isAi && r.prompt) {
+        ov.querySelector('[data-copy-prompt]').onclick = async () => {
+          try {
+            if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(r.prompt);
+            else { const ta = document.createElement('textarea'); ta.value = r.prompt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); }
+            Admin.toast('已复制提示词', 'success');
+          } catch { Admin.toast('复制失败'); }
+        };
+      }
       document.body.appendChild(ov);
       lucide.createIcons();
     };
@@ -166,6 +208,8 @@
     window.openVariants = function (id) {
       const r = historyRows.find(x => x.id === id);
       if (!r) return Admin.toast('记录不存在，请刷新后重试');
+      const isAi = r.kind === 'ai';
+      const subtitle = isAi ? (r.prompt || 'AI 生成') : (r.name || '手动上传');
       const rows = [{ label: '原图', url: r.url }]
         .concat(VARIANTS.map(([w, h]) => ({ label: String(w), url: variantUrl(r.url, w, h) })));
       const ov = document.createElement('div');
@@ -175,7 +219,7 @@
           <div class="flex items-center justify-between mb-3">
             <div class="min-w-0">
               <h3 class="text-sm font-semibold" style="color: var(--warm-ink);">各分辨率链接</h3>
-              <p class="text-caption truncate mt-0.5" style="color: var(--warm-ink-3);" title="${esc(r.prompt)}">${esc(r.prompt)}</p>
+              <p class="text-caption truncate mt-0.5" style="color: var(--warm-ink-3);" title="${esc(subtitle)}">${esc(subtitle)}</p>
             </div>
             <button class="p-1.5 rounded hover:bg-[var(--warm-surface-2)] flex-shrink-0" title="关闭" data-close>
               <i data-lucide="x" class="w-4 h-4" style="color: var(--warm-ink-3);"></i>
@@ -209,9 +253,9 @@
     };
 
     window.deleteImg = async function (id, btn) {
-      if (!confirm('确定删除这张图片记录？')) return;
+      if (!confirm('确定删除这张图片记录？（仅删除记录，不影响已使用的图片）')) return;
       try {
-        await API.deleteAiImageHistory(id);
+        await API.deleteImageLibrary(id);
         const card = btn.closest('.img-card');
         if (card) card.remove();
         const cnt = document.querySelectorAll('.img-card').length;
@@ -221,17 +265,59 @@
       } catch (e) { Admin.toast('删除失败: ' + e.message); }
     };
 
-    document.getElementById('refreshBtn').addEventListener('click', loadHistory);
-    document.getElementById('clearBtn').addEventListener('click', async () => {
-      if (!confirm('确定清空所有 AI 图片历史记录？此操作不可撤销（仅删除记录，不影响已使用的图片）。')) return;
+    /* 筛选 tab */
+    document.querySelectorAll('.filter-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        currentKind = tab.dataset.kind;
+        loadLibrary();
+      });
+    });
+
+    /* 手动上传（与编辑器手动传图一致：API.uploadOss，转 WebP 双传） */
+    const upDrop = document.getElementById('upDrop');
+    const upFile = document.getElementById('upFile');
+    const upStatus = document.getElementById('upStatus');
+    let upBusy = false;
+    async function doUpload(file) {
+      if (upBusy) return;
+      if (!file || !file.type.startsWith('image/')) { Admin.toast('请选择图片文件'); return; }
+      upBusy = true;
+      upStatus.textContent = '上传中…';
       try {
-        await API.clearAiImageHistory();
+        const r = await API.uploadOss(file);
+        upStatus.textContent = `已上传：${r.name || file.name}${r.degraded ? '（保留原格式）' : ''}`;
+        Admin.toast('上传成功', 'success');
+        currentKind = ''; // 上传后切回「全部」确保新图可见
+        document.querySelectorAll('.filter-tab').forEach(t => t.classList.toggle('active', !t.dataset.kind));
+        loadLibrary();
+      } catch (e) {
+        upStatus.textContent = '';
+        Admin.toast('上传失败: ' + e.message);
+      } finally {
+        upBusy = false;
+        upFile.value = '';
+      }
+    }
+    upDrop.addEventListener('click', () => upFile.click());
+    upFile.addEventListener('change', e => { const f = e.target.files[0]; if (f) doUpload(f); });
+    ['dragenter', 'dragover'].forEach(ev => upDrop.addEventListener(ev, e => { e.preventDefault(); upDrop.classList.add('dragover'); }));
+    ['dragleave', 'drop'].forEach(ev => upDrop.addEventListener(ev, e => { e.preventDefault(); upDrop.classList.remove('dragover'); }));
+    upDrop.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) doUpload(f); });
+
+    document.getElementById('refreshBtn').addEventListener('click', loadLibrary);
+    document.getElementById('clearBtn').addEventListener('click', async () => {
+      const scope = currentKind === 'ai' ? 'AI 生成' : currentKind === 'upload' ? '手动上传' : '全部';
+      if (!confirm('确定清空' + scope + '的图片记录？此操作不可撤销（仅删除记录，不影响已使用的图片）。')) return;
+      try {
+        await API.clearImageLibrary(currentKind);
         Admin.toast('已清空', 'success');
-        loadHistory();
+        loadLibrary();
       } catch (e) { Admin.toast('清空失败: ' + e.message); }
     });
 
-    loadHistory();
+    loadLibrary();
   </script>
 </body>
 </html>
