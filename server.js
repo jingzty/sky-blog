@@ -886,6 +886,19 @@ function ossUrl(c, key) {
   return url;
 }
 
+/* 图片变体 URL：OSS 图片处理参数（默认 lfit 等比缩放，不裁剪不变形）。
+ * 注意：配置了 customDomain(CDN) 时需 CDN 开启「回源图片处理」变体才生效 */
+const IMG_VARIANTS = [
+  { label: '1920', w: 1920, h: 1080 },
+  { label: '1280', w: 1280, h: 720 },
+  { label: '800',  w: 800,  h: 600 },
+  { label: '400',  w: 400,  h: 300 },
+];
+const imgVariants = url => IMG_VARIANTS.map(v => ({
+  label: v.label,
+  url: `${url}?x-oss-process=image/resize,w_${v.w},h_${v.h}`,
+}));
+
 /* AI 生成图片后处理：下载原图 → 转 WebP(最高质量) → 原图和 WebP 都上传 OSS
  * 返回 { ok, url } url 为 WebP 的 OSS 地址；失败返回 { ok:false, error } */
 async function processAndUploadAiImage(sourceUrl, promptHint) {
@@ -936,7 +949,7 @@ async function processAndUploadAiImage(sourceUrl, promptHint) {
   } catch (e) {
     return { ok: false, error: '上传 OSS 失败: ' + (e.message || String(e)) };
   }
-  return { ok: true, url: ossUrl(c, webpKey) };
+  return { ok: true, url: ossUrl(c, webpKey), variants: imgVariants(ossUrl(c, webpKey)) };
 }
 
 app.get('/api/oss-config', auth, (req, res) => {
@@ -973,7 +986,9 @@ app.post('/api/oss/test', auth, async (req, res) => {
     res.json({ ok: false, error: e.message || String(e), code: e.code || e.status });
   }
 });
-/* 上传文件：multipart single('file')，内存模式，限 20MB。服务端代理 put 到 OSS。 */
+/* 上传文件：multipart single('file')，内存模式，限 20MB。服务端代理 put 到 OSS。
+ * 转码策略（与 AI 生图对齐）：sharp 转 WebP(q90)，原图+WebP 双份上传，只返回 WebP URL；
+ * GIF 跳过转码（保留动画）原样上传；转码失败降级原图上传（不阻断）。均附带分辨率变体 URL */
 const ossUpload = multer ? multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } }) : null;
 app.post('/api/oss/upload', auth, (req, res, next) => {
   if (!ossUpload) return res.status(500).json({ error: '服务器未安装 multer 依赖' });
@@ -983,19 +998,36 @@ app.post('/api/oss/upload', auth, (req, res, next) => {
   const client = ossClient();
   if (client.__err) return res.status(400).json({ error: client.__err });
   const c = ossCfg();
-  const ext = (req.file.originalname.match(/\.[A-Za-z0-9]+$/) || [''])[0];
   const base = req.file.originalname.replace(/\.[A-Za-z0-9]+$/, '').replace(/[^\w\u4e00-\u9fa5.-]/g, '_');
   const date = new Date().toISOString().slice(0, 10);
-  const key = [c.pathPrefix, date, `${Date.now()}-${base}${ext}`].filter(Boolean).join('/');
+  const ts = Date.now();
+  const put = (key, buf, mime) => client.put(key, buf, { mime, headers: { 'Content-Type': mime } }).then(() => ossUrl(c, key));
+
+  /* 真实格式探测（不信任客户端 mimetype） */
+  let meta = null;
+  if (sharp) { try { meta = await sharp(req.file.buffer).metadata(); } catch (_) {} }
+  const fmtMap = { jpeg: ['.jpg', 'image/jpeg'], png: ['.png', 'image/png'], webp: ['.webp', 'image/webp'], gif: ['.gif', 'image/gif'], avif: ['.avif', 'image/avif'], svg: ['.svg', 'image/svg+xml'] };
+  const [origExt, origMime] = (meta && fmtMap[meta.format]) || [((req.file.originalname.match(/\.[A-Za-z0-9]+$/) || [''])[0]), req.file.mimetype];
+
   try {
-    const result = await client.put(key, req.file.buffer, {
-      mime: req.file.mimetype,
-      headers: { 'Content-Type': req.file.mimetype },
-    });
-    let url = result.url || '';
-    if (c.customDomain) url = c.customDomain + '/' + encodeURI(key);
-    if (c.secure && url.startsWith('http://')) url = url.replace('http://', 'https://');
-    res.json({ ok: true, url, key, name: req.file.originalname, size: req.file.size });
+    /* GIF（保留动画）或 sharp 不可用/转码失败：原样上传降级 */
+    let degraded = !sharp || (meta && meta.format === 'gif');
+    let webpBuf = null;
+    if (!degraded) {
+      try { webpBuf = await sharp(req.file.buffer).webp({ quality: 90 }).toBuffer(); }
+      catch (_) { degraded = true; }
+    }
+    if (degraded) {
+      const key = [c.pathPrefix, date, `${ts}-${base}${origExt}`].filter(Boolean).join('/');
+      const url = await put(key, req.file.buffer, origMime);
+      return res.json({ ok: true, url, variants: imgVariants(url), key, name: req.file.originalname, size: req.file.size, degraded: true });
+    }
+    /* 正常路径：原图 + WebP 双份上传，只返回 WebP */
+    const origKey = [c.pathPrefix, date, `${ts}-${base}${origExt}`].filter(Boolean).join('/');
+    const webpKey = [c.pathPrefix, date, `${ts}-${base}.webp`].filter(Boolean).join('/');
+    await put(origKey, req.file.buffer, origMime);
+    const url = await put(webpKey, webpBuf, 'image/webp');
+    res.json({ ok: true, url, variants: imgVariants(url), key: webpKey, name: `${base}.webp`, size: webpBuf.length });
   } catch (e) {
     res.json({ ok: false, error: e.message || String(e), code: e.code || e.status });
   }

@@ -230,6 +230,7 @@
                 <img id="imgPreview" alt="AI 生成" class="w-full h-full object-cover block" style="max-height: 200px;">
               </div>
               <input type="text" id="imgUrl" class="input-field w-full px-2 py-1.5 rounded text-xs font-mono" readonly>
+              <div id="imgVariantsBox" class="space-y-1"></div>
               <div class="flex flex-wrap gap-2">
                 <button type="button" id="imgToCoverBtn" class="btn-secondary flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium"><i data-lucide="image" class="w-3.5 h-3.5"></i>填入封面</button>
                 <button type="button" id="imgInsertBtn" class="btn-secondary flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium"><i data-lucide="corner-down-left" class="w-3.5 h-3.5"></i>插入正文</button>
@@ -261,6 +262,7 @@
                 <img id="upPreview" alt="上传图片" class="w-full h-full object-cover block" style="max-height: 200px;">
               </div>
               <input type="text" id="upUrl" class="input-field w-full px-2 py-1.5 rounded text-xs font-mono" readonly>
+              <div id="upVariantsBox" class="space-y-1"></div>
               <div class="flex flex-wrap gap-2">
                 <button type="button" id="upToCoverBtn" class="btn-secondary flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium"><i data-lucide="image" class="w-3.5 h-3.5"></i>填入封面</button>
                 <button type="button" id="upInsertBtn" class="btn-secondary flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium"><i data-lucide="corner-down-left" class="w-3.5 h-3.5"></i>插入正文</button>
@@ -524,6 +526,7 @@
           imgUrlInput.value = r.url;
           imgResultWrap.classList.remove('hidden');
           imgStatus.textContent = '生成完成';
+          renderVariants('imgVariantsBox', r.variants, 'AI生成图片');
         } else {
           imgStatus.textContent = '生成失败';
           Admin.toast(r.error || '生成失败');
@@ -563,11 +566,39 @@
     const upUrl = document.getElementById('upUrl');
     let upBusy = false;
 
-    function upShowResult(url, name) {
-      upPreview.src = url;
-      upUrl.value = url;
+    /* 变体 URL 列表渲染（AI 生图与直接上传共用）：每行 尺寸标签 + URL + 插入/复制 */
+    function renderVariants(boxId, variants, altText) {
+      const box = document.getElementById(boxId);
+      if (!box) return;
+      if (!variants || !variants.length) { box.innerHTML = ''; return; }
+      const E = Admin.esc || String; // 转义：变体 URL/标签渲染进 HTML 前
+      box.innerHTML = variants.map((v, i) => `
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-medium shrink-0" style="color: var(--warm-ink-2); width: 40px;">${E(String(v.label))}</span>
+          <input type="text" class="input-field flex-1 min-w-0 px-2 py-1 rounded text-xs font-mono" readonly value="${E(v.url)}">
+          <button type="button" class="btn-secondary shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium" data-vi="${i}"><i data-lucide="corner-down-left" class="w-3 h-3"></i>插入</button>
+          <button type="button" class="btn-secondary shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium" data-vc="${i}"><i data-lucide="copy" class="w-3 h-3"></i>复制</button>
+        </div>`).join('');
+      if (window.lucide) window.lucide.createIcons();
+      box.querySelectorAll('[data-vi]').forEach(b => b.onclick = () => {
+        const v = variants[+b.dataset.vi];
+        insertToContent(`![${altText}](${v.url})\n`);
+        Admin.toast('已插入正文');
+      });
+      box.querySelectorAll('[data-vc]').forEach(b => b.onclick = () => {
+        const v = variants[+b.dataset.vc];
+        navigator.clipboard.writeText(v.url).then(() => Admin.toast('已复制'), () => {
+          const inp = b.parentElement.querySelector('input'); inp.select(); document.execCommand('copy'); Admin.toast('已复制');
+        });
+      });
+    }
+
+    function upShowResult(r) {
+      upPreview.src = r.url;
+      upUrl.value = r.url;
       upResultWrap.classList.remove('hidden');
-      upStatus.textContent = `已上传：${name}`;
+      upStatus.textContent = `已上传：${r.name || ''}${r.degraded ? '（保留原格式）' : ''}`;
+      renderVariants('upVariantsBox', r.variants, r.name || '图片');
     }
     async function doUpload(file) {
       if (upBusy) return;
@@ -579,7 +610,7 @@
       upDrop.style.opacity = '.6';
       try {
         const r = await API.uploadOss(file);
-        upShowResult(r.url, r.name || file.name);
+        upShowResult(r);
         Admin.toast('上传成功');
       } catch (e) {
         upStatus.textContent = '';
