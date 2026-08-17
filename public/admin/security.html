@@ -7,6 +7,15 @@
   <link rel="stylesheet" href="../css/admin.css">
   <script src="../js/vendor/tailwind4.js"></script>
   <script src="../js/vendor/lucide.js"></script>
+  <style>
+    /* 登录验证码开关（纯 CSS，避免依赖 Tailwind 动态类生成）*/
+    .cap-toggle{position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0;cursor:pointer}
+    .cap-toggle input{position:absolute;opacity:0;width:0;height:0}
+    .cap-toggle .track{position:absolute;inset:0;border-radius:9999px;background:var(--warm-surface-3);transition:background .25s}
+    .cap-toggle .thumb{position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:9999px;background:#fff;transition:transform .25s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+    .cap-toggle input:checked ~ .track{background:var(--warm-brand)}
+    .cap-toggle input:checked ~ .thumb{transform:translateX(20px)}
+  </style>
   <style type="text/tailwindcss">
     @theme inline {
       --color-warm-bg: var(--warm-bg); --color-warm-surface: var(--warm-surface);
@@ -51,6 +60,20 @@
             <input type="number" id="secBanMinutes" min="1" max="1440" class="input-field px-4 py-2.5 rounded-lg text-sm">
           </div>
         </div>
+
+        <div class="mt-6 pt-6 border-t" style="border-color: var(--warm-line);">
+          <div class="flex items-center justify-between gap-4 max-w-2xl">
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-medium" style="color: var(--warm-ink-2);">登录验证码</label>
+              <span class="text-xs" style="color: var(--warm-ink-3);">开启后登录页需输入图形验证码，防止脚本撞库</span>
+            </div>
+            <label class="cap-toggle">
+              <input type="checkbox" id="secCaptcha">
+              <span class="track"></span>
+              <span class="thumb"></span>
+            </label>
+          </div>
+        </div>
         <div class="mt-5 flex gap-3">
           <button id="secSaveBtn" class="btn-secondary flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium">
             <i data-lucide="save" class="w-4 h-4"></i><span>保存策略</span>
@@ -86,6 +109,7 @@
         const s = await API.getSecurity();
         document.getElementById('secMaxAttempts').value = s.maxAttempts;
         document.getElementById('secBanMinutes').value = s.banMinutes;
+        document.getElementById('secCaptcha').checked = !!s.captchaEnabled;
         renderBans(s.bans || []);
       } catch (e) { Admin.toast('加载安全策略失败: ' + e.message); }
     }
@@ -117,10 +141,11 @@
     document.getElementById('secSaveBtn').onclick = async () => {
       const max = parseInt(document.getElementById('secMaxAttempts').value, 10);
       const min = parseInt(document.getElementById('secBanMinutes').value, 10);
+      const captchaEnabled = document.getElementById('secCaptcha').checked;
       if (!max || max < 1) return Admin.toast('最大失败次数至少为 1');
       if (!min || min < 1) return Admin.toast('封禁时长至少为 1 分钟');
       try {
-        await API.updateSecurity({ maxAttempts: max, banMinutes: min });
+        await API.updateSecurity({ maxAttempts: max, banMinutes: min, captchaEnabled });
         Admin.toast('安全策略已保存');
         loadSecurity();
       } catch (e) { Admin.toast('保存失败: ' + e.message); }

@@ -41,6 +41,13 @@ const migrationsDir = path.join(__dirname, 'migrations');
 for (const f of fs.readdirSync(migrationsDir).filter(n => n.endsWith('.sql')).sort()) {
   db.exec(fs.readFileSync(path.join(migrationsDir, f), 'utf8'));
 }
+/* 幂等加列：posts.views —— 文章访问量计数。
+ * SQLite 的 ALTER TABLE ADD COLUMN 不支持 IF NOT EXISTS，
+ * 故用 PRAGMA table_info 检查列是否已存在，避免重启重复执行报错。 */
+{
+  const cols = db.prepare('PRAGMA table_info(posts)').all().map(c => c.name);
+  if (!cols.includes('views')) db.exec('ALTER TABLE posts ADD COLUMN views INTEGER NOT NULL DEFAULT 0');
+}
 
 /* ---------- 种子 ---------- */
 if (SEED && db.prepare('SELECT COUNT(*) c FROM posts').get().c === 0) {
@@ -62,6 +69,7 @@ if (SEED && db.prepare('SELECT COUNT(*) c FROM posts').get().c === 0) {
 const ST = {
   postById:   db.prepare('SELECT * FROM posts WHERE id = ?'),
   postBySlug: db.prepare('SELECT * FROM posts WHERE slug = ?'),
+  postIncViews: db.prepare('UPDATE posts SET views = views + 1 WHERE id = ?'),
   cats:       db.prepare('SELECT * FROM categories ORDER BY sortOrder ASC'),
   slidesAll:  db.prepare('SELECT * FROM slides ORDER BY sortOrder ASC'),
   slidesPub:  db.prepare("SELECT * FROM slides WHERE status = 'active' ORDER BY sortOrder ASC"),
@@ -89,7 +97,7 @@ const nowISO = () => new Date().toISOString();
  * limit/offset：可选分页；不传则返回全量（首页/后台统计依赖全量，保持兼容） */
 function queryPosts({ all, categoryId, tag, month, q, lite, limit, offset }) {
   const cols = lite
-    ? 'id,title,slug,excerpt,cover,date,tag,status,categoryId,createdAt,updatedAt'
+    ? 'id,title,slug,excerpt,cover,date,tag,status,categoryId,createdAt,updatedAt,views'
     : '*';
   let sql = `SELECT ${cols} FROM posts`, where = [], params = [];
   if (!all) where.push("status = 'pub'");
@@ -196,7 +204,68 @@ function secPolicy() {
   return {
     maxAttempts: Math.max(1, parseInt(map.loginMaxAttempts, 10) || 3),
     banMinutes:  Math.max(1, parseInt(map.loginBanMinutes, 10) || 10),
+    captchaEnabled: map.loginCaptcha === '1',
   };
+}
+
+/* ---- 登录验证码（纯 SVG，免外部依赖）----
+ * 内存存 captchaId -> {text, expire}；用一次即失效，5 分钟过期。
+ * 重启清空（与 token/封禁一致），对登录场景可接受。 */
+const captchas = new Map();
+const CAPTCHA_TTL = 5 * 60 * 1000;
+const CAPTCHA_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // 去掉易混淆 0/O/1/I/l
+function genCaptchaText() {
+  let s = '';
+  for (let i = 0; i < 4; i++) s += CAPTCHA_CHARS[Math.floor(Math.random() * CAPTCHA_CHARS.length)];
+  return s;
+}
+/* 生成一张 120x40 的 SVG 验证码图：字符随机旋转/位移 + 干扰线/噪点。
+ * 返回 { id, text, svg }。text 大小写不敏感（校验时统一转大写）。 */
+function genCaptcha() {
+  const text = genCaptchaText();
+  const id = 'cap_' + Date.now() + Math.random().toString(36).slice(2);
+  captchas.set(id, { text, expire: Date.now() + CAPTCHA_TTL });
+  // 顺手清理过期项，避免内存堆积
+  if (captchas.size > 200) {
+    const now = Date.now();
+    for (const [k, v] of captchas) if (v.expire <= now) captchas.delete(k);
+  }
+  const w = 120, h = 40;
+  let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">`;
+  svg += `<rect width="${w}" height="${h}" fill="#f4f1ea"/>`;
+  // 干扰线
+  for (let i = 0; i < 4; i++) {
+    const x1 = Math.random() * w, y1 = Math.random() * h;
+    const x2 = Math.random() * w, y2 = Math.random() * h;
+    const c = ['#c9b88a', '#b08d57', '#8a7a5c', '#a08c66'][i % 4];
+    svg += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${c}" stroke-width="1" opacity="0.5"/>`;
+  }
+  // 字符
+  const colors = ['#5a4a2a', '#7a5a2a', '#3a2a1a', '#6a4a2a'];
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    const x = 18 + i * 26 + (Math.random() * 6 - 3);
+    const y = 26 + (Math.random() * 6 - 3);
+    const rot = Math.random() * 30 - 15;
+    const c = colors[i % colors.length];
+    svg += `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" font-family="Georgia,serif" font-size="24" font-weight="bold" fill="${c}" transform="rotate(${rot.toFixed(1)} ${x.toFixed(1)} ${y.toFixed(1)})">${ch}</text>`;
+  }
+  // 噪点
+  for (let i = 0; i < 20; i++) {
+    const cx = Math.random() * w, cy = Math.random() * h;
+    svg += `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="1" fill="#b08d57" opacity="0.4"/>`;
+  }
+  svg += `</svg>`;
+  return { id, text, svg };
+}
+/* 校验并消费验证码：成功返回 true 并删除；失败/过期返回 false。 */
+function verifyCaptcha(id, input) {
+  if (!id || !input) return false;
+  const rec = captchas.get(id);
+  if (!rec) return false;
+  captchas.delete(id); // 用一次即失效
+  if (rec.expire <= Date.now()) return false;
+  return rec.text === String(input).toUpperCase();
 }
 /* 请求级 IP 封禁拦截 */
 const ipBanGuard = (req, res, next) => {
@@ -234,13 +303,24 @@ app.use((req, res, next) => {
 
 
 /* ---- 认证 ---- */
+app.get('/api/captcha', (req, res) => {
+  const { captchaEnabled } = secPolicy();
+  if (!captchaEnabled) return res.json({ enabled: false });
+  const c = genCaptcha();
+  res.json({ enabled: true, captchaId: c.id, svg: c.svg });
+});
 app.post('/api/login', (req, res) => {
-  const { username, password } = req.body || {};
+  const { username, password, captchaId, captcha } = req.body || {};
   const ip = clientIp(req);
   const until = bans.get(ip);
   if (until && until > Date.now()) {
     const remainMin = Math.ceil((until - Date.now()) / 60000);
     return res.status(403).json({ error: '登录失败次数过多，IP 已被暂时封禁', remainMin, ip });
+  }
+  // 验证码校验（仅在策略开启时）。校验失败不计入 IP 失败次数（避免用脚本刷错验证码把自己封了）。
+  const { captchaEnabled } = secPolicy();
+  if (captchaEnabled && !verifyCaptcha(captchaId, captcha)) {
+    return res.status(400).json({ error: '验证码错误或已过期', needCaptcha: true });
   }
   const { user, hash } = adminCredentials();
   const ok = (username === user && hashPwd(password) === hash);
@@ -297,6 +377,12 @@ app.get('/api/posts/:id', optionalAuth, (req, res) => {
   // 安全：草稿只对已登录管理员可见，访客只能取已发布文章
   if (!req.authed && r.status !== 'pub') {
     return res.status(404).json({ error: '文章不存在' });
+  }
+  // 访问量计数：仅前台访客访问已发布文章时 +1；
+  // 管理员后台预览不计入，避免运营浏览污染统计。
+  if (!req.authed && r.status === 'pub') {
+    try { ST.postIncViews.run(r.id); } catch (_) { /* 计数失败不影响阅读 */ }
+    r.views = (r.views || 0) + 1;
   }
   res.json(r);
 });
@@ -417,11 +503,11 @@ app.put('/api/config', auth, (req, res) => {
 });
 
 /* ---- 访问 IP 统计 ---- */
-/* GET：返回按访问次数倒序的 IP 列表 + 汇总（总访问量、独立 IP 数）。 */
+/* GET：返回按最近访问时间倒序的 IP 列表 + 汇总（总访问量、独立 IP 数）。 */
 app.get('/api/visits', auth, (req, res) => {
   const limit = Math.min(parseInt(req.query.limit, 10) || 20, 200);
   const rows = db.prepare(
-    'SELECT ip, count, firstTs, lastTs, lastPath FROM ip_visits ORDER BY count DESC, lastTs DESC LIMIT ?'
+    'SELECT ip, count, firstTs, lastTs, lastPath FROM ip_visits ORDER BY lastTs DESC LIMIT ?'
   ).all(limit);
   const agg = db.prepare('SELECT COALESCE(SUM(count),0) AS total, COUNT(*) AS distinctCount FROM ip_visits').get();
   res.json({ rows, total: agg.total, distinct: agg.distinctCount });
@@ -435,7 +521,7 @@ app.delete('/api/visits', auth, (req, res) => {
 /* ---- 安全策略 ---- */
 /* GET：返回当前策略 + 封禁列表（含剩余秒数）。 */
 app.get('/api/security', auth, (req, res) => {
-  const { maxAttempts, banMinutes } = secPolicy();
+  const { maxAttempts, banMinutes, captchaEnabled } = secPolicy();
   const now = Date.now();
   const list = [];
   for (const [ip, until] of bans) {
@@ -445,19 +531,21 @@ app.get('/api/security', auth, (req, res) => {
       bans.delete(ip);
     }
   }
-  res.json({ maxAttempts, banMinutes, bans: list });
+  res.json({ maxAttempts, banMinutes, captchaEnabled, bans: list });
 });
 /* PUT：更新策略（存 config）。 */
 app.put('/api/security', auth, (req, res) => {
   const b = req.body || {};
   const max = Math.min(20, Math.max(1, parseInt(b.maxAttempts, 10) || 3));
   const min = Math.min(1440, Math.max(1, parseInt(b.banMinutes, 10) || 10));
+  const cap = b.captchaEnabled === true || b.captchaEnabled === '1' ? '1' : '0';
   const ins = db.prepare('INSERT OR REPLACE INTO config (key,value) VALUES (?,?)');
   db.transaction(() => {
     ins.run('loginMaxAttempts', String(max));
     ins.run('loginBanMinutes', String(min));
+    ins.run('loginCaptcha', cap);
   })();
-  res.json({ ok: true, maxAttempts: max, banMinutes: min });
+  res.json({ ok: true, maxAttempts: max, banMinutes: min, captchaEnabled: cap === '1' });
 });
 /* DELETE：一键解封指定 IP。 */
 app.delete('/api/security/bans/:ip', auth, (req, res) => {

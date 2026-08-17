@@ -25,6 +25,11 @@
     .field input{width:100%;padding:13px 18px;font-size:0.95rem;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:100px;color:#fff;outline:none;font-family:var(--serif);transition:border-color 0.3s}
     .field input::placeholder{color:var(--text-faint)}
     .field input:focus{border-color:var(--gold-soft)}
+    .captcha-row{display:flex;gap:10px;align-items:stretch}
+    .captcha-row input{flex:1;min-width:0}
+    .captcha-img{width:120px;height:44px;border-radius:100px;cursor:pointer;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.08);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+    .captcha-img svg{width:100%;height:100%}
+    .captcha-tip{font-size:0.7rem;color:var(--text-faint);margin-top:6px;letter-spacing:0.03em}
     .btn{width:100%;padding:14px;font-size:0.95rem;font-family:var(--serif);background:var(--gold);color:#1a1206;border:none;border-radius:100px;cursor:pointer;font-weight:600;transition:all 0.3s;margin-top:8px}
     .btn:hover{background:var(--gold-soft);transform:translateY(-1px)}
     .btn:disabled{opacity:0.5;cursor:not-allowed;transform:none}
@@ -44,6 +49,7 @@
     <form id="loginForm">
       <div class="field"><label>用户名</label><input type="text" id="username" placeholder="输入用户名" autocomplete="username" required></div>
       <div class="field"><label>密码</label><input type="password" id="password" placeholder="输入密码" autocomplete="current-password" required></div>
+      <div class="field" id="captchaField" style="display:none"><label>验证码</label><div class="captcha-row"><input type="text" id="captcha" placeholder="输入验证码" autocomplete="off" maxlength="4"><div class="captcha-img" id="captchaImg" title="点击刷新验证码"></div></div><div class="captcha-tip">看不清？点击图片刷新</div></div>
       <button type="submit" class="btn" id="loginBtn">登录</button>
       <div class="error" id="error" role="alert"></div>
     </form>
@@ -79,20 +85,40 @@
       }
     })();
 
+    // 验证码：启动时拉取策略，开启则渲染 SVG 并显示输入框；登录失败需重新拉取。
+    let captchaId = null;
+    async function refreshCaptcha() {
+      try {
+        const c = await API.getCaptcha();
+        const field = document.getElementById('captchaField');
+        if (!c.enabled) { field.style.display = 'none'; captchaId = null; return; }
+        field.style.display = 'block';
+        captchaId = c.captchaId;
+        document.getElementById('captchaImg').innerHTML = c.svg;
+        document.getElementById('captcha').value = '';
+      } catch (_) { /* 取不到验证码不阻断登录 */ }
+    }
+    document.getElementById('captchaImg').addEventListener('click', refreshCaptcha);
+    refreshCaptcha();
+
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const btn = document.getElementById('loginBtn');
       const err = document.getElementById('error');
       const u = document.getElementById('username').value.trim();
       const p = document.getElementById('password').value.trim();
+      const cap = document.getElementById('captcha').value.trim();
       if (!u || !p) { err.textContent = '请输入用户名和密码'; return; }
+      if (captchaId && !cap) { err.textContent = '请输入验证码'; return; }
       btn.disabled = true; btn.textContent = '登录中……'; err.textContent = '';
       try {
-        await API.login(u, p);
+        await API.login(u, p, captchaId, cap);
         window.location.href = 'admin/index.html';
       } catch (ex) {
         err.textContent = ex.message || '登录失败';
         btn.disabled = false; btn.textContent = '登录';
+        // 验证码用一次即失效，刷新一张新的
+        if (captchaId) refreshCaptcha();
       }
     });
   </script>
