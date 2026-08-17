@@ -5,25 +5,27 @@ window.MD = (function(){
   function render(src){
     let html = '';
     const lines = String(src||'').split('\n');
-    let inList = false, inCode = false, codeBuf = '', codeLang = '';
+    let inList = false, inCode = false, codeBuf = '', codeLang = '', codeIndent = '';
     let inTable = false, tableRows = [];
 
     for(let i=0; i<lines.length; i++){
       const raw = lines[i];
       const line = raw.trimEnd();
 
-      // 代码块
-      if(/^```/.test(line)){
+      // 代码块（围栏允许带前导缩进：AI 生成/粘贴内容常见，CommonMark 亦允许 ≤3 空格）
+      const fenceM = line.match(/^(\s*)```/);
+      if(fenceM){
         if(inCode){
           html += '<pre><code'+(codeLang?' class="lang-'+esc(codeLang)+'"':'')+'>'+esc(codeBuf.replace(/\n$/,''))+'</code></pre>';
-          codeBuf = ''; codeLang = ''; inCode = false;
+          codeBuf = ''; codeLang = ''; codeIndent = ''; inCode = false;
         } else {
           inCode = true;
-          codeLang = line.replace(/^```/,'').trim();
+          codeIndent = fenceM[1];
+          codeLang = line.replace(/^\s*```/,'').trim();
         }
         continue;
       }
-      if(inCode){ codeBuf += raw+'\n'; continue; }
+      if(inCode){ codeBuf += (codeIndent && raw.startsWith(codeIndent) ? raw.slice(codeIndent.length) : raw)+'\n'; continue; }
 
       // 空行
       if(!line){
