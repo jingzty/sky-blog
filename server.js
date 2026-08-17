@@ -771,7 +771,7 @@ async function callImageModel(m, prompt, { size, n } = {}) {
       /* 原图转 WebP 并上传 OSS，返回 WebP 的 OSS URL */
       const up = await processAndUploadAiImage(imgUrl, prompt);
       if (!up.ok) return { ok: false, status: 0, error: '图片生成成功但上传 OSS 失败：' + up.error };
-      return { ok: true, url: up.url, markdown: `![AI生成图片](${up.url})` };
+      return { ok: true, url: up.url, variants: up.variants, markdown: `![AI生成图片](${up.url})` };
     } catch (e) {
       return { ok: false, status: 0, error: e.name === 'AbortError' ? '请求超时（文生图通常较慢，已等 120s）' : (e.message || String(e)) };
     }
@@ -794,7 +794,7 @@ async function callImageModel(m, prompt, { size, n } = {}) {
       /* 原图转 WebP 并上传 OSS，返回 WebP 的 OSS URL */
       const up = await processAndUploadAiImage(imgUrl, prompt);
       if (!up.ok) return { ok: false, status: 0, error: '图片生成成功但上传 OSS 失败：' + up.error };
-      return { ok: true, url: up.url, markdown: `![AI生成图片](${up.url})` };
+      return { ok: true, url: up.url, variants: up.variants, markdown: `![AI生成图片](${up.url})` };
     } catch (e) {
       return { ok: false, status: 0, error: e.name === 'AbortError' ? '请求超时' : (e.message || String(e)) };
     }

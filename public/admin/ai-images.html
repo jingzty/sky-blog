@@ -27,6 +27,8 @@
     .img-card img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px 8px 0 0; }
     .lightbox-overlay { position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; padding: 40px; cursor: zoom-out; }
     .lightbox-overlay img { max-width: 90vw; max-height: 90vh; border-radius: 8px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+    .variants-overlay { position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; padding: 24px; cursor: zoom-out; }
+    .variants-panel { background: var(--warm-surface); border: 1px solid var(--warm-line); border-radius: var(--warm-radius-large); box-shadow: 0 20px 60px rgba(0,0,0,0.3); padding: 20px; width: min(680px, 94vw); max-height: 88vh; overflow-y: auto; cursor: default; }
   </style>
 </head>
 <body class="min-h-screen" data-page="ai-images">
@@ -67,6 +69,12 @@
     if (!API.isAuthed()) window.location.href = '../login.html';
     const esc = Admin.esc;
 
+    /* 分辨率变体推导（与服务端 IMG_VARIANTS 一致：OSS 图片处理参数，lfit 等比）
+     * 图片库 URL 均为 OSS WebP 地址，无需存库即可拼出各档链接 */
+    const VARIANTS = [[1920, 1080], [1280, 720], [800, 600], [400, 300]];
+    const variantUrl = (u, w, h) => `${u}${u.includes('?') ? '&' : '?'}x-oss-process=image/resize,w_${w},h_${h}`;
+    let historyRows = [];
+
     const fmtTs = ts => {
       const d = new Date(ts);
       const pad = n => String(n).padStart(2, '0');
@@ -90,6 +98,7 @@
           lucide.createIcons();
           return;
         }
+        historyRows = rows;
         gallery.innerHTML = rows.map(r => `
           <div class="img-card card overflow-hidden" data-id="${r.id}">
             <img src="${esc(r.url)}" alt="${esc(r.prompt)}" loading="lazy" onclick="openLightbox('${esc(r.url)}')">
@@ -101,6 +110,9 @@
                   <span class="text-caption" style="color: var(--warm-ink-3);">${fmtTs(r.createdAt)}</span>
                 </div>
                 <div class="flex items-center gap-1 flex-shrink-0">
+                  <button class="p-1.5 rounded hover:bg-[var(--warm-surface-2)]" title="各分辨率链接" onclick="openVariants(${r.id})">
+                    <i data-lucide="expand" class="w-3.5 h-3.5" style="color: var(--warm-ink-3);"></i>
+                  </button>
                   <button class="p-1.5 rounded hover:bg-[var(--warm-surface-2)]" title="复制链接" onclick="copyUrl('${esc(r.url)}', this)">
                     <i data-lucide="link" class="w-3.5 h-3.5" style="color: var(--warm-ink-3);"></i>
                   </button>
@@ -124,6 +136,44 @@
       ov.innerHTML = `<img src="${esc(url)}">`;
       ov.addEventListener('click', () => ov.remove());
       document.body.appendChild(ov);
+    };
+
+    /* 各分辨率链接浮层：原图 + 4 档变体，每行可复制 */
+    window.openVariants = function (id) {
+      const r = historyRows.find(x => x.id === id);
+      if (!r) return Admin.toast('记录不存在，请刷新后重试');
+      const rows = [{ label: '原图', url: r.url }]
+        .concat(VARIANTS.map(([w, h]) => ({ label: String(w), url: variantUrl(r.url, w, h) })));
+      const ov = document.createElement('div');
+      ov.className = 'variants-overlay';
+      ov.innerHTML = `
+        <div class="variants-panel">
+          <div class="flex items-center justify-between mb-3">
+            <div class="min-w-0">
+              <h3 class="text-sm font-semibold" style="color: var(--warm-ink);">各分辨率链接</h3>
+              <p class="text-caption truncate mt-0.5" style="color: var(--warm-ink-3);" title="${esc(r.prompt)}">${esc(r.prompt)}</p>
+            </div>
+            <button class="p-1.5 rounded hover:bg-[var(--warm-surface-2)] flex-shrink-0" title="关闭" data-close>
+              <i data-lucide="x" class="w-4 h-4" style="color: var(--warm-ink-3);"></i>
+            </button>
+          </div>
+          <img src="${esc(variantUrl(r.url, 400, 300))}" alt="预览" class="w-full rounded-lg mb-3" style="max-height: 180px; object-fit: contain; background: var(--warm-surface-2);">
+          <div class="space-y-1.5">
+            ${rows.map((v, i) => `
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-medium shrink-0" style="color: var(--warm-ink-2); width: 40px;">${esc(v.label)}</span>
+              <input type="text" class="input-field flex-1 min-w-0 px-2 py-1 rounded text-xs font-mono" readonly value="${esc(v.url)}">
+              <button type="button" class="btn-secondary shrink-0 inline-flex items-center px-2 py-1 rounded-lg" title="复制" data-copy="${i}"><i data-lucide="copy" class="w-3.5 h-3.5"></i></button>
+            </div>`).join('')}
+          </div>
+        </div>`;
+      ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
+      ov.querySelector('[data-close]').onclick = () => ov.remove();
+      ov.querySelectorAll('[data-copy]').forEach(b => b.onclick = () => {
+        copyUrl(rows[+b.dataset.copy].url, b);
+      });
+      document.body.appendChild(ov);
+      lucide.createIcons();
     };
 
     window.copyUrl = async function (url, btn) {
