@@ -342,6 +342,7 @@ app.patch('/api/posts/:id/status', auth, (req, res) => {
 
 app.delete('/api/posts/:id', auth, (req, res) => {
   db.prepare('DELETE FROM posts WHERE id=?').run(+req.params.id);
+  db.prepare('DELETE FROM editor_media_history WHERE postId=?').run(+req.params.id); // 同步清理编辑器媒体记录
   res.json({ ok: true });
 });
 
@@ -801,7 +802,7 @@ async function callImageModel(m, prompt, { size, n } = {}) {
   }
   return { ok: false, error: '该 API 类型暂不支持文生图: ' + m.apiType };
 }
-/* 生成图片：body { id, prompt, size? } */
+/* 生成图片：body { id, prompt, size?, postId? }。postId 用于编辑器媒体恢复 */
 app.post('/api/ai/generate-image', auth, async (req, res) => {
   const b = req.body || {};
   if (!b.id) return res.status(400).json({ error: '请选择模型' });
@@ -816,9 +817,19 @@ app.post('/api/ai/generate-image', auth, async (req, res) => {
       db.prepare(
         'INSERT INTO ai_image_history (prompt, url, modelId, modelName, size, createdAt) VALUES (?,?,?,?,?,?)'
       ).run(prompt, r.url, m.id, m.displayName || m.provider, b.size || '', Date.now());
+      saveEditorMedia(+b.postId || 0, 'ai', r.url, prompt, 0);
     } catch (e) { /* 历史记录失败不影响主流程 */ }
   }
   res.json(r);
+});
+
+/* 编辑页媒体恢复：返回该文章最近一次 AI 生图 / 手动上传记录（各自一条） */
+app.get('/api/editor/media', auth, (req, res) => {
+  const postId = parseInt(req.query.postId, 10) || 0;
+  const last = kind => db.prepare(
+    'SELECT kind, url, name, degraded, createdAt FROM editor_media_history WHERE postId=? AND kind=? ORDER BY createdAt DESC LIMIT 1'
+  ).get(postId, kind) || null;
+  res.json({ ai: last('ai'), upload: last('upload') });
 });
 
 /* AI 生成图片历史：GET 列表 / DELETE 单条 / DELETE 全部 */
@@ -898,6 +909,15 @@ const imgVariants = url => IMG_VARIANTS.map(v => ({
   label: v.label,
   url: `${url}?x-oss-process=image/resize,w_${v.w},h_${v.h}`,
 }));
+
+/* 编辑器媒体记录：生图/上传成功后按文章维度存最近结果，编辑页刷新后恢复显示。
+ * 记录失败不影响主流程 */
+function saveEditorMedia(postId, kind, url, name, degraded) {
+  try {
+    db.prepare('INSERT INTO editor_media_history (postId, kind, url, name, degraded, createdAt) VALUES (?,?,?,?,?,?)')
+      .run(postId || 0, kind, url, String(name || '').slice(0, 100), degraded ? 1 : 0, Date.now());
+  } catch (_) {}
+}
 
 /* AI 生成图片后处理：下载原图 → 转 WebP(最高质量) → 原图和 WebP 都上传 OSS
  * 返回 { ok, url } url 为 WebP 的 OSS 地址；失败返回 { ok:false, error } */
@@ -1020,6 +1040,7 @@ app.post('/api/oss/upload', auth, (req, res, next) => {
     if (degraded) {
       const key = [c.pathPrefix, date, `${ts}-${base}${origExt}`].filter(Boolean).join('/');
       const url = await put(key, req.file.buffer, origMime);
+      saveEditorMedia(+req.body.postId || 0, 'upload', url, req.file.originalname, 1);
       return res.json({ ok: true, url, variants: imgVariants(url), key, name: req.file.originalname, size: req.file.size, degraded: true });
     }
     /* 正常路径：原图 + WebP 双份上传，只返回 WebP */
@@ -1027,6 +1048,7 @@ app.post('/api/oss/upload', auth, (req, res, next) => {
     const webpKey = [c.pathPrefix, date, `${ts}-${base}.webp`].filter(Boolean).join('/');
     await put(origKey, req.file.buffer, origMime);
     const url = await put(webpKey, webpBuf, 'image/webp');
+    saveEditorMedia(+req.body.postId || 0, 'upload', url, base, 0);
     res.json({ ok: true, url, variants: imgVariants(url), key: webpKey, name: `${base}.webp`, size: webpBuf.length });
   } catch (e) {
     res.json({ ok: false, error: e.message || String(e), code: e.code || e.status });

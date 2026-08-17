@@ -97,9 +97,10 @@ window.API = (function () {
     getOssConfig: () => request('GET', '/api/oss-config'),
     updateOssConfig: d => request('PUT', '/api/oss-config', d),
     testOss: () => request('POST', '/api/oss/test'),
-    uploadOss: (file) => {
+    uploadOss: (file, postId) => {
       const fd = new FormData();
       fd.append('file', file);
+      if (postId) fd.append('postId', postId);
       return fetch('/api/oss/upload', {
         method: 'POST',
         headers: { Authorization: 'Bearer ' + (localStorage.getItem('app_token') || '') },
@@ -107,6 +108,9 @@ window.API = (function () {
       }).then(async r => { const j = await r.json().catch(() => null); if (!r.ok) throw new Error((j && j.error) || `上传失败 (${r.status})`); return j; });
     },
 
+
+    /* 编辑器媒体恢复：最近一次 AI 生图 / 手动上传记录 */
+    getEditorMedia: postId => request('GET', '/api/editor/media?postId=' + (postId || 0)),
 
     /* 搜索 */
     search: q => request('GET', '/api/search?q=' + encodeURIComponent(q)),

@@ -508,7 +508,7 @@
       imgResultWrap.classList.add('hidden');
       try {
         const size = document.getElementById('imgSize').value.trim();
-        const r = await API.aiGenerateImage({ id, prompt, size: size || undefined });
+        const r = await API.aiGenerateImage({ id, prompt, size: size || undefined, postId: editId || 0 });
         if (r.ok && r.url) {
           imgPreview.src = r.url;
           imgResultWrap.classList.remove('hidden');
@@ -537,6 +537,10 @@
 
     /* URL 行列表渲染（AI 生图与直接上传共用）：原图行 + 各分辨率变体行，
      * 每行 [尺寸标签 + URL + 填入封面/插入正文/复制 三个图标按钮（title 悬停提示）] */
+    /* 变体 URL 推导（与服务端 IMG_VARIANTS 一致，恢复历史记录时前端自行拼） */
+    const VAR_SIZES = [[1920, 1080], [1280, 720], [800, 600], [400, 300]];
+    const deriveVariants = u => VAR_SIZES.map(([w, h]) => ({ label: String(w), url: `${u}?x-oss-process=image/resize,w_${w},h_${h}` }));
+    const agoTs = t => { const s = Math.floor((Date.now() - t) / 1000); if (s < 60) return '刚刚'; if (s < 3600) return Math.floor(s / 60) + ' 分钟前'; if (s < 86400) return Math.floor(s / 3600) + ' 小时前'; return Math.floor(s / 86400) + ' 天前'; };
     function renderUrlRows(boxId, mainUrl, variants, altText) {
       const box = document.getElementById(boxId);
       if (!box) return;
@@ -586,7 +590,7 @@
       upStatus.textContent = '上传中…';
       upDrop.style.opacity = '.6';
       try {
-        const r = await API.uploadOss(file);
+        const r = await API.uploadOss(file, editId || 0);
         upShowResult(r);
         Admin.toast('上传成功');
       } catch (e) {
@@ -624,6 +628,26 @@
         setTimeout(() => { window.location.href = 'posts.html'; }, 600);
       } catch (e) { Admin.toast('保存失败: ' + e.message); }
     }
+
+    // 恢复上次会话的媒体结果（AI 生图 / 手动上传各最近一条，服务端按文章维度记录）
+    // 放在末尾：imgPreview/upPreview 等已在上方定义，避免作用域时序问题
+    (async function restoreMedia() {
+      try {
+        const m = await API.getEditorMedia(editId || 0);
+        if (m.ai && m.ai.url) {
+          imgPreview.src = m.ai.url;
+          imgResultWrap.classList.remove('hidden');
+          imgStatus.textContent = '上次生图结果（' + agoTs(m.ai.createdAt) + '）';
+          renderUrlRows('imgVariantsBox', m.ai.url, deriveVariants(m.ai.url), 'AI生成图片');
+        }
+        if (m.upload && m.upload.url) {
+          upPreview.src = m.upload.url;
+          upResultWrap.classList.remove('hidden');
+          upStatus.textContent = `上次上传：${m.upload.name || ''}${m.upload.degraded ? '（保留原格式）' : ''}（${agoTs(m.upload.createdAt)}）`;
+          renderUrlRows('upVariantsBox', m.upload.url, deriveVariants(m.upload.url), (m.upload.name || '图片').replace(/\.[A-Za-z0-9]+$/, ''));
+        }
+      } catch (_) { /* 恢复失败静默，不影响编辑 */ }
+    })();
 
     document.getElementById('publishBtn').addEventListener('click', () => save('pub'));
     document.getElementById('saveDraftBtn').addEventListener('click', () => save('draft'));
