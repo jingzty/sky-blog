@@ -174,10 +174,10 @@
     .c4 { animation-duration: 7.5s; animation-delay: -2s; }
     .c5 { animation-duration: 8.5s; animation-delay: -4s; }
     .cloud img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
-    .cloud-overlay { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(20,48,73,0.1) 0%, transparent 25%, transparent 50%, rgba(20,48,73,0.75) 100%); display: flex; flex-direction: column; justify-content: flex-end; padding: 28px 32px; }
+    .cloud-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-end; padding: 28px 32px; }
     .cloud-tag { display: inline-flex; align-self: flex-start; align-items: center; padding: 5px 14px; background: rgba(255,255,255,0.25); border-radius: 20px; font-size: 0.72rem; font-weight: 600; color: #fff; margin-bottom: 12px; letter-spacing: 0.04em; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); flex-shrink: 0; }
-    .cloud-title { font-family: var(--serif); font-size: 1.4rem; font-weight: 700; line-height: 1.3; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.85), 0 2px 6px rgba(0,0,0,0.6), 0 0 18px rgba(0,0,0,0.45); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; flex-shrink: 0; }
-    .cloud-excerpt { font-size: 0.86rem; font-weight: 400; line-height: 1.6; color: #fff; opacity: 0.92; margin-top: 10px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-shadow: 0 1px 2px rgba(0,0,0,0.8), 0 2px 5px rgba(0,0,0,0.5); }
+    .cloud-title { font-family: var(--serif); font-size: 1.4rem; font-weight: 700; line-height: 1.3; color: #fff; /* 仅标题描边，不加底条 */ text-shadow: -1px -1px 0 rgba(0,0,0,0.6), 1px -1px 0 rgba(0,0,0,0.6), -1px 1px 0 rgba(0,0,0,0.6), 1px 1px 0 rgba(0,0,0,0.6); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; flex-shrink: 0; }
+    .cloud-excerpt { font-size: 0.86rem; font-weight: 400; line-height: 1.8; color: #fff; opacity: 1; margin-top: 14px; /* 摘要描边，稍弱于标题 */ text-shadow: -0.5px -0.5px 0 rgba(0,0,0,0.6), 0.5px -0.5px 0 rgba(0,0,0,0.6), -0.5px 0.5px 0 rgba(0,0,0,0.6), 0.5px 0.5px 0 rgba(0,0,0,0.6); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     /* 桌面端标题/摘要字号略放大；移动端(<=900px)保持上面原始字号不变 */
     @media (min-width: 901px) { .cloud-title { font-size: 1.62rem; } .cloud-excerpt { font-size: 0.96rem; } }
     .cloud-date { font-size: 0.78rem; font-weight: 500; color: #fff; opacity: 0.7; margin-top: 14px; flex-shrink: 0; }
