@@ -166,6 +166,7 @@ app.use((req, res, next) => {
     "font-src 'self' https://fonts.gstatic.cn https://maxcdn.bootstrapcdn.com",
     "img-src 'self' data: https:",
     "connect-src 'self'",
+    "frame-src 'self' https://player.bilibili.com",
     "frame-ancestors 'self'",
     "base-uri 'self'",
     "form-action 'self'",

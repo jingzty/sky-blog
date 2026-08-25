@@ -2,6 +2,51 @@
 window.MD = (function(){
   const esc = s => String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
+  /* 视频扩展名白名单：以这些后缀结尾（忽略 query/fragment）的链接渲染为 <video>。 */
+  const VIDEO_EXT = /\.(mp4|webm|ogg|mov|m4v)(?:[?#]|$)/i;
+  function isVideo(u){
+    const s = String(u||'').trim();
+    return VIDEO_EXT.test(s);
+  }
+  function videoTag(url, alt){
+    const u = safeUrl(url);
+    if (u === '#') return '<img src="#" alt="'+esc(alt||'')+'">';
+    return '<video controls preload="metadata" playsinline'+
+      (alt?' aria-label="'+esc(alt)+'"':'')+
+      '><source src="'+u+'"></video>';
+  }
+
+  /* B 站视频嵌入：从 bilibili.com/video/BVxxxx 或 /av数字 提取 id，
+   * 构造 player.bilibili.com iframe。参数白名单校验，防注入。 */
+  function isBilibili(u){
+    return /bilibili\.com\/video\/(BV[0-9A-Za-z]+|av\d+)/i.test(String(u||''));
+  }
+  function bilibiliTag(url, alt){
+    const s = String(url||'').trim();
+    let id = '', type = '';
+      let m = s.match(/bilibili\.com\/video\/(BV[0-9A-Za-z]+)/i);
+      if(m){ id=m[1]; type='bvid'; }
+      else { m = s.match(/bilibili\.com\/video\/av(\d+)/i); if(m){ id=m[1]; type='aid'; } }
+    if(!id) return '<a href="'+safeUrl(s)+'" target="_blank" rel="noopener">'+esc(alt||s)+'</a>';
+    const q = new URLSearchParams();
+    q.set(type, id);
+    q.set('page', (s.match(/[?&]p=(\d+)/)||[])[1] || '1');
+    q.set('high_quality', '1');
+    const t = (s.match(/[?&]t=(\d+)/)||[])[1];
+    if(t) q.set('t', t);
+    const src = 'https://player.bilibili.com/player.html?'+q.toString();
+    return '<iframe class="bilibili-player" src="'+src+'" scrolling="no" '+
+      'frameborder="0" framespacing="0" allowfullscreen="true"'+
+      (alt?' title="'+esc(alt)+'"':'')+'></iframe>';
+  }
+
+  /* 统一媒体标签：视频文件 → <video>；B 站链接 → iframe；否则图片。 */
+  function mediaTag(url, alt){
+    if (isVideo(url)) return videoTag(url, alt);
+    if (isBilibili(url)) return bilibiliTag(url, alt);
+    return '<img src="'+safeUrl(url)+'" alt="'+esc(alt||'')+'" loading="lazy">';
+  }
+
   function render(src){
     let html = '';
     const lines = String(src||'').split('\n');
@@ -75,6 +120,14 @@ window.MD = (function(){
         continue;
       }
 
+      // 单行裸媒体 URL → 媒体块（视频文件 / B 站链接，不走 inline 避免被转义成纯文本）
+      const bareMedia = line.trim().match(/^(https?:\/\/\S+)$/i);
+      if(bareMedia && (isVideo(bareMedia[1]) || isBilibili(bareMedia[1]))){
+        if(inList){ html+='</ul>'; inList=false; }
+        html += mediaTag(bareMedia[1], '');
+        continue;
+      }
+
       // 普通段落
       if(inList){ html+='</ul>'; inList=false; }
       html+='<p>'+inline(line)+'</p>';
@@ -95,8 +148,8 @@ window.MD = (function(){
     s = s.replace(/\*(.+?)\*/g,'<em>$1</em>');
     // 行内代码
     s = s.replace(/`(.+?)`/g,'<code>$1</code>');
-    // 图片（必须放在链接前面）
-    s = s.replace(/!\[([^\]]*)\]\(([^)]+)\)/g,(m,alt,url)=>`<img src="${safeUrl(url)}" alt="${alt}" loading="lazy">`);
+    // 图片/视频/B站（必须放在链接前面）
+    s = s.replace(/!\[([^\]]*)\]\(([^)]+)\)/g,(m,alt,url)=> mediaTag(url, alt));
     // 链接
     s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g,(m,txt,url)=>`<a href="${safeUrl(url)}" target="_blank" rel="noopener">${txt}</a>`);
     return s;
