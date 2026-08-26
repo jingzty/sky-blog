@@ -166,7 +166,7 @@ app.use((req, res, next) => {
     "font-src 'self' https://fonts.gstatic.cn https://maxcdn.bootstrapcdn.com",
     "img-src 'self' data: https:",
     "connect-src 'self'",
-    "frame-src 'self' https://player.bilibili.com",
+    "frame-src 'self' https://*.bilibili.com",
     "frame-ancestors 'self'",
     "base-uri 'self'",
     "form-action 'self'",
@@ -434,6 +434,53 @@ app.delete('/api/posts/:id', auth, (req, res) => {
 });
 
 /* ---- 分类 ---- */
+/* B 站视频封面代理：前端受 CORS 限制无法直连 B站 API，由后端代理取封面 URL。
+ * 公开接口（访客也要看封面）。只调 B站公开 view API，安全风险低。
+ * 失败时返回空 cover，前端回退到渐变背景。 */
+const BILI_API_TIMEOUT = 4000;
+async function fetchBiliCover(id){
+  const param = /^av/i.test(id) ? 'aid=' + id.slice(2) : 'bvid=' + id;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), BILI_API_TIMEOUT);
+  try {
+    const r = await fetch('https://api.bilibili.com/x/web-interface/view?' + param, {
+      signal: ctrl.signal,
+      headers: { 'User-Agent': 'Mozilla/5.0' }
+    });
+    const j = await r.json();
+    return j && j.data && j.data.pic ? j.data.pic.replace(/^http:\/\//, 'https://') : '';
+  } catch (e) { return ''; }
+  finally { clearTimeout(timer); }
+}
+app.get('/api/bilibili/cover', async (req, res) => {
+  const id = String(req.query.id || '').trim();
+  if (!/^(BV[0-9A-Za-z]+|av\d+)$/i.test(id))
+    return res.status(400).json({ error: '无效的视频 ID' });
+  res.json({ cover: await fetchBiliCover(id) });
+});
+
+/* B 站封面图流代理：B站 CDN 有 Referer 防盗链，本站直链会被 403。
+ * 服务端带 Referer:https://www.bilibili.com/ 取图后流式返回给前端，
+ * 前端用本接口 URL 作为背景图源即可绕过防盗链。
+ * 内存缓存封面 URL(5 分钟)，避免每次请求都打 B站 API。 */
+const biliCoverCache = new Map();
+app.get('/api/bilibili/cover-img', async (req, res) => {
+  const id = String(req.query.id || '').trim();
+  if (!/^(BV[0-9A-Za-z]+|av\d+)$/i.test(id))
+    return res.status(400).end();
+  let url = biliCoverCache.get(id);
+  if (!url) { url = await fetchBiliCover(id); if (url) biliCoverCache.set(id, url); }
+  if (!url) return res.status(404).end();
+  try {
+    const r = await fetch(url, { headers: { 'Referer': 'https://www.bilibili.com/', 'User-Agent': 'Mozilla/5.0' } });
+    if (!r.ok) return res.status(r.status).end();
+    res.setHeader('Content-Type', r.headers.get('content-type') || 'image/jpeg');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    const buf = Buffer.from(await r.arrayBuffer());
+    res.send(buf);
+  } catch (e) { res.status(502).end(); }
+});
+
 app.get('/api/categories', (req, res) => res.json(ST.cats.all()));
 app.post('/api/categories', auth, (req, res) => {
   const b = req.body || {};
@@ -1246,13 +1293,15 @@ app.use((req, res, next) => {
  * 缓存策略：图片/字体 7 天强缓存（内容不变，省 4.5MB 目录的重复协商）；
  * css/js 用 no-cache 协商缓存（文件名无 hash，若设 max-age 会导致发布更新后
  * 存量会话在缓存期内拿旧 JS，新功能报错--实测踩过，改回协商）；
- * html no-cache 每次协商保更新及时。 */
+ * html 用 no-store 完全不缓存：CSP 等安全头随响应体一起返回，走 304 协商缓存时
+ *   浏览器会沿用上次缓存的旧安全头，导致安全策略更新后手机端仍被旧 CSP 拦截
+ *   (实测 B站视频 frame-src 修复后手机端仍报"已阻止此内容")。 */
 app.use(express.static(path.join(__dirname, 'public'), {
   etag: true,
   setHeaders: (res, filePath) => {
     if (/\.(jpe?g|png|gif|webp|avif|svg|ico|woff2?)$/i.test(filePath)) res.setHeader('Cache-Control', 'public, max-age=604800');
     else if (/\.(css|js)$/i.test(filePath)) res.setHeader('Cache-Control', 'no-cache');
-    else if (/\.html$/i.test(filePath)) res.setHeader('Cache-Control', 'no-cache');
+    else if (/\.html$/i.test(filePath)) res.setHeader('Cache-Control', 'no-store');
   },
 }));
 app.use((req, res) => res.status(404).sendFile(path.join(__dirname, 'public', '404.html')));

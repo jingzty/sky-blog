@@ -310,6 +310,23 @@
           wrap.appendChild(btn);
         });
 
+        /* B 站移动端卡片：异步加载真实封面作为背景，失败回退渐变 */
+        el.querySelectorAll('.bilibili-card[data-bili-id]').forEach(card => {
+          const id = card.getAttribute('data-bili-id');
+          /* 通过后端图片代理加载封面（绕过 B站 Referer 防盗链）。
+           * 预加载成功才设背景，失败保留原渐变。 */
+          const img = new Image();
+          img.onload = () => {
+            card.style.backgroundImage = 'url("/api/bilibili/cover-img?id=' + encodeURIComponent(id) + '")';
+            card.style.backgroundSize = 'cover';
+            card.style.backgroundPosition = 'center';
+            const span = card.querySelector('span');
+            if (span) span.style.cssText += 'background:rgba(0,0,0,0.45);padding:6px 14px;border-radius:8px;';
+          };
+          img.onerror = () => { /* 保留原渐变背景 */ };
+          img.src = '/api/bilibili/cover-img?id=' + encodeURIComponent(id);
+        });
+
         /* 复制链接 */
         const copyBtn = document.getElementById('copyLinkBtn');
         if(copyBtn){

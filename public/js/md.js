@@ -17,9 +17,14 @@ window.MD = (function(){
   }
 
   /* B 站视频嵌入：从 bilibili.com/video/BVxxxx 或 /av数字 提取 id，
-   * 构造 player.bilibili.com iframe。参数白名单校验，防注入。 */
+   * 桌面端构造 player.bilibili.com iframe；移动端 B站播放器 html5 路径需
+   * 加载 s1.hdslb.com 脚本 + bilivideo.com 视频流，与本站严格 CSP 不兼容
+   * (会报"已阻止此内容")，故移动端改为可点击跳转卡片，点击后到 B站原页观看。 */
   function isBilibili(u){
     return /bilibili\.com\/video\/(BV[0-9A-Za-z]+|av\d+)/i.test(String(u||''));
+  }
+  function isMobile(){
+    return /Mobi|Mobile|iPhone|iPod|Android|Windows Phone|UCWEB/i.test(navigator.userAgent||'');
   }
   function bilibiliTag(url, alt){
     const s = String(url||'').trim();
@@ -28,11 +33,26 @@ window.MD = (function(){
       if(m){ id=m[1]; type='bvid'; }
       else { m = s.match(/bilibili\.com\/video\/av(\d+)/i); if(m){ id=m[1]; type='aid'; } }
     if(!id) return '<a href="'+safeUrl(s)+'" target="_blank" rel="noopener">'+esc(alt||s)+'</a>';
+    const p = (s.match(/[?&]p=(\d+)/)||[])[1] || '1';
+    const t = (s.match(/[?&]t=(\d+)/)||[])[1];
+    const watchUrl = 'https://www.bilibili.com/video/'+id+(p&&p!=='1'?'?p='+p:'')+(t?(p&&p!=='1'?'&':'?')+'t='+t:'');
+    /* 移动端：跳转卡片（自包含内联样式，复用 16:9 比例与圆角） */
+    if(isMobile()){
+      const titleTxt = alt ? esc(alt) : '在哔哩哔哩观看';
+      const style = 'display:flex;align-items:center;justify-content:center;gap:10px;'+
+        'width:100%;aspect-ratio:16/9;border-radius:12px;margin:1.5em 0;'+
+        'background:linear-gradient(135deg,#fb7299,#00a1d6);color:#fff;'+
+        'text-decoration:none;font-size:1rem;font-weight:600;'+
+        'box-shadow:0 4px 16px rgba(0,0,0,0.12);';
+      const ico = '<svg width="28" height="28" viewBox="0 0 250 250" fill="currentColor" style="flex-shrink:0"><path d="M250 125C250 194 194 250 125 250S0 194 0 125 56 0 125 0s125 56 125 125zm-38.5-22.5c0-5.5-4.5-10-10-10H175v35h26.5v-25zm-10 22.5H175v35h26.5v-35zm-46.5-22.5c0-5.5-4.5-10-10-10h-26.5c-5.5 0-10 4.5-10 10v60c0 5.5 4.5 10 10 10h26.5c5.5 0 10-4.5 10-10v-60zm-10 60h-26.5v-35h26.5v35zm-46.5-60c0-5.5-4.5-10-10-10H61.5c-5.5 0-10 4.5-10 10v60c0 5.5 4.5 10 10 10H88c5.5 0 10-4.5 10-10v-60zm-10 60H61.5v-35H88v35z"/></svg>';
+      return '<a class="bilibili-card" data-bili-id="'+esc(id)+'" href="'+watchUrl+'" target="_blank" rel="noopener" style="'+style+'">'+ico+
+        '<span>'+titleTxt+'</span></a>';
+    }
+    /* 桌面端：iframe 播放器 */
     const q = new URLSearchParams();
     q.set(type, id);
-    q.set('page', (s.match(/[?&]p=(\d+)/)||[])[1] || '1');
+    q.set('page', p);
     q.set('high_quality', '1');
-    const t = (s.match(/[?&]t=(\d+)/)||[])[1];
     if(t) q.set('t', t);
     const src = 'https://player.bilibili.com/player.html?'+q.toString();
     return '<iframe class="bilibili-player" src="'+src+'" scrolling="no" '+
